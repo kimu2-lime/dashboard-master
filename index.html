@@ -778,10 +778,33 @@ async function fetchData(){
     DATA.store_royalty_pattern = json.store_royalty_pattern||{};
     if(json.persons && json.persons.length > 0) DATA.persons = json.persons.filter(p => p !== '雛形');
 
+    // エイリアスマップを保存（店名変更対応）
+    DATA.store_aliases = json.store_aliases || {};
+
     if(json.actual_data && Object.keys(json.actual_data).length > 0){
+      // エイリアスで旧店名→現在店名に統一してから格納
+      const aliases = DATA.store_aliases;
       Object.keys(json.actual_data).forEach(function(month){
         if(!DATA.data[month]) DATA.data[month]={};
-        Object.assign(DATA.data[month], json.actual_data[month]);
+        const monthData = json.actual_data[month];
+        Object.keys(monthData).forEach(function(storeName){
+          const key = aliases[storeName] || storeName; // 旧名なら現在名に変換
+          if(DATA.data[month][key]){
+            // 同じキーが既にある場合は売上等を合算
+            const ex = DATA.data[month][key];
+            const inc = monthData[storeName];
+            ex.total_sales            = (ex.total_sales||0)            + (inc.total_sales||0);
+            ex.new_count              = (ex.new_count||0)              + (inc.new_count||0);
+            ex.new_contract_count     = (ex.new_contract_count||0)     + (inc.new_contract_count||0);
+            ex.new_contract_sales     = (ex.new_contract_sales||0)     + (inc.new_contract_sales||0);
+            ex.contract_sales         = (ex.contract_sales||0)         + (inc.contract_sales||0);
+            ex.total_treatments       = (ex.total_treatments||0)       + (inc.total_treatments||0);
+            if(ex.new_count > 0) ex.new_contract_rate = Math.round(ex.new_contract_count/ex.new_count*1000)/10;
+            if(ex.new_contract_count > 0) ex.new_contract_unit_price = Math.round(ex.new_contract_sales/ex.new_contract_count);
+          } else {
+            DATA.data[month][key] = monthData[storeName];
+          }
+        });
         if(!DATA.months.includes(month)) DATA.months.push(month);
       });
       DATA.months.sort(); rebuildStores();
