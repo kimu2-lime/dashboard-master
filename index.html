@@ -783,11 +783,11 @@ async function fetchData(){
 
     if(json.actual_data && Object.keys(json.actual_data).length > 0){
       const aliases = DATA.store_aliases;
+      // 実績データは完全上書き（Object.assignで追加しない＝二重カウント防止）
       Object.keys(json.actual_data).forEach(function(month){
-        DATA.data[month] = {}; // 必ずリセットしてから格納（二重カウント防止）
+        DATA.data[month] = {}; // 上書きリセット
         const monthData = json.actual_data[month];
         Object.keys(monthData).forEach(function(storeName){
-          // エイリアスがある場合だけキーを変換、なければそのまま
           const key = aliases[storeName] || storeName;
           DATA.data[month][key] = monthData[storeName];
         });
@@ -847,9 +847,13 @@ function loadSavedTargets(){
   if(actual){
     try{
       const ad=JSON.parse(actual);
+      const aliases=DATA.store_aliases||{};
       Object.keys(ad).forEach(function(month){
-        if(!DATA.data[month]) DATA.data[month]={};
-        Object.assign(DATA.data[month], ad[month]);
+        DATA.data[month]={}; // 上書きリセット
+        Object.keys(ad[month]).forEach(function(storeName){
+          const key=aliases[storeName]||storeName;
+          DATA.data[month][key]=ad[month][storeName];
+        });
       });
     }catch(e){}
   }
