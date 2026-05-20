@@ -272,6 +272,7 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .total-chip.all{background:#f0f2ff;color:#667eea}
 .total-chip.direct{background:#fff5f5;color:#c53030}
 .total-chip.franchise{background:#ebf8ff;color:#2c5282}
+.total-chip.royalty{background:#fff3e0;color:#d97706}
 
 /* ===== SETTINGS BUTTON & MODAL ===== */
 .settings-btn{padding:6px 12px;border-radius:8px;border:1.5px solid #e0e0ec;background:transparent;color:#888;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
@@ -1952,29 +1953,37 @@ function renderList(){
   const hasTarget=DATA.targets&&Object.keys(DATA.targets).length>0;
   const hasType=DATA.store_type&&Object.keys(DATA.store_type).length>0;
 
-  let totalSales=0,directSales=0,franchiseSales=0,directCount=0,franchiseCount=0;
+  let totalSales=0,directSales=0,franchiseSales=0,directCount=0,franchiseCount=0,totalRoyalty=0;
   fstores.forEach(s=>{
     if(md[s]){
       totalSales+=md[s].total_sales;
       const st=DATA.store_type[s];
       if(st==='\u76f4\u55b6'){directSales+=md[s].total_sales;directCount++;}
-      else if(st==='\u52a0\u76df'){franchiseSales+=md[s].total_sales;franchiseCount++;}
+      else{
+        // \u76f4\u55b6\u4ee5\u5916\uff08\u52a0\u76df\u30fb\u672a\u5206\u985e\uff09\u306f\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08\u306b\u52a0\u7b97
+        if(st==='\u52a0\u76df'){franchiseSales+=md[s].total_sales;franchiseCount++;}
+        totalRoyalty+=(md[s].royalty!==undefined?md[s].royalty:royalty(md[s].total_sales));
+      }
     }
   });
 
   const personLabel=curPerson==='\u5168\u5e97\u8217'?'\u5168\u5e97\u8217':curPerson+'\u62c5\u5f53';
   document.getElementById('listTitle').textContent=personLabel+' \u5e97\u8217\u4e00\u89a7';
-  document.getElementById('listMeta').textContent=
-    ml+' \uff0f '+fstores.length+'\u5e97\u8217 \uff0f \u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')+'\u5186';
+  let metaText=ml+' \uff0f '+fstores.length+'\u5e97\u8217 \uff0f \u58f2\u4e0a\u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')+'\u5186';
+  if(curStoreType!=='\u76f4\u55b6'){
+    metaText+=' \uff0f \u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')+'\u5186';
+  }
+  document.getElementById('listMeta').textContent=metaText;
 
   // 直営/加盟 内訳チップ
   const totalsRow=document.getElementById('totalsRow');
   totalsRow.innerHTML='';
   if(hasType&&curStoreType==='\u5168\u5e97\u8217'&&(directCount>0||franchiseCount>0)){
     const chips=[
-      {cls:'all',txt:'\u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')},
+      {cls:'all',txt:'\u58f2\u4e0a\u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')},
       {cls:'direct',txt:'\u76f4\u55b6'+directCount+'\u5e97 \xa5'+directSales.toLocaleString('ja-JP')},
-      {cls:'franchise',txt:'\u52a0\u76df'+franchiseCount+'\u5e97 \xa5'+franchiseSales.toLocaleString('ja-JP')}
+      {cls:'franchise',txt:'\u52a0\u76df'+franchiseCount+'\u5e97 \xa5'+franchiseSales.toLocaleString('ja-JP')},
+      {cls:'royalty',txt:'\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')}
     ];
     chips.forEach(c=>{
       const s=document.createElement('span');
