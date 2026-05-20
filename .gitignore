@@ -7,3 +7,6 @@ dist/
 *.log
 .vscode/
 .idea/
+
+# Claude Code のローカル設定（PC個別の設定なので共有しない）
+.claude/settings.local.json
