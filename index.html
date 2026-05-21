@@ -273,6 +273,7 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .total-chip.direct{background:#fff5f5;color:#c53030}
 .total-chip.franchise{background:#ebf8ff;color:#2c5282}
 .total-chip.royalty{background:#fff3e0;color:#d97706}
+.total-chip.royalty-proj{background:#fffaf2;color:#c2410c;border:1.5px dashed #f0b27a}
 
 /* ===== SETTINGS BUTTON & MODAL ===== */
 .settings-btn{padding:6px 12px;border-radius:8px;border:1.5px solid #e0e0ec;background:transparent;color:#888;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
@@ -1053,6 +1054,7 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
             <span class="kgi-target" style="font-size:18px" id="dRoyaltyTgt"></span><span class="kgi-unit" id="dRoyaltyTgtUnit">円</span>
           </div>
           <div class="kgi-sublabel" id="dRoyaltyLabel"></div>
+          <div id="dRoyaltyProjBlock" class="proj-block" style="display:none;margin-top:12px"></div>
         </div>
       </div>
 
@@ -1926,6 +1928,53 @@ function rebuildStores(){
   });
 }
 function royalty(s){return Math.round(s*0.1+44000)} // フォールバック用（GASの値を優先）
+
+// 売上→ロイヤリティ算出（GAS calcRoyalty と同一ロジック）
+// 売上変動式の店舗は、着地見込売上を渡せばロイヤリティ着地見込が出る
+function calcRoyalty(sales,pattern){
+  const s=Math.round(sales||0);
+  if(!pattern||pattern==='')return Math.round(s*0.10+44000);
+  const p=pattern.toString().trim();
+  if(/固定.*8[.．・]?8万/.test(p))return 88000;
+  if(/固定.*6[.．・]?6万/.test(p))return 66000;
+  if(/固定.*5[.．・]?5万/.test(p))return 55000;
+  if(/段階/.test(p)||(/70万/.test(p)&&/85万/.test(p))){
+    if(s< 700000)return Math.round(s*0.08);
+    if(s< 850000)return Math.round(s*0.09);
+    if(s< 950000)return Math.round(s*0.10);
+    if(s<1000000)return Math.round(s*0.12);
+    return Math.round(s*0.15);
+  }
+  if(/90万/.test(p))return s<900000?Math.round(s*0.08):Math.round(s*0.10);
+  if(/55万/.test(p))return s<550000?44000:Math.round(s*0.10+44000);
+  if(/40万/.test(p)&&/8[.．・]?8万/.test(p))return s<400000?88000:Math.round(s*0.10+44000);
+  if(/40万/.test(p)&&/4[.．・]?4万/.test(p))return s<400000?44000:Math.round(s*0.10+44000);
+  if(/15[%％]/.test(p))return Math.max(Math.round(s*0.15),132000);
+  if(/10[%％]/.test(p)&&/4[.．・]?4万/.test(p))return Math.round(s*0.10+44000);
+  if(/10[%％]/.test(p))return Math.round(s*0.10);
+  if(/8[%％]/.test(p))return Math.round(s*0.08);
+  if(/5[%％]/.test(p))return Math.round(s*0.05);
+  return Math.round(s*0.10+44000);
+}
+
+// 固定ロイヤリティ（売上に連動しない）パターンか判定
+function isFixedRoyalty(pattern){
+  return !!pattern&&/固定/.test(pattern.toString());
+}
+
+// 店舗のロイヤリティ着地見込を算出
+//  - 固定パターン … 売上に連動しないので現在値そのまま
+//  - 売上変動式   … 売上の着地見込から calcRoyalty で再計算
+// 戻り値: { proj, isFixed, projSales, hasProj } / 直営・データなしは null
+function calcRoyaltyProjection(store,d){
+  if(!d||DATA.store_type[store]==='直営')return null;
+  const roy=d.royalty!==undefined?d.royalty:royalty(d.total_sales);
+  const pat=DATA.store_royalty_pattern?DATA.store_royalty_pattern[store]:'';
+  if(isFixedRoyalty(pat))return{proj:roy,isFixed:true,projSales:null,hasProj:false};
+  const sp=calcProjection(d.total_sales,d.last_date,curMonth,0);
+  if(!sp)return{proj:roy,isFixed:false,projSales:null,hasProj:false};
+  return{proj:calcRoyalty(sp.projection,pat),isFixed:false,projSales:sp.projection,hasProj:true};
+}
 function progClass(pct){return pct>=100?'good':pct>=70?'mid':'low'}
 function progBadge(actual,target){
   if(!target||target===0)return{cls:'none',txt:''};
@@ -1953,7 +2002,7 @@ function renderList(){
   const hasTarget=DATA.targets&&Object.keys(DATA.targets).length>0;
   const hasType=DATA.store_type&&Object.keys(DATA.store_type).length>0;
 
-  let totalSales=0,directSales=0,franchiseSales=0,directCount=0,franchiseCount=0,totalRoyalty=0;
+  let totalSales=0,directSales=0,franchiseSales=0,directCount=0,franchiseCount=0,totalRoyalty=0,totalRoyaltyProj=0;
   fstores.forEach(s=>{
     if(md[s]){
       totalSales+=md[s].total_sales;
@@ -1962,7 +2011,11 @@ function renderList(){
       else{
         // \u76f4\u55b6\u4ee5\u5916\uff08\u52a0\u76df\u30fb\u672a\u5206\u985e\uff09\u306f\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08\u306b\u52a0\u7b97
         if(st==='\u52a0\u76df'){franchiseSales+=md[s].total_sales;franchiseCount++;}
-        totalRoyalty+=(md[s].royalty!==undefined?md[s].royalty:royalty(md[s].total_sales));
+        const r=(md[s].royalty!==undefined?md[s].royalty:royalty(md[s].total_sales));
+        totalRoyalty+=r;
+        // \u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u7740\u5730\u898b\u8fbc\uff08\u56fa\u5b9a\u306f\u305d\u306e\u307e\u307e\u3001\u58f2\u4e0a\u5909\u52d5\u5f0f\u306f\u58f2\u4e0a\u898b\u8fbc\u304b\u3089\u518d\u8a08\u7b97\uff09
+        const rp=calcRoyaltyProjection(s,md[s]);
+        totalRoyaltyProj+=rp?rp.proj:r;
       }
     }
   });
@@ -1971,7 +2024,8 @@ function renderList(){
   document.getElementById('listTitle').textContent=personLabel+' \u5e97\u8217\u4e00\u89a7';
   let metaText=ml+' \uff0f '+fstores.length+'\u5e97\u8217 \uff0f \u58f2\u4e0a\u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')+'\u5186';
   if(curStoreType!=='\u76f4\u55b6'){
-    metaText+=' \uff0f \u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')+'\u5186';
+    metaText+=' \uff0f \u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')+'\u5186'
+      +'\uff08\u7740\u5730\u898b\u8fbc \xa5'+totalRoyaltyProj.toLocaleString('ja-JP')+'\u5186\uff09';
   }
   document.getElementById('listMeta').textContent=metaText;
 
@@ -1983,7 +2037,8 @@ function renderList(){
       {cls:'all',txt:'\u58f2\u4e0a\u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')},
       {cls:'direct',txt:'\u76f4\u55b6'+directCount+'\u5e97 \xa5'+directSales.toLocaleString('ja-JP')},
       {cls:'franchise',txt:'\u52a0\u76df'+franchiseCount+'\u5e97 \xa5'+franchiseSales.toLocaleString('ja-JP')},
-      {cls:'royalty',txt:'\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')}
+      {cls:'royalty',txt:'\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')},
+      {cls:'royalty-proj',txt:'\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u7740\u5730\u898b\u8fbc \xa5'+totalRoyaltyProj.toLocaleString('ja-JP')}
     ];
     chips.forEach(c=>{
       const s=document.createElement('span');
@@ -2157,10 +2212,16 @@ function renderList(){
               '<div class="card-kgi-label"><span class="kgi-label-item">\u7dcf\u58f2\u4e0a</span></div>'+
               projHtml+
               (storeType!=='直営'?(
-              '<div class="card-kgi-row" style="margin-top:6px">'+
-                '<span class="card-kgi-actual" style="font-size:17px;color:#9b59b6">'+fmt(roy)+'</span>'+royTgtHtml+
-              '</div>'+
-              '<div class="card-kgi-label"><span>\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3</span></div>'
+              (function(){
+                const rpj=calcRoyaltyProjection(s,d);
+                let rpjHtml='';
+                if(rpj&&rpj.isFixed){rpjHtml='<span style="font-size:10px;color:#999;font-weight:600;margin-left:6px">\u56fa\u5b9a</span>';}
+                else if(rpj&&rpj.hasProj){rpjHtml='<span style="font-size:10px;color:#c2410c;font-weight:700;margin-left:6px">\u2192\u7740\u5730\u898b\u8fbc '+fmt(rpj.proj)+'</span>';}
+                return '<div class="card-kgi-row" style="margin-top:6px">'+
+                  '<span class="card-kgi-actual" style="font-size:17px;color:#9b59b6">'+fmt(roy)+'</span>'+royTgtHtml+
+                '</div>'+
+                '<div class="card-kgi-label"><span>\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3</span>'+rpjHtml+'</div>';
+              })()
               ):'') +
             '</div>';
           })()
@@ -2356,6 +2417,36 @@ function showDetail(store,d,tgt){
   }else{
     setEl('dRoyaltySlash','');setEl('dRoyaltyTgt','—');setEl('dRoyaltyTgtUnit','');
     setEl('dRoyaltyLabel','目標未設定');
+  }
+
+  // ロイヤリティ着地見込ブロック
+  const royProjEl = document.getElementById('dRoyaltyProjBlock');
+  if (royProjEl) {
+    const rpj = calcRoyaltyProjection(store, d);
+    if (rpj && storeTypeDetail !== '直営') {
+      let rateHtml = '';
+      if (royTgt && royTgt > 0) {
+        const rr = Math.round(rpj.proj / royTgt * 1000) / 10;
+        rateHtml = '<span class="proj-rate ' + projBadgeCls(rr) + '">' + rr + '%</span>';
+      }
+      let metaHtml;
+      if (rpj.isFixed) {
+        metaHtml = '固定ロイヤリティ（売上に連動しないため現在値で着地）';
+      } else if (rpj.hasProj) {
+        metaHtml = '売上着地見込 ' + fmt(rpj.projSales) + ' から算出';
+      } else {
+        metaHtml = '着地見込を出せる実績がないため現在値を表示';
+      }
+      royProjEl.style.display = '';
+      royProjEl.innerHTML =
+        '<div class="proj-label">📈 ロイヤリティ着地見込</div>' +
+        '<div class="proj-row">' +
+          '<span class="proj-val">' + fmt(rpj.proj) + '</span>' + rateHtml +
+        '</div>' +
+        '<div class="proj-meta">' + metaHtml + '</div>';
+    } else {
+      royProjEl.style.display = 'none';
+    }
   }
 
   // 新規数
