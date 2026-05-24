@@ -283,9 +283,10 @@ function buildData(since, targetsOnly) {
           const _ke  = sb.keizoku_end_count;
           const _kc  = sb.keizoku_continue_count;
           const _newLost = Math.max(0, totalNew - totalContracts);
-          sb.reappo_contract_rate       = _rc > 0  ? Math.round(_rcc/_rc*1000)/10 : 0;
-          sb.reappo_contract_unit_price = _rcc > 0 ? Math.round(sb.reappo_contract_sales/_rcc) : 0;
-          sb.total_contract_count       = totalContracts + _rcc;
+          sb.reappo_contract_rate        = _rc > 0  ? Math.round(_rcc/_rc*1000)/10 : 0;
+          sb.reappo_contract_unit_price  = _rcc > 0 ? Math.round(sb.reappo_contract_sales/_rcc) : 0;
+          sb.keizoku_continue_unit_price = _kc > 0  ? Math.round(sb.keizoku_continue_sales/_kc) : 0;
+          sb.total_contract_count        = totalContracts + _rcc;
           sb.total_contract_rate        = (totalNew + _rc) > 0 ? Math.round(sb.total_contract_count/(totalNew + _rc)*1000)/10 : 0;
           sb.keizoku_rate               = _ke > 0 ? Math.round(_kc/_ke*1000)/10 : 0;
           sb.dropout_count              = Math.max(0, _ke - _kc);
@@ -340,9 +341,10 @@ function buildData(since, targetsOnly) {
     const ke   = merged.keizoku_end_count;
     const kc   = merged.keizoku_continue_count;
     const newLost = Math.max(0, nn - nc);
-    merged.reappo_contract_rate       = rc > 0  ? Math.round(rcc/rc*1000)/10 : 0;
-    merged.reappo_contract_unit_price = rcc > 0 ? Math.round(merged.reappo_contract_sales/rcc) : 0;
-    merged.total_contract_count       = nc + rcc;
+    merged.reappo_contract_rate        = rc > 0  ? Math.round(rcc/rc*1000)/10 : 0;
+    merged.reappo_contract_unit_price  = rcc > 0 ? Math.round(merged.reappo_contract_sales/rcc) : 0;
+    merged.keizoku_continue_unit_price = kc > 0  ? Math.round(merged.keizoku_continue_sales/kc) : 0;
+    merged.total_contract_count        = nc + rcc;
     merged.total_contract_rate        = (nn + rc) > 0 ? Math.round(merged.total_contract_count/(nn + rc)*1000)/10 : 0;
     merged.keizoku_rate               = ke > 0 ? Math.round(kc/ke*1000)/10 : 0;
     merged.dropout_count              = Math.max(0, ke - kc);
@@ -618,6 +620,7 @@ function getActualDataBM(ss, royalty_pattern, since) {
         keizoku_end_count:           0,
         keizoku_continue_count:      0,
         keizoku_continue_sales:      0,
+        keizoku_continue_unit_price: 0,
         total_contract_count:        sm.new_contract_count,
         total_contract_rate:         sm.new_count > 0 ? Math.round((sm.new_contract_count / sm.new_count) * 1000) / 10 : 0,
         keizoku_rate:                0,
@@ -768,7 +771,8 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
 
       // ▼ 再来系KPI（会計ID単位フラグ・金額）
       let isReappoContract = false;  // ⑤ U=再来 & H=サービス & I「初めて契約|初めて購入」
-      let reappoContractAmt = 0;     // 再アポ契約売上
+      let reappoContractAmt = 0;     // 再アポ契約売上（後で確定）
+      let reappoContractAmtCandidate = 0; // 候補金額（再来 & 契約行の合計）
       let isKeizokuEnd     = false;  // ⑧ U=再来 & H=サービス & I「終了|再購入」
       let isKeizokuContinue = false; // ⑨ U=再来 & H=サービス & I「再購入」
       let keizokuContinueAmt = 0;    // 継続購入売上
@@ -791,13 +795,12 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
           }
         }
 
-        // ▼ 再来系判定（H=サービスの行のみ）
+        // ▼ 再来系判定
         if (category === 'サービス') {
           hasServiceCategory = true;
           if (shinki === '再来') {
             if (/初めて契約|初めて購入/.test(menu)) {
               isReappoContract = true;
-              reappoContractAmt += amt;
             }
             if (/終了|再購入/.test(menu)) isKeizokuEnd = true;
             if (/再購入/.test(menu)) {
@@ -806,7 +809,20 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
             }
           }
         }
+        // ▼ 再アポ契約売上 候補：再来 & カテゴリ ∈ {サービス, フェイシャル, その他, ボディ} & 「契約」を含む行
+        //   ※ isReappoContract 確定後にのみ採用（単発契約等の混入防止）
+        if (shinki === '再来') {
+          const isContractScope = (category === 'サービス' || isContractCategory);
+          if (isContractScope && /契約/.test(menu)) {
+            reappoContractAmtCandidate += amt;
+          }
+        }
       });
+
+      // 再アポ契約と判定された会計のみ売上を確定（候補を採用）
+      if (isReappoContract) {
+        reappoContractAmt = reappoContractAmtCandidate;
+      }
 
       // ④ 再アポ数：U=再来 & どの行もH=サービスを含まない（=単発再来）
       const isReappo = (shinki === '再来' && !hasServiceCategory);
@@ -861,7 +877,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
             new_contract_rate: 0, new_contract_sales: 0, new_contract_unit_price: 0,
             // ▼ 再来系
             reappo_count: 0, reappo_contract_count: 0, reappo_contract_sales: 0,
-            keizoku_end_count: 0, keizoku_continue_count: 0
+            keizoku_end_count: 0, keizoku_continue_count: 0, keizoku_continue_sales: 0
           };
         }
         const sd = sm.staff_data[staffName];
@@ -880,7 +896,10 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
             sd.reappo_contract_sales += reappoContractAmt;
           }
           if (isKeizokuEnd)      sd.keizoku_end_count      += 1;
-          if (isKeizokuContinue) sd.keizoku_continue_count += 1;
+          if (isKeizokuContinue) {
+            sd.keizoku_continue_count += 1;
+            sd.keizoku_continue_sales += keizokuContinueAmt;
+          }
         }
       }
     });
@@ -893,14 +912,15 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         sd.new_contract_rate       = sd.new_count > 0 ? Math.round((sd.new_contract_count / sd.new_count) * 1000) / 10 : 0;
         sd.new_contract_unit_price = sd.new_contract_count > 0 ? Math.round(sd.new_contract_sales / sd.new_contract_count) : 0;
         // ▼ 再来系 派生KPI（スタッフ別）
-        sd.reappo_contract_rate       = sd.reappo_count > 0 ? Math.round((sd.reappo_contract_count / sd.reappo_count) * 1000) / 10 : 0;
-        sd.reappo_contract_unit_price = sd.reappo_contract_count > 0 ? Math.round(sd.reappo_contract_sales / sd.reappo_contract_count) : 0;
-        sd.total_contract_count       = sd.new_contract_count + sd.reappo_contract_count;
-        const totalVisits             = sd.new_count + sd.reappo_count;
-        sd.total_contract_rate        = totalVisits > 0 ? Math.round((sd.total_contract_count / totalVisits) * 1000) / 10 : 0;
-        sd.keizoku_rate               = sd.keizoku_end_count > 0 ? Math.round((sd.keizoku_continue_count / sd.keizoku_end_count) * 1000) / 10 : 0;
-        sd.dropout_count              = Math.max(0, sd.keizoku_end_count - sd.keizoku_continue_count);
-        sd.dropout_rate               = sd.keizoku_end_count > 0 ? Math.round((sd.dropout_count / sd.keizoku_end_count) * 1000) / 10 : 0;
+        sd.reappo_contract_rate        = sd.reappo_count > 0 ? Math.round((sd.reappo_contract_count / sd.reappo_count) * 1000) / 10 : 0;
+        sd.reappo_contract_unit_price  = sd.reappo_contract_count > 0 ? Math.round(sd.reappo_contract_sales / sd.reappo_contract_count) : 0;
+        sd.keizoku_continue_unit_price = sd.keizoku_continue_count > 0 ? Math.round(sd.keizoku_continue_sales / sd.keizoku_continue_count) : 0;
+        sd.total_contract_count        = sd.new_contract_count + sd.reappo_contract_count;
+        const totalVisits              = sd.new_count + sd.reappo_count;
+        sd.total_contract_rate         = totalVisits > 0 ? Math.round((sd.total_contract_count / totalVisits) * 1000) / 10 : 0;
+        sd.keizoku_rate                = sd.keizoku_end_count > 0 ? Math.round((sd.keizoku_continue_count / sd.keizoku_end_count) * 1000) / 10 : 0;
+        sd.dropout_count               = Math.max(0, sd.keizoku_end_count - sd.keizoku_continue_count);
+        sd.dropout_rate                = sd.keizoku_end_count > 0 ? Math.round((sd.dropout_count / sd.keizoku_end_count) * 1000) / 10 : 0;
       });
       const royPat = royalty_pattern[storeName] || '';
       const lastDateObj = storeLastDate[storeName];
@@ -937,6 +957,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         keizoku_end_count:           keizokuEnd,
         keizoku_continue_count:      keizokuCont,
         keizoku_continue_sales:      Math.round(sm.keizoku_continue_sales),
+        keizoku_continue_unit_price: keizokuCont > 0 ? Math.round(sm.keizoku_continue_sales / keizokuCont) : 0,
         // ▼ 派生KPI
         total_contract_count:        totalContractCount,                                                       // ⑥
         total_contract_rate:         totalVisits > 0 ? Math.round((totalContractCount / totalVisits) * 1000) / 10 : 0, // ⑦
