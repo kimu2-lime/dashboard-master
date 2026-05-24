@@ -772,10 +772,10 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
       // ▼ 再来系KPI（会計ID単位フラグ・金額）
       let isReappoContract = false;  // ⑤ U=再来 & H=サービス & I「初めて契約|初めて購入」
       let reappoContractAmt = 0;     // 再アポ契約売上（後で確定）
-      let reappoContractAmtCandidate = 0; // 候補金額（再来 & 契約行の合計）
       let isKeizokuEnd     = false;  // ⑧ U=再来 & H=サービス & I「終了|再購入」
       let isKeizokuContinue = false; // ⑨ U=再来 & H=サービス & I「再購入」
-      let keizokuContinueAmt = 0;    // 継続購入売上
+      let keizokuContinueAmt = 0;    // 継続購入売上（後で確定）
+      let reappoOrKeizokuContractAmtCandidate = 0; // 再来 & 契約行の金額（再アポ・継続両方で共通）
       let hasServiceCategory = false;// ④判定用：H=サービスの行が1つでもあるか
 
       accRows.forEach(function(row) {
@@ -803,26 +803,23 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
               isReappoContract = true;
             }
             if (/終了|再購入/.test(menu)) isKeizokuEnd = true;
-            if (/再購入/.test(menu)) {
-              isKeizokuContinue = true;
-              keizokuContinueAmt += amt;
-            }
+            if (/再購入/.test(menu)) isKeizokuContinue = true;
           }
         }
-        // ▼ 再アポ契約売上 候補：再来 & カテゴリ ∈ {サービス, フェイシャル, その他, ボディ} & 「契約」を含む行
-        //   ※ isReappoContract 確定後にのみ採用（単発契約等の混入防止）
+        // ▼ 再来 & 「契約」行の金額を候補に積む（再アポ契約・継続契約の両方で共通利用）
+        //    実際の購入金額はラベル行（サービス・0円）ではなく契約行（フェイシャル/ボディ/その他）に乗っている
+        //    isReappoContract / isKeizokuContinue が確定したらこの候補を採用
         if (shinki === '再来') {
           const isContractScope = (category === 'サービス' || isContractCategory);
           if (isContractScope && /契約/.test(menu)) {
-            reappoContractAmtCandidate += amt;
+            reappoOrKeizokuContractAmtCandidate += amt;
           }
         }
       });
 
-      // 再アポ契約と判定された会計のみ売上を確定（候補を採用）
-      if (isReappoContract) {
-        reappoContractAmt = reappoContractAmtCandidate;
-      }
+      // 再アポ契約・継続購入と判定された会計のみ売上を確定（候補を採用）
+      if (isReappoContract)  reappoContractAmt  = reappoOrKeizokuContractAmtCandidate;
+      if (isKeizokuContinue) keizokuContinueAmt = reappoOrKeizokuContractAmtCandidate;
 
       // ④ 再アポ数：U=再来 & どの行もH=サービスを含まない（=単発再来）
       const isReappo = (shinki === '再来' && !hasServiceCategory);
