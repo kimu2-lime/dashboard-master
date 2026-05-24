@@ -188,6 +188,33 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .dkpi.treat{border-top:3px solid #06b6d4}.dkpi.treat .dkpi-actual{color:#06b6d4}
 .dkpi.cs-total{border-top:3px solid #1a1a2e}.dkpi.cs-total .dkpi-actual{color:#1a1a2e}
 .dkpi.cs-new{border-top:3px solid #4f87f7}.dkpi.cs-new .dkpi-actual{color:#4f87f7}
+/* ▼ フェーズ別カラー（育成=紫 / 継続=緑） */
+.dkpi.nurture-count{border-top:3px solid #a855f7}.dkpi.nurture-count .dkpi-actual{color:#a855f7}
+.dkpi.nurture-contract{border-top:3px solid #8b5cf6}.dkpi.nurture-contract .dkpi-actual{color:#8b5cf6}
+.dkpi.nurture-rate{border-top:3px solid #ec4899}.dkpi.nurture-rate .dkpi-actual{color:#ec4899}
+.dkpi.nurture-price{border-top:3px solid #d946ef}.dkpi.nurture-price .dkpi-actual{color:#d946ef}
+.dkpi.retention-end{border-top:3px solid #14b8a6}.dkpi.retention-end .dkpi-actual{color:#14b8a6}
+.dkpi.retention-cont{border-top:3px solid #10b981}.dkpi.retention-cont .dkpi-actual{color:#10b981}
+.dkpi.retention-rate{border-top:3px solid #059669}.dkpi.retention-rate .dkpi-actual{color:#059669}
+.dkpi.retention-drop{border-top:3px solid #ef4444}.dkpi.retention-drop .dkpi-actual{color:#ef4444}
+/* セクション見出しのフェーズ色帯 */
+.phase-label{display:flex;align-items:center;gap:8px;margin-top:18px;margin-bottom:8px;font-size:12px;font-weight:800;letter-spacing:.5px}
+.phase-label::before{content:'';display:inline-block;width:4px;height:14px;border-radius:2px}
+.phase-label.acquisition{color:#4f87f7}.phase-label.acquisition::before{background:#4f87f7}
+.phase-label.nurture{color:#a855f7}.phase-label.nurture::before{background:#a855f7}
+.phase-label.retention{color:#10b981}.phase-label.retention::before{background:#10b981}
+.phase-label .phase-sub{font-size:10px;font-weight:600;color:#aaa;letter-spacing:0;margin-left:4px}
+/* ▼ 一覧カード用 フェーズチップ */
+.card-phase-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-top:10px;margin-top:10px;border-top:1px dashed #eaeaf4}
+.phase-chip{background:#fafafe;border-radius:8px;padding:6px 8px;text-align:center;border:1px solid #f0f0f8}
+.phase-chip-label{font-size:9px;color:#aaa;font-weight:700;letter-spacing:.3px;margin-bottom:2px}
+.phase-chip-val{font-size:14px;font-weight:800;line-height:1.1}
+.phase-chip-sub{font-size:9px;color:#bbb;margin-top:1px}
+.phase-chip.nurture .phase-chip-val{color:#a855f7}
+.phase-chip.retention .phase-chip-val{color:#10b981}
+.phase-chip.dropout .phase-chip-val{color:#ef4444}
+.phase-chip.dim .phase-chip-val{color:#ccc}
+.phase-chip.dim .phase-chip-sub{color:#ddd}
 .dkpi-proj-row{margin-top:8px;padding-top:7px;border-top:1px dashed #eaeaf4;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
 .dkpi-proj-label{font-size:10px;color:#aaa;font-weight:700;margin-right:2px}
 .dkpi-proj-val{font-size:16px;font-weight:800;color:#667eea}
@@ -995,6 +1022,11 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
       <button class="type-btn"        id="kbContract" onclick="setKpiSort('new_contract_count')">📋 契約数</button>
       <button class="type-btn"        id="kbPrice"    onclick="setKpiSort('new_contract_unit_price')">💎 契約単価</button>
       <button class="type-btn"        id="kbRate"     onclick="setKpiSort('new_contract_rate')">📈 契約率</button>
+      <!-- ▼ フェーズ別KPI -->
+      <button class="type-btn"        id="kbTotalRate" onclick="setKpiSort('total_contract_rate')">🏆 総契約率</button>
+      <button class="type-btn"        id="kbRecovery" onclick="setKpiSort('reappo_recovery_rate')">🎯 再アポ回収</button>
+      <button class="type-btn"        id="kbKeizoku"  onclick="setKpiSort('keizoku_rate')">🔄 継続率</button>
+      <button class="type-btn"        id="kbDropout"  onclick="setKpiSort('dropout_rate')">⚠️ 離脱率</button>
       <!-- Phase 1: 優先度ソート（改善余地×売上インパクト×HQ利益弾性で算出） -->
       <button class="type-btn"        id="kbPriority" onclick="setKpiSort('priority')">🚨 優先度</button>
     </div>
@@ -1058,7 +1090,7 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
         </div>
       </div>
 
-      <div class="detail-section-label">📊 新規KPI</div>
+      <div class="phase-label acquisition">📊 獲得フェーズ<span class="phase-sub">新規来店 → 当日契約</span></div>
       <div class="detail-kpis">
         <div class="dkpi new">
           <div class="dkpi-icon">👤</div><div class="dkpi-label">新規数</div>
@@ -1131,6 +1163,76 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
           <div class="dkpi-icon">🆕</div><div class="dkpi-label">新規契約売上</div>
           <div class="dkpi-sublabel">初回契約分</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dCsNew"></span></div>
+        </div>
+      </div>
+
+      <!-- ▼ 育成（再アポ）フェーズ -->
+      <div class="phase-label nurture">🎯 育成フェーズ<span class="phase-sub">再来 → 再アポで契約化</span></div>
+      <div class="detail-kpis">
+        <div class="dkpi nurture-count">
+          <div class="dkpi-icon">🔁</div><div class="dkpi-label">再アポ数</div>
+          <div class="dkpi-sublabel">単発再来（未契約）</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappo"></span><span class="dkpi-dunit">人</span></div>
+        </div>
+        <div class="dkpi nurture-contract">
+          <div class="dkpi-icon">✍️</div><div class="dkpi-label">再アポ契約数</div>
+          <div class="dkpi-sublabel">再来時に初契約</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoContract"></span><span class="dkpi-dunit">件</span></div>
+        </div>
+        <div class="dkpi nurture-rate">
+          <div class="dkpi-icon">📈</div><div class="dkpi-label">再アポ回収率</div>
+          <div class="dkpi-sublabel">初回逃した中で再契約</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoRecovery"></span><span class="dkpi-dunit">%</span></div>
+        </div>
+        <div class="dkpi nurture-price">
+          <div class="dkpi-icon">💴</div><div class="dkpi-label">再アポ契約単価</div>
+          <div class="dkpi-sublabel">※0円除外</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoPrice"></span></div>
+        </div>
+      </div>
+
+      <!-- ▼ 継続フェーズ -->
+      <div class="phase-label retention">🔄 継続フェーズ<span class="phase-sub">回数券終了 → 再購入か離脱か</span></div>
+      <div class="detail-kpis">
+        <div class="dkpi retention-end">
+          <div class="dkpi-icon">⌛</div><div class="dkpi-label">回数券終了数</div>
+          <div class="dkpi-sublabel">終了 or 再購入対象</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuEnd"></span><span class="dkpi-dunit">件</span></div>
+        </div>
+        <div class="dkpi retention-cont">
+          <div class="dkpi-icon">🔄</div><div class="dkpi-label">継続購入数</div>
+          <div class="dkpi-sublabel">再購入完了</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuCont"></span><span class="dkpi-dunit">件</span></div>
+        </div>
+        <div class="dkpi retention-rate">
+          <div class="dkpi-icon">📈</div><div class="dkpi-label">継続率</div>
+          <div class="dkpi-sublabel">継続購入数 ÷ 終了数</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuRate"></span><span class="dkpi-dunit">%</span></div>
+        </div>
+        <div class="dkpi retention-drop">
+          <div class="dkpi-icon">⚠️</div><div class="dkpi-label">離脱率</div>
+          <div class="dkpi-sublabel">1 − 継続率</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dDropoutRate"></span><span class="dkpi-dunit">%</span></div>
+        </div>
+      </div>
+
+      <!-- 総合契約率（KGIサマリ） -->
+      <div class="phase-label" style="color:#1a1a2e">🏆 トータル契約サマリ<span class="phase-sub">新規＋再アポ で見る本当の契約力</span></div>
+      <div class="detail-kpis-2">
+        <div class="dkpi" style="border-top:3px solid #1a1a2e">
+          <div class="dkpi-icon">👥</div><div class="dkpi-label">総来店数</div>
+          <div class="dkpi-sublabel">新規 + 再アポ</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dTotalVisits"></span><span class="dkpi-dunit">人</span></div>
+        </div>
+        <div class="dkpi" style="border-top:3px solid #1a1a2e">
+          <div class="dkpi-icon">📋</div><div class="dkpi-label">総契約数</div>
+          <div class="dkpi-sublabel">新規契約 + 再アポ契約</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dTotalContract"></span><span class="dkpi-dunit">件</span></div>
+        </div>
+        <div class="dkpi" style="border-top:3px solid #1a1a2e">
+          <div class="dkpi-icon">📈</div><div class="dkpi-label">総契約率</div>
+          <div class="dkpi-sublabel">店舗の本当の決定力</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dTotalRate"></span><span class="dkpi-dunit">%</span></div>
         </div>
       </div>
 
@@ -2079,6 +2181,16 @@ function renderList(){
     if (curKpi === 'new_contract_count') return md[s].new_contract_count || 0;
     if (curKpi === 'new_contract_unit_price') return md[s].new_contract_unit_price || 0;
     if (curKpi === 'new_contract_rate') return md[s].new_contract_rate || 0;
+    // ▼ フェーズ別KPI
+    if (curKpi === 'total_contract_rate') return md[s].total_contract_rate || 0;
+    if (curKpi === 'reappo_recovery_rate') return md[s].reappo_recovery_rate || 0;
+    if (curKpi === 'keizoku_rate') {
+      // 終了数=0 の店舗は除外（-1で末尾に）
+      return (md[s].keizoku_end_count || 0) > 0 ? (md[s].keizoku_rate || 0) : -1;
+    }
+    if (curKpi === 'dropout_rate') {
+      return (md[s].keizoku_end_count || 0) > 0 ? (md[s].dropout_rate || 0) : -1;
+    }
     if (curKpi === 'priority') {
       // Phase 1: 優先度ソート（priority が null の店舗は末尾に）
       const ins = getInsight(s);
@@ -2149,6 +2261,11 @@ function renderList(){
           new_contract_count:      { label:'新規契約数', unit:'件', getValue: d=>d.new_contract_count, getTgt: t=>t&&t.new_contract_count, fmt: v=>v, isYen: false },
           new_contract_unit_price: { label:'新規契約単価', unit:'円', getValue: d=>d.new_contract_unit_price, getTgt: t=>t&&t.new_contract_unit_price, fmt: fmt, isYen: true },
           new_contract_rate:       { label:'新規契約率', unit:'%', getValue: d=>d.new_contract_rate, getTgt: t=>t&&t.new_contract_rate, fmt: v=>v, isYen: false },
+          // ▼ フェーズ別KPI（目標は未設定の店舗が多いので getTgt は null 返し）
+          total_contract_rate:     { label:'総契約率',   unit:'%', getValue: d=>d.total_contract_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
+          reappo_recovery_rate:    { label:'再アポ回収率', unit:'%', getValue: d=>d.reappo_recovery_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
+          keizoku_rate:            { label:'継続率',     unit:'%', getValue: d=>d.keizoku_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
+          dropout_rate:            { label:'離脱率',     unit:'%', getValue: d=>d.dropout_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
         };
         const def = KPI_DEF[kpi] || KPI_DEF.total_sales;
         const actual = def.getValue(d);
@@ -2248,7 +2365,40 @@ function renderList(){
             '<div class="ck-label">\u65b0\u898f\u5951\u7d04\u7387</div>'+
             '<div class="ck-actual">'+d.new_contract_rate+'<span style="font-size:11px;font-weight:500">%</span></div>'+
           '</div>'+
-        '</div>';
+        '</div>'+
+        // \u25bc \u30d5\u30a7\u30fc\u30ba\u30c1\u30c3\u30d7\uff08\u80b2\u6210/\u7d99\u7d9a/\u96e2\u8131\uff09
+        (function(){
+          const hasReappo = (d.reappo_count||0) > 0 || (d.reappo_contract_count||0) > 0;
+          const hasKeizoku = (d.keizoku_end_count||0) > 0;
+          if (!hasReappo && !hasKeizoku) return '';
+          const recovery = d.reappo_recovery_rate || 0;
+          const keizoku  = d.keizoku_rate || 0;
+          const dropout  = d.dropout_rate || 0;
+          const recoveryCls = hasReappo ? 'nurture' : 'dim';
+          const keizokuCls  = hasKeizoku ? 'retention' : 'dim';
+          const dropoutCls  = hasKeizoku ? 'dropout' : 'dim';
+          const fmtRate = (v, has) => has ? (v + '<span style="font-size:9px;font-weight:600">%</span>') : '\u2014';
+          const subRecovery = hasReappo ? ('\u518d\u30a2\u30dd' + (d.reappo_count||0) + '/\u5951\u7d04' + (d.reappo_contract_count||0)) : '';
+          const subKeizoku  = hasKeizoku ? ('\u7d99\u7d9a' + (d.keizoku_continue_count||0) + '/' + (d.keizoku_end_count||0)) : '';
+          const subDropout  = hasKeizoku ? ('\u96e2\u8131' + (d.dropout_count||0) + '\u4eba') : '';
+          return '<div class="card-phase-chips">'+
+            '<div class="phase-chip '+recoveryCls+'">'+
+              '<div class="phase-chip-label">\ud83c\udfaf \u518d\u30a2\u30dd\u56de\u53ce</div>'+
+              '<div class="phase-chip-val">'+fmtRate(recovery, hasReappo)+'</div>'+
+              '<div class="phase-chip-sub">'+subRecovery+'</div>'+
+            '</div>'+
+            '<div class="phase-chip '+keizokuCls+'">'+
+              '<div class="phase-chip-label">\ud83d\udd04 \u7d99\u7d9a\u7387</div>'+
+              '<div class="phase-chip-val">'+fmtRate(keizoku, hasKeizoku)+'</div>'+
+              '<div class="phase-chip-sub">'+subKeizoku+'</div>'+
+            '</div>'+
+            '<div class="phase-chip '+dropoutCls+'">'+
+              '<div class="phase-chip-label">\u26a0\ufe0f \u96e2\u8131\u7387</div>'+
+              '<div class="phase-chip-val">'+fmtRate(dropout, hasKeizoku)+'</div>'+
+              '<div class="phase-chip-sub">'+subDropout+'</div>'+
+            '</div>'+
+          '</div>';
+        })();
     }else{
       card.innerHTML='<div class="card-header"><div class="card-name">'+s+'</div></div><div class="no-data-badge">\u30c7\u30fc\u30bf\u306a\u3057</div>';
     }
@@ -2505,6 +2655,36 @@ function showDetail(store,d,tgt){
   setEl('dCs',fmt(d.contract_sales));
   setEl('dCsNew',fmt(d.new_contract_sales));
 
+  // ── 育成フェーズ（再アポ）──────────────────────────
+  setEl('dReappo', d.reappo_count || 0);
+  setEl('dReappoContract', d.reappo_contract_count || 0);
+  setEl('dReappoRecovery', (d.reappo_recovery_rate || 0));
+  setEl('dReappoPrice', (d.reappo_contract_unit_price > 0) ? fmt(d.reappo_contract_unit_price) : '—');
+
+  // ── 継続フェーズ ────────────────────────────────
+  setEl('dKeizokuEnd', d.keizoku_end_count || 0);
+  setEl('dKeizokuCont', d.keizoku_continue_count || 0);
+  setEl('dKeizokuRate', (d.keizoku_end_count > 0) ? (d.keizoku_rate || 0) : '—');
+  setEl('dDropoutRate', (d.keizoku_end_count > 0) ? (d.dropout_rate || 0) : '—');
+  // 終了数=0 のときは率系を非表示風に
+  ['dKeizokuRate','dDropoutRate'].forEach(function(id){
+    const el = document.getElementById(id);
+    if (el && el.textContent === '—') {
+      const unit = el.parentNode.querySelector('.dkpi-dunit');
+      if (unit) unit.style.display = 'none';
+    } else {
+      const el2 = document.getElementById(id);
+      const unit = el2 && el2.parentNode.querySelector('.dkpi-dunit');
+      if (unit) unit.style.display = '';
+    }
+  });
+
+  // ── トータル契約サマリ ───────────────────────────
+  const totalVisits = (d.new_count || 0) + (d.reappo_count || 0);
+  setEl('dTotalVisits', totalVisits);
+  setEl('dTotalContract', d.total_contract_count || 0);
+  setEl('dTotalRate', (totalVisits > 0) ? (d.total_contract_rate || 0) : '—');
+
   // ── メニュー別内訳（直営店のみ・onda/peelingデータがある場合）────
   const menuBreakSection = document.getElementById('dMenuBreakSection');
   const menuBreakGrid    = document.getElementById('dMenuBreakGrid');
@@ -2689,6 +2869,10 @@ function setKpiSort(kpi) {
     new_contract_count: 'kbContract',
     new_contract_unit_price: 'kbPrice',
     new_contract_rate: 'kbRate',
+    total_contract_rate: 'kbTotalRate',
+    reappo_recovery_rate: 'kbRecovery',
+    keizoku_rate: 'kbKeizoku',
+    dropout_rate: 'kbDropout',
     priority: 'kbPriority'  // Phase 1: 優先度ソート
   };
   const labels = {
@@ -2697,6 +2881,10 @@ function setKpiSort(kpi) {
     new_contract_count: '📋 契約数',
     new_contract_unit_price: '💎 契約単価',
     new_contract_rate: '📈 契約率',
+    total_contract_rate: '🏆 総契約率',
+    reappo_recovery_rate: '🎯 再アポ回収',
+    keizoku_rate: '🔄 継続率',
+    dropout_rate: '⚠️ 離脱率',
     priority: '🚨 優先度'    // Phase 1: 優先度ソート
   };
   Object.keys(map).forEach(k => {
