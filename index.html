@@ -342,6 +342,43 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .stats-kpi-sub{font-size:11px;color:#aaa;margin-top:4px}
 .stats-count-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f0f2ff;color:#667eea;margin-top:12px}
 
+/* ===== MAIN KPI ROW（一覧最上部の6個サマリ） ===== */
+.main-kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:1180px){.main-kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.main-kpi-row{grid-template-columns:repeat(2,1fr)}}
+.mk-card{background:#fff;border:1.5px solid #eaeaf4;border-radius:14px;padding:12px 14px;transition:box-shadow .15s,transform .15s;position:relative;overflow:hidden;min-width:0}
+.mk-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px)}
+.mk-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.mk-card.sales::before    {background:linear-gradient(180deg,#667eea,#764ba2)}
+.mk-card.royalty::before  {background:linear-gradient(180deg,#f59e0b,#d97706)}
+.mk-card.new::before      {background:#4f87f7}
+.mk-card.rate::before     {background:#38b06c}
+.mk-card.retention::before{background:#10b981}
+.mk-card.alert::before    {background:#ef4444}
+.mk-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;min-width:0}
+.mk-label{font-size:9.5px;font-weight:800;color:#999;letter-spacing:.7px;text-transform:uppercase;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-icon{font-size:14px;opacity:.85;flex-shrink:0;margin-left:6px}
+.mk-value-row{display:flex;align-items:baseline;gap:2px;margin-top:2px;min-width:0;flex-wrap:wrap}
+.mk-value{font-size:22px;font-weight:800;color:#1a1a2e;letter-spacing:-.5px;line-height:1.05;white-space:nowrap}
+.mk-unit{font-size:11px;font-weight:600;color:#aaa;margin-left:1px}
+.mk-trend-row{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.mk-trend{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:8px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
+.mk-trend.up   {background:#d1fae5;color:#065f46}
+.mk-trend.down {background:#fee2e2;color:#991b1b}
+.mk-trend.flat {background:#f3f4f6;color:#888}
+.mk-trend.alert-up   {background:#fee2e2;color:#991b1b}  /* アラート増加=悪化 */
+.mk-trend.alert-down {background:#d1fae5;color:#065f46}  /* アラート減少=改善 */
+.mk-sub{font-size:10px;color:#bbb;font-weight:600;white-space:nowrap}
+.mk-card.sales     .mk-value{color:#5b52d8}
+.mk-card.royalty   .mk-value{color:#d97706}
+.mk-card.new       .mk-value{color:#4f87f7}
+.mk-card.rate      .mk-value{color:#38b06c}
+.mk-card.retention .mk-value{color:#10b981}
+.mk-card.alert     .mk-value{color:#ef4444}
+body.mobile .main-kpi-row{grid-template-columns:repeat(2,1fr);gap:8px}
+body.mobile .mk-card{padding:10px 12px}
+body.mobile .mk-value{font-size:18px}
+
 /* ===== TOTALS ROW ===== */
 .totals-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
 .total-chip{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap}
@@ -1136,6 +1173,7 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 
   <div class="main">
     <div id="listView">
+      <div class="main-kpi-row" id="mainKpiRow"></div>
       <div class="list-header">
         <div>
           <div class="list-title" id="listTitle">店舗一覧</div>
@@ -2286,12 +2324,172 @@ function filteredStores(){
   });
 }
 
+/* ============================================================
+ *  メインKPIロウ（一覧最上部の6個サマリ）
+ *   - フィルター適用後の店舗群を集計
+ *   - 前月比を併記（売上系=%差、率系=pt差、アラート=店舗数差）
+============================================================ */
+function renderMainKpiRow(fstores, md, month){
+  const el = document.getElementById('mainKpiRow');
+  if(!el) return;
+  if(!md || fstores.length === 0){ el.innerHTML = ''; return; }
+
+  const prevMonth = getPrevMonth(month);
+  const mdPrev = DATA.data[prevMonth] || {};
+  const tgts   = DATA.targets || {};
+
+  // 集計ヘルパー：fstoresに含まれる店舗のみ集計
+  const sumKey = function(data, key){
+    let total = 0;
+    fstores.forEach(function(s){
+      if(data[s]) total += (data[s][key] || 0);
+    });
+    return total;
+  };
+  // ロイヤリティ合計：直営は対象外、加盟・未分類のみ
+  const sumRoyalty = function(data){
+    let total = 0;
+    fstores.forEach(function(s){
+      if(!data[s]) return;
+      const st = DATA.store_type ? DATA.store_type[s] : '';
+      if(st === '直営') return;
+      const r = (data[s].royalty !== undefined) ? data[s].royalty : royalty(data[s].total_sales);
+      total += r;
+    });
+    return total;
+  };
+  // アラート店舗数：売上目標達成率<70% OR 売上が前月比-30%以下
+  const countAlerts = function(data, dataPrev){
+    let n = 0;
+    fstores.forEach(function(s){
+      if(!data[s]) return;
+      const cur = data[s];
+      const tgt = tgts[s];
+      let alert = false;
+      if(tgt && tgt.total_sales > 0 && (cur.total_sales / tgt.total_sales) < 0.70) alert = true;
+      const prev = dataPrev[s];
+      if(prev && prev.total_sales > 0 && (cur.total_sales / prev.total_sales) < 0.70) alert = true;
+      if(alert) n++;
+    });
+    return n;
+  };
+
+  // 当月集計
+  const cur = {
+    sales:     sumKey(md, 'total_sales'),
+    royalty:   sumRoyalty(md),
+    new_count: sumKey(md, 'new_count'),
+    visits:    sumKey(md, 'new_count') + sumKey(md, 'reappo_count'),
+    contracts: sumKey(md, 'total_contract_count'),
+    keizoku_end: sumKey(md, 'keizoku_end_count'),
+    keizoku_cnt: sumKey(md, 'keizoku_continue_count'),
+    alerts:    countAlerts(md, mdPrev),
+  };
+  cur.initRate     = cur.visits      > 0 ? Math.round(cur.contracts   / cur.visits      * 1000)/10 : 0;
+  cur.retentionRate= cur.keizoku_end > 0 ? Math.round(cur.keizoku_cnt / cur.keizoku_end * 1000)/10 : 0;
+
+  // 前月集計
+  const prv = {
+    sales:     sumKey(mdPrev, 'total_sales'),
+    royalty:   sumRoyalty(mdPrev),
+    new_count: sumKey(mdPrev, 'new_count'),
+    visits:    sumKey(mdPrev, 'new_count') + sumKey(mdPrev, 'reappo_count'),
+    contracts: sumKey(mdPrev, 'total_contract_count'),
+    keizoku_end: sumKey(mdPrev, 'keizoku_end_count'),
+    keizoku_cnt: sumKey(mdPrev, 'keizoku_continue_count'),
+    alerts:    countAlerts(mdPrev, DATA.data[getPrevMonth(prevMonth)] || {}),
+  };
+  prv.initRate      = prv.visits      > 0 ? Math.round(prv.contracts   / prv.visits      * 1000)/10 : 0;
+  prv.retentionRate = prv.keizoku_end > 0 ? Math.round(prv.keizoku_cnt / prv.keizoku_end * 1000)/10 : 0;
+
+  // 前月比チップHTML（%表記）
+  const pctTrend = function(curV, prvV){
+    if(!prvV || prvV === 0) return '<span class="mk-trend flat">前月比 —</span>';
+    const diff = (curV - prvV) / prvV * 100;
+    const cls  = diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat';
+    const arr  = diff > 0.5 ? '▲' : diff < -0.5 ? '▼' : '＝';
+    const sign = diff > 0 ? '+' : '';
+    return '<span class="mk-trend ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + '%</span>';
+  };
+  // pt表記（率系）
+  const ptTrend = function(curV, prvV){
+    if(prvV == null) return '<span class="mk-trend flat">前月比 —</span>';
+    const diff = curV - prvV;
+    if(prvV === 0 && curV === 0) return '<span class="mk-trend flat">前月比 —</span>';
+    const cls  = diff > 0.1 ? 'up' : diff < -0.1 ? 'down' : 'flat';
+    const arr  = diff > 0.1 ? '▲' : diff < -0.1 ? '▼' : '＝';
+    const sign = diff > 0 ? '+' : '';
+    return '<span class="mk-trend ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + 'pt</span>';
+  };
+  // アラート店舗数（増加=悪化）
+  const alertTrend = function(curV, prvV){
+    const diff = curV - prvV;
+    if(diff > 0) return '<span class="mk-trend alert-up">▲ +' + diff + '店</span>';
+    if(diff < 0) return '<span class="mk-trend alert-down">▼ ' + diff + '店</span>';
+    return '<span class="mk-trend flat">前月比 ±0</span>';
+  };
+
+  // ロイヤリティ表示判定（直営のみ表示時は隠す）
+  const hasFranchise = fstores.some(function(s){ return (DATA.store_type ? DATA.store_type[s] : '') !== '直営'; });
+
+  const cards = [];
+  cards.push({
+    cls: 'sales', icon: '💰', label: '売上合計',
+    valueHtml: '<span class="mk-value">' + fmt(cur.sales) + '</span>',
+    trendHtml: pctTrend(cur.sales, prv.sales),
+    subHtml:   '<span class="mk-sub">' + fstores.length + '店舗</span>',
+  });
+  if(hasFranchise){
+    cards.push({
+      cls: 'royalty', icon: '💎', label: 'ロイヤリティ',
+      valueHtml: '<span class="mk-value">' + fmt(cur.royalty) + '</span>',
+      trendHtml: pctTrend(cur.royalty, prv.royalty),
+      subHtml:   '<span class="mk-sub">加盟店合計</span>',
+    });
+  }
+  cards.push({
+    cls: 'new', icon: '👤', label: '新規来店',
+    valueHtml: '<span class="mk-value">' + cur.new_count.toLocaleString('ja-JP') + '</span><span class="mk-unit">人</span>',
+    trendHtml: pctTrend(cur.new_count, prv.new_count),
+    subHtml: '',
+  });
+  cards.push({
+    cls: 'rate', icon: '🎯', label: '初回契約率',
+    valueHtml: '<span class="mk-value">' + cur.initRate + '</span><span class="mk-unit">%</span>',
+    trendHtml: ptTrend(cur.initRate, prv.initRate),
+    subHtml: '<span class="mk-sub">契約' + cur.contracts + '/来店' + cur.visits + '</span>',
+  });
+  cards.push({
+    cls: 'retention', icon: '🔄', label: '継続率',
+    valueHtml: '<span class="mk-value">' + cur.retentionRate + '</span><span class="mk-unit">%</span>',
+    trendHtml: ptTrend(cur.retentionRate, prv.retentionRate),
+    subHtml: '<span class="mk-sub">継続' + cur.keizoku_cnt + '/終了' + cur.keizoku_end + '</span>',
+  });
+  cards.push({
+    cls: 'alert', icon: '⚠️', label: 'アラート店舗',
+    valueHtml: '<span class="mk-value">' + cur.alerts + '</span><span class="mk-unit">店</span>',
+    trendHtml: alertTrend(cur.alerts, prv.alerts),
+    subHtml: '<span class="mk-sub">目標70%未満 / 前月-30%</span>',
+  });
+
+  el.innerHTML = cards.map(function(c){
+    return '<div class="mk-card ' + c.cls + '">' +
+      '<div class="mk-head"><div class="mk-label">' + c.label + '</div><div class="mk-icon">' + c.icon + '</div></div>' +
+      '<div class="mk-value-row">' + c.valueHtml + '</div>' +
+      '<div class="mk-trend-row">' + c.trendHtml + (c.subHtml || '') + '</div>' +
+    '</div>';
+  }).join('');
+}
+
 function renderList(){
   const ml=MONTH_MAP[curMonth]||curMonth;
   const md=DATA.data[curMonth]||{};
   const fstores=filteredStores();
   const hasTarget=DATA.targets&&Object.keys(DATA.targets).length>0;
   const hasType=DATA.store_type&&Object.keys(DATA.store_type).length>0;
+
+  // ▼ メインKPIロウ（全店サマリ × 前月比）
+  renderMainKpiRow(fstores, md, curMonth);
 
   let totalSales=0,directSales=0,franchiseSales=0,directCount=0,franchiseCount=0,totalRoyalty=0,totalRoyaltyProj=0;
   fstores.forEach(s=>{
