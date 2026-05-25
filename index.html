@@ -240,17 +240,29 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .phase-label.nurture{color:#a855f7}.phase-label.nurture::before{background:#a855f7}
 .phase-label.retention{color:#10b981}.phase-label.retention::before{background:#10b981}
 .phase-label .phase-sub{font-size:10px;font-weight:600;color:#aaa;letter-spacing:0;margin-left:4px}
-/* ▼ 一覧カード用 フェーズチップ */
+/* ▼ 一覧カード用 フェーズチップ（ミニドーナツ表示） */
 .card-phase-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-top:10px;margin-top:10px;border-top:1px dashed #eaeaf4}
-.phase-chip{background:#fafafe;border-radius:8px;padding:6px 8px;text-align:center;border:1px solid #f0f0f8}
+.phase-chip{background:#fafafe;border-radius:10px;padding:8px 6px 7px;text-align:center;border:1px solid #f0f0f8;display:flex;flex-direction:column;align-items:center;gap:3px}
+.phase-chip-name{font-size:9px;color:#888;font-weight:800;letter-spacing:.3px;display:inline-flex;align-items:center;gap:3px}
+.phase-chip-donut-wrap{position:relative;width:42px;height:42px}
+.mini-donut{display:block}
+.phase-chip-donut-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:-.3px}
+.phase-chip-donut-val .pcd-unit{font-size:7px;font-weight:700;margin-left:1px;opacity:.75}
+.phase-chip-sub{font-size:9px;color:#aaa;font-weight:600;line-height:1.2;margin-top:1px}
+.phase-chip.acquisition .phase-chip-donut-val{color:#4f87f7}
+.phase-chip.acquisition .phase-chip-name{color:#4f87f7}
+.phase-chip.nurture     .phase-chip-donut-val{color:#a855f7}
+.phase-chip.nurture     .phase-chip-name{color:#a855f7}
+.phase-chip.retention   .phase-chip-donut-val{color:#10b981}
+.phase-chip.retention   .phase-chip-name{color:#10b981}
+.phase-chip.dim         .phase-chip-donut-val{color:#ccc}
+.phase-chip.dim         .phase-chip-name{color:#bbb}
+.phase-chip.dim         .phase-chip-sub{color:#ddd}
+.phase-chip-alert{position:absolute;top:-3px;right:-3px;background:#ef4444;color:#fff;font-size:8px;font-weight:800;border-radius:8px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 4px rgba(239,68,68,.3)}
+/* レガシー（旧スタイル）— 残しておくが現状未使用 */
 .phase-chip-label{font-size:9px;color:#aaa;font-weight:700;letter-spacing:.3px;margin-bottom:2px}
 .phase-chip-val{font-size:14px;font-weight:800;line-height:1.1}
-.phase-chip-sub{font-size:9px;color:#bbb;margin-top:1px}
-.phase-chip.nurture .phase-chip-val{color:#a855f7}
-.phase-chip.retention .phase-chip-val{color:#10b981}
 .phase-chip.dropout .phase-chip-val{color:#ef4444}
-.phase-chip.dim .phase-chip-val{color:#ccc}
-.phase-chip.dim .phase-chip-sub{color:#ddd}
 .dkpi-proj-row{margin-top:8px;padding-top:7px;border-top:1px dashed #eaeaf4;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
 .dkpi-proj-label{font-size:10px;color:#aaa;font-weight:700;margin-right:2px}
 .dkpi-proj-val{font-size:16px;font-weight:800;color:#667eea}
@@ -1846,6 +1858,26 @@ function projBadgeCls(rate) {
 }
 
 /* ============================================================
+ *  カード用ミニドーナツSVG（フェーズチップで使用）
+ *  rate: 0〜100 / 100超でも100%まで表示
+ *  color: アクティブパス色（dimの場合は無視）
+ *  dim:   true でグレー表示
+============================================================ */
+function cardMiniDonut(rate, color, dim){
+  const R = 16, C = 2 * Math.PI * R; // 周長
+  const v = (!dim && rate != null && rate > 0) ? Math.min(100, rate) : 0;
+  const len = C * (v / 100);
+  const trackColor = '#eef0f8';
+  const stroke = dim ? '#e2e4ee' : color;
+  return '<svg class="mini-donut" width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">' +
+    '<circle cx="21" cy="21" r="' + R + '" fill="none" stroke="' + trackColor + '" stroke-width="4"/>' +
+    (v > 0 ? '<circle cx="21" cy="21" r="' + R + '" fill="none" stroke="' + stroke + '" stroke-width="4" ' +
+      'stroke-dasharray="' + len.toFixed(2) + ' ' + C.toFixed(2) + '" stroke-linecap="round" ' +
+      'transform="rotate(-90 21 21)"/>' : '') +
+  '</svg>';
+}
+
+/* ============================================================
  *  Phase 1: 店舗インサイト
  *  =====================================================
  *  「優先度」「危険度」「状態ラベル」を1つの純粋関数で生成
@@ -2523,36 +2555,43 @@ function renderList(){
             '<div class="ck-actual">'+d.new_contract_rate+'<span style="font-size:11px;font-weight:500">%</span></div>'+
           '</div>'+
         '</div>'+
-        // \u25bc \u30d5\u30a7\u30fc\u30ba\u30c1\u30c3\u30d7\uff08\u80b2\u6210/\u7d99\u7d9a/\u96e2\u8131\uff09
+        // \u25bc \u30d5\u30a7\u30fc\u30ba\u30c1\u30c3\u30d7\uff08\u7372\u5f97/\u80b2\u6210/\u7d99\u7d9a\u306e\u30df\u30cb\u30c9\u30fc\u30ca\u30c4\uff09
         (function(){
-          const hasReappo = (d.reappo_count||0) > 0 || (d.reappo_contract_count||0) > 0;
+          const hasNew     = (d.new_count||0) > 0;
+          const hasReappo  = (d.reappo_count||0) > 0 || (d.reappo_contract_count||0) > 0;
           const hasKeizoku = (d.keizoku_end_count||0) > 0;
-          if (!hasReappo && !hasKeizoku) return '';
-          const recovery = d.reappo_recovery_rate || 0;
-          const keizoku  = d.keizoku_rate || 0;
-          const dropout  = d.dropout_rate || 0;
-          const recoveryCls = hasReappo ? 'nurture' : 'dim';
-          const keizokuCls  = hasKeizoku ? 'retention' : 'dim';
-          const dropoutCls  = hasKeizoku ? 'dropout' : 'dim';
-          const fmtRate = (v, has) => has ? (v + '<span style="font-size:9px;font-weight:600">%</span>') : '\u2014';
-          const subRecovery = hasReappo ? ('\u518d\u30a2\u30dd' + (d.reappo_count||0) + '/\u5951\u7d04' + (d.reappo_contract_count||0)) : '';
-          const subKeizoku  = hasKeizoku ? ('\u7d99\u7d9a' + (d.keizoku_continue_count||0) + '/' + (d.keizoku_end_count||0)) : '';
-          const subDropout  = hasKeizoku ? ('\u96e2\u8131' + (d.dropout_count||0) + '\u4eba') : '';
+          if (!hasNew && !hasReappo && !hasKeizoku) return '';
+          const newRate   = d.new_contract_rate || 0;
+          const recovery  = d.reappo_recovery_rate || 0;
+          const keizoku   = d.keizoku_rate || 0;
+          const dropout   = d.dropout_count || 0;
+          const newCls    = hasNew     ? 'acquisition' : 'dim';
+          const nurCls    = hasReappo  ? 'nurture'     : 'dim';
+          const retCls    = hasKeizoku ? 'retention'   : 'dim';
+          const subNew    = hasNew     ? ('\u65b0\u898f' + (d.new_count||0) + '\u2192' + (d.new_contract_count||0) + '\u5951\u7d04') : '\u30c7\u30fc\u30bf\u306a\u3057';
+          const subReappo = hasReappo  ? ('\u518d\u30a2\u30dd' + (d.reappo_count||0) + '\u2192' + (d.reappo_contract_count||0) + '\u5951\u7d04') : '\u30c7\u30fc\u30bf\u306a\u3057';
+          const subKeiz   = hasKeizoku ? ('\u7d99\u7d9a' + (d.keizoku_continue_count||0) + '/' + (d.keizoku_end_count||0)) : '\u30c7\u30fc\u30bf\u306a\u3057';
+          const valHtml = (rate, has) => has
+            ? ('<div class="phase-chip-donut-val">' + rate + '<span class="pcd-unit">%</span></div>')
+            : ('<div class="phase-chip-donut-val">\u2014</div>');
+          const dropoutBadge = (hasKeizoku && dropout > 0)
+            ? '<div class="phase-chip-alert" title="\u96e2\u8131 ' + dropout + '\u4eba">!' + dropout + '</div>'
+            : '';
           return '<div class="card-phase-chips">'+
-            '<div class="phase-chip '+recoveryCls+'">'+
-              '<div class="phase-chip-label">\ud83c\udfaf \u518d\u30a2\u30dd\u56de\u53ce</div>'+
-              '<div class="phase-chip-val">'+fmtRate(recovery, hasReappo)+'</div>'+
-              '<div class="phase-chip-sub">'+subRecovery+'</div>'+
+            '<div class="phase-chip '+newCls+'">'+
+              '<div class="phase-chip-name">\ud83d\udcca \u7372\u5f97</div>'+
+              '<div class="phase-chip-donut-wrap">'+ cardMiniDonut(newRate, '#4f87f7', !hasNew) + valHtml(newRate, hasNew) +'</div>'+
+              '<div class="phase-chip-sub">'+subNew+'</div>'+
             '</div>'+
-            '<div class="phase-chip '+keizokuCls+'">'+
-              '<div class="phase-chip-label">\ud83d\udd04 \u7d99\u7d9a\u7387</div>'+
-              '<div class="phase-chip-val">'+fmtRate(keizoku, hasKeizoku)+'</div>'+
-              '<div class="phase-chip-sub">'+subKeizoku+'</div>'+
+            '<div class="phase-chip '+nurCls+'">'+
+              '<div class="phase-chip-name">\ud83c\udfaf \u80b2\u6210</div>'+
+              '<div class="phase-chip-donut-wrap">'+ cardMiniDonut(recovery, '#a855f7', !hasReappo) + valHtml(recovery, hasReappo) +'</div>'+
+              '<div class="phase-chip-sub">'+subReappo+'</div>'+
             '</div>'+
-            '<div class="phase-chip '+dropoutCls+'">'+
-              '<div class="phase-chip-label">\u26a0\ufe0f \u96e2\u8131\u7387</div>'+
-              '<div class="phase-chip-val">'+fmtRate(dropout, hasKeizoku)+'</div>'+
-              '<div class="phase-chip-sub">'+subDropout+'</div>'+
+            '<div class="phase-chip '+retCls+'">'+
+              '<div class="phase-chip-name">\ud83d\udd04 \u7d99\u7d9a</div>'+
+              '<div class="phase-chip-donut-wrap">'+ cardMiniDonut(keizoku, '#10b981', !hasKeizoku) + valHtml(keizoku, hasKeizoku) + dropoutBadge +'</div>'+
+              '<div class="phase-chip-sub">'+subKeiz+'</div>'+
             '</div>'+
           '</div>';
         })();
