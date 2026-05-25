@@ -338,6 +338,32 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .refresh-btn:hover{border-color:#667eea;color:#667eea}
 .target-loaded-badge{font-size:11px;font-weight:700;color:#059669;background:#d1fae5;border-radius:4px;padding:2px 8px;display:none}
 
+/* ===== SIDE MENU (フィルター左パネル) ===== */
+.hamburger-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid #e0e0ec;background:transparent;color:#666;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;padding:0}
+.hamburger-btn:hover{border-color:#667eea;color:#667eea;background:#f7f7ff}
+.hamburger-btn .h-icon{display:inline-flex;flex-direction:column;gap:3px;align-items:stretch;width:16px}
+.hamburger-btn .h-icon span{display:block;height:2px;background:currentColor;border-radius:1px}
+.side-menu-overlay{position:fixed;inset:0;background:rgba(20,20,40,.45);z-index:599;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.side-menu-overlay.open{opacity:1;pointer-events:auto}
+.side-panel{position:fixed;top:0;left:0;height:100vh;width:280px;max-width:88vw;background:#fff;z-index:600;box-shadow:6px 0 32px rgba(0,0,0,.18);transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.side-panel.open{transform:translateX(0)}
+.side-panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1.5px solid #f0f0f8;flex-shrink:0;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.side-panel-title{font-size:13px;font-weight:800;letter-spacing:.5px}
+.side-panel-close{width:30px;height:30px;border-radius:8px;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.side-panel-close:hover{background:rgba(255,255,255,.32)}
+.side-panel-body{flex:1;overflow-y:auto;padding:6px 0 18px}
+.side-panel-body::-webkit-scrollbar{width:6px}
+.side-panel-body::-webkit-scrollbar-thumb{background:#e0e0ec;border-radius:3px}
+.side-section-title{font-size:10px;font-weight:800;color:#999;letter-spacing:1.5px;text-transform:uppercase;padding:14px 18px 8px;display:flex;align-items:center;gap:6px}
+.side-section-title::before{content:'';width:3px;height:11px;border-radius:2px;background:#667eea;display:inline-block}
+/* ★ サイドパネル内に挿入された既存バーの見た目を縦並び化（既存ID/JSは無修正） */
+.side-panel .person-bar,.side-panel .type-bar{background:transparent;border-bottom:1px solid #f5f5fa;padding:4px 12px 12px}
+.side-panel .person-bar:last-child,.side-panel .type-bar:last-child{border-bottom:none}
+.side-panel .person-bar-inner,.side-panel .type-bar-inner{flex-direction:column;align-items:stretch;height:auto;overflow:visible;gap:5px;max-width:none}
+.side-panel .person-btn,.side-panel .type-btn{text-align:left;width:100%;padding:8px 12px;border-radius:8px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-panel .person-btn{border-radius:8px}
+.side-panel .type-btn{border-radius:8px}
+
 /* ===== MAIN NAV TABS ===== */
 .main-nav{background:#fff;border-bottom:2px solid #eaeaf4;padding:0 24px;display:flex;gap:0}
 .main-nav-inner{max-width:1440px;margin:0 auto;display:flex;gap:0}
@@ -987,8 +1013,28 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
   </div>
 </div>
 
+  <!-- サイドパネル（フィルター集約） -->
+  <div class="side-menu-overlay" id="sideMenuOverlay" onclick="closeSideMenu()"></div>
+  <aside class="side-panel" id="sidePanel" role="dialog" aria-label="フィルター">
+    <div class="side-panel-header">
+      <div class="side-panel-title">フィルター</div>
+      <button class="side-panel-close" onclick="closeSideMenu()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="side-panel-body" id="sidePanelBody">
+      <div class="side-section-title" id="sideTitlePerson" style="display:none">担当者</div>
+      <div id="sideSlotPerson"></div>
+      <div class="side-section-title" id="sideTitleType"   style="display:none">店舗タイプ</div>
+      <div id="sideSlotType"></div>
+      <div class="side-section-title" id="sideTitleKpi"    style="display:none">KPI 並び替え</div>
+      <div id="sideSlotKpi"></div>
+    </div>
+  </aside>
+
   <header class="header">
     <div class="header-inner">
+      <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSideMenu()" aria-label="フィルターを開く" title="フィルター">
+        <span class="h-icon"><span></span><span></span><span></span></span>
+      </button>
       <div class="brand">
         <div class="brand-logo">L</div>
         <div><div class="brand-name">LIME FIT</div><div class="brand-sub">売上ダッシュボード</div></div>
@@ -1596,12 +1642,59 @@ function init(){
   buildPersonBar();
   buildTypeBar();
   document.getElementById('kpiBar').style.display = '';  // 初期表示
+  movePanelsToSideMenu();
+  syncSidePanelSections();
   renderList();
   // ページ読み込み時に自動でdata.jsonを取得
   fetchData();
   // AI分析結果（data/ai-analysis.json）も並行ロード
   loadAiAnalysis();
 }
+
+/* ===== サイドメニュー（フィルター左パネル） ===== */
+function movePanelsToSideMenu(){
+  const slotPerson = document.getElementById('sideSlotPerson');
+  const slotType   = document.getElementById('sideSlotType');
+  const slotKpi    = document.getElementById('sideSlotKpi');
+  const personBar  = document.getElementById('personBarWrap');
+  const typeBar    = document.getElementById('typeBar');
+  const kpiBar     = document.getElementById('kpiBar');
+  if(personBar && slotPerson && personBar.parentNode !== slotPerson) slotPerson.appendChild(personBar);
+  if(typeBar   && slotType   && typeBar.parentNode   !== slotType)   slotType.appendChild(typeBar);
+  if(kpiBar    && slotKpi    && kpiBar.parentNode    !== slotKpi)    slotKpi.appendChild(kpiBar);
+}
+function syncSidePanelSections(){
+  const isShown = (el)=> el && el.style.display !== 'none';
+  const titles = {
+    sideTitlePerson: document.getElementById('personBarWrap'),
+    sideTitleType:   document.getElementById('typeBar'),
+    sideTitleKpi:    document.getElementById('kpiBar'),
+  };
+  Object.keys(titles).forEach(function(id){
+    const t = document.getElementById(id);
+    if(t) t.style.display = isShown(titles[id]) ? '' : 'none';
+  });
+}
+function openSideMenu(){
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('sideMenuOverlay').classList.add('open');
+  const btn = document.getElementById('hamburgerBtn');
+  if(btn) btn.setAttribute('aria-expanded','true');
+  syncSidePanelSections();
+}
+function closeSideMenu(){
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('sideMenuOverlay').classList.remove('open');
+  const btn = document.getElementById('hamburgerBtn');
+  if(btn) btn.setAttribute('aria-expanded','false');
+}
+function toggleSideMenu(){
+  const open = document.getElementById('sidePanel').classList.contains('open');
+  if(open) closeSideMenu(); else openSideMenu();
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && document.getElementById('sidePanel') && document.getElementById('sidePanel').classList.contains('open')) closeSideMenu();
+});
 
 function buildYearTabs(){
   const years=[...new Set(DATA.months.map(m=>m.slice(0,4)))].sort();
@@ -2974,6 +3067,7 @@ function switchMainTab(tab) {
   document.getElementById('analysisView').style.display= isAnalysis ? 'block' : 'none';
   if (isRanking)  renderRanking();
   if (isAnalysis) renderAnalysis();
+  if (typeof syncSidePanelSections === 'function') syncSidePanelSections();
 }
 
 // 課題判定しきい値
