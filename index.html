@@ -1035,7 +1035,7 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
       <button class="type-btn"        id="kbPrice"    onclick="setKpiSort('new_contract_unit_price')">💎 契約単価</button>
       <button class="type-btn"        id="kbRate"     onclick="setKpiSort('new_contract_rate')">📈 契約率</button>
       <!-- ▼ フェーズ別KPI -->
-      <button class="type-btn"        id="kbTotalRate" onclick="setKpiSort('total_contract_rate')">🏆 総契約率</button>
+      <button class="type-btn"        id="kbTotalRate" onclick="setKpiSort('total_contract_rate')">🎯 初回契約率</button>
       <button class="type-btn"        id="kbRecovery" onclick="setKpiSort('reappo_recovery_rate')">🎯 再アポ回収</button>
       <button class="type-btn"        id="kbKeizoku"  onclick="setKpiSort('keizoku_rate')">🔄 継続率</button>
       <button class="type-btn"        id="kbDropout"  onclick="setKpiSort('dropout_rate')">⚠️ 離脱率</button>
@@ -1254,22 +1254,22 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
         </div>
       </div>
 
-      <!-- 総合契約率（KGIサマリ） -->
-      <div class="phase-label" style="color:#1a1a2e">🏆 トータル契約サマリ<span class="phase-sub">新規＋再アポ で見る本当の契約力</span></div>
+      <!-- 初回契約サマリ（獲得＋育成の合算＝本当の決定力） -->
+      <div class="phase-label" style="color:#1a1a2e">🎯 初回契約サマリ<span class="phase-sub">新規＋再アポ＝店舗の本当の決定力</span></div>
       <div class="detail-kpis-2">
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">👥</div><div class="dkpi-label">総来店数</div>
+          <div class="dkpi-icon">👥</div><div class="dkpi-label">初回来店数</div>
           <div class="dkpi-sublabel">新規 + 再アポ</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dTotalVisits"></span><span class="dkpi-dunit">人</span></div>
         </div>
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">📋</div><div class="dkpi-label">総契約数</div>
+          <div class="dkpi-icon">📋</div><div class="dkpi-label">初回契約数</div>
           <div class="dkpi-sublabel">新規契約 + 再アポ契約</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dTotalContract"></span><span class="dkpi-dunit">件</span></div>
         </div>
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">📈</div><div class="dkpi-label">総契約率</div>
-          <div class="dkpi-sublabel">店舗の本当の決定力</div>
+          <div class="dkpi-icon">📈</div><div class="dkpi-label">初回契約率</div>
+          <div class="dkpi-sublabel">2回目までに決められたか</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dTotalRate"></span><span class="dkpi-dunit">%</span></div>
         </div>
       </div>
@@ -2300,7 +2300,7 @@ function renderList(){
           new_contract_unit_price: { label:'新規契約単価', unit:'円', getValue: d=>d.new_contract_unit_price, getTgt: t=>t&&t.new_contract_unit_price, fmt: fmt, isYen: true },
           new_contract_rate:       { label:'新規契約率', unit:'%', getValue: d=>d.new_contract_rate, getTgt: t=>t&&t.new_contract_rate, fmt: v=>v, isYen: false },
           // ▼ フェーズ別KPI（目標は未設定の店舗が多いので getTgt は null 返し）
-          total_contract_rate:     { label:'総契約率',   unit:'%', getValue: d=>d.total_contract_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
+          total_contract_rate:     { label:'初回契約率', unit:'%', getValue: d=>d.total_contract_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
           reappo_recovery_rate:    { label:'再アポ回収率', unit:'%', getValue: d=>d.reappo_recovery_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
           keizoku_rate:            { label:'継続率',     unit:'%', getValue: d=>d.keizoku_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
           dropout_rate:            { label:'離脱率',     unit:'%', getValue: d=>d.dropout_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
@@ -2733,7 +2733,7 @@ function showDetail(store,d,tgt){
     }
   }
 
-  // ── トータル契約サマリ ───────────────────────────
+  // ── 初回契約サマリ ───────────────────────────
   const totalVisits = (d.new_count || 0) + (d.reappo_count || 0);
   setEl('dTotalVisits', totalVisits);
   setEl('dTotalContract', d.total_contract_count || 0);
@@ -2935,7 +2935,7 @@ function setKpiSort(kpi) {
     new_contract_count: '📋 契約数',
     new_contract_unit_price: '💎 契約単価',
     new_contract_rate: '📈 契約率',
-    total_contract_rate: '🏆 総契約率',
+    total_contract_rate: '🎯 初回契約率',
     reappo_recovery_rate: '🎯 再アポ回収',
     keizoku_rate: '🔄 継続率',
     dropout_rate: '⚠️ 離脱率',
