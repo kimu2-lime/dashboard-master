@@ -179,9 +179,35 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .dkpi-icon{font-size:16px;margin-bottom:5px}
 .dkpi-label{font-size:11px;color:#aaa;font-weight:600;letter-spacing:.3px;margin-bottom:2px}
 .dkpi-sublabel{font-size:10px;color:#ccc;margin-bottom:4px}
-.staff-person{margin-bottom:14px}
-.staff-person-name{font-size:13px;font-weight:700;color:#444;margin-bottom:7px;padding:0 2px;display:flex;align-items:center;gap:6px}
+.staff-person{margin-bottom:14px;background:#fff;border:1.5px solid #eaeaf4;border-radius:14px;padding:14px 18px;transition:box-shadow .15s}
+.staff-person:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.staff-person-header{display:flex;align-items:center;gap:14px;padding-bottom:10px;border-bottom:1px solid #f0f0f8;margin-bottom:12px;flex-wrap:wrap}
+.staff-person-name{font-size:14px;font-weight:800;color:#1a1a2e;display:flex;align-items:center;gap:7px;flex-shrink:0;margin:0;padding:0}
 .staff-person-name::before{content:'';display:inline-block;width:4px;height:16px;border-radius:2px;background:#667eea}
+.staff-summary-chips{display:flex;gap:14px;flex-wrap:wrap;margin-left:auto}
+.staff-summary-chip{font-size:11px;font-weight:600;color:#888;display:inline-flex;align-items:baseline;gap:4px}
+.staff-summary-chip .v{font-size:14px;font-weight:800;color:#1a1a2e}
+.staff-summary-chip.sales .v{color:#6366f1}
+.staff-summary-chip.rate  .v{color:#9b59b6}
+.staff-summary-chip.cnt   .v{color:#38b06c}
+.staff-phase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:640px){.staff-phase-grid{grid-template-columns:1fr}}
+.staff-phase-block{background:#fafafe;border-radius:10px;padding:10px 12px;border-top:3px solid;border-left:1px solid #f0f0f8;border-right:1px solid #f0f0f8;border-bottom:1px solid #f0f0f8}
+.staff-phase-block.acquisition{border-top-color:#4f87f7;background:#f4f8ff}
+.staff-phase-block.nurture    {border-top-color:#a855f7;background:#faf5ff}
+.staff-phase-block.retention  {border-top-color:#10b981;background:#f0fdf6}
+.staff-phase-title{font-size:11px;font-weight:800;margin-bottom:7px;letter-spacing:.3px;display:flex;align-items:center;gap:4px}
+.staff-phase-block.acquisition .staff-phase-title{color:#4f87f7}
+.staff-phase-block.nurture     .staff-phase-title{color:#a855f7}
+.staff-phase-block.retention   .staff-phase-title{color:#10b981}
+.staff-phase-row{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:#888;margin-bottom:3px;line-height:1.4}
+.staff-phase-row:last-child{margin-bottom:0}
+.staff-phase-row .v{font-size:13px;font-weight:800;color:#1a1a2e}
+.staff-phase-row .v.muted{color:#bbb;font-weight:700}
+.staff-phase-row .v.good{color:#38b06c}
+.staff-phase-row .v.mid {color:#d97706}
+.staff-phase-row .v.low {color:#e74c3c}
+/* 旧 .staff-metrics は後方互換のため残す（未使用） */
 .staff-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 @media(max-width:600px){.staff-metrics{grid-template-columns:repeat(3,1fr)}}
 .dkpi-row{display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
@@ -2952,38 +2978,75 @@ function showDetail(store,d,tgt){
     // 総売上の降順でソート
     staffNames.sort(function(a, b) { return (staffData[b].total_sales || 0) - (staffData[a].total_sales || 0); });
 
+    // フェーズ別 row helper（値が0/未集計のときはミュート表示）
+    const rateClass = function(v, hi, mid){
+      if(!v || v <= 0) return 'muted';
+      if(v >= hi)  return 'good';
+      if(v >= mid) return 'mid';
+      return 'low';
+    };
+    const vNum   = function(v, unit){ return (v && v > 0) ? ('<span class="v">' + v + '</span><span class="dkpi-dunit">' + unit + '</span>') : '<span class="v muted">—</span>'; };
+    const vYen   = function(v){       return (v && v > 0) ? ('<span class="v">' + fmt(v) + '</span>')                                  : '<span class="v muted">—</span>'; };
+    const vRate  = function(v, hi, mid){
+      if(!v || v <= 0) return '<span class="v muted">—</span>';
+      return '<span class="v ' + rateClass(v, hi, mid) + '">' + v + '</span><span class="dkpi-dunit">%</span>';
+    };
+
     staffNames.forEach(function(name) {
       const s = staffData[name];
-      const rateVal  = s.new_contract_rate || 0;
-      const rateCls  = rateVal >= 30 ? '#38b06c' : rateVal >= 20 ? '#d97706' : '#e74c3c';
-      const priceStr = s.new_contract_unit_price > 0 ? fmt(s.new_contract_unit_price) : '—';
+      // 再アポ回収率: 初回逃した数（新規 − 新規契約）が分母
+      // GASでスタッフ別は未集計のため、UI側で算出（店舗カードと同じ定義）
+      const newLost = Math.max(0, (s.new_count || 0) - (s.new_contract_count || 0));
+      const recoveryRate = newLost > 0
+        ? Math.round((s.reappo_contract_count || 0) / newLost * 1000) / 10
+        : 0;
+
+      // 総合チップ：売上 / 初回契約率 / 契約計
+      const summary =
+        '<div class="staff-summary-chips">' +
+          '<span class="staff-summary-chip sales">💰<span class="v">' + fmt(s.total_sales || 0) + '</span></span>' +
+          '<span class="staff-summary-chip rate">🎯 初回<span class="v">' + ((s.total_contract_rate || 0) > 0 ? s.total_contract_rate + '%' : '—') + '</span></span>' +
+          '<span class="staff-summary-chip cnt">📋 契約計<span class="v">' + (s.total_contract_count || 0) + '</span></span>' +
+        '</div>';
+
+      // 獲得フェーズ
+      const acquisition =
+        '<div class="staff-phase-block acquisition">' +
+          '<div class="staff-phase-title">📊 獲得</div>' +
+          '<div class="staff-phase-row"><span>新規</span>'       + vNum(s.new_count, '人') + '</div>' +
+          '<div class="staff-phase-row"><span>新規契約</span>'   + vNum(s.new_contract_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>新規契約率</span>' + vRate(s.new_contract_rate, 30, 20) + '</div>' +
+          '<div class="staff-phase-row"><span>契約単価</span>'   + vYen(s.new_contract_unit_price) + '</div>' +
+        '</div>';
+
+      // 育成フェーズ（再アポ）
+      const nurture =
+        '<div class="staff-phase-block nurture">' +
+          '<div class="staff-phase-title">🎯 育成</div>' +
+          '<div class="staff-phase-row"><span>再アポ</span>'     + vNum(s.reappo_count, '人') + '</div>' +
+          '<div class="staff-phase-row"><span>再アポ契約</span>' + vNum(s.reappo_contract_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>回収率</span>'     + vRate(recoveryRate, 35, 20) + '</div>' +
+          '<div class="staff-phase-row"><span>再アポ単価</span>' + vYen(s.reappo_contract_unit_price) + '</div>' +
+        '</div>';
+
+      // 継続フェーズ
+      const retention =
+        '<div class="staff-phase-block retention">' +
+          '<div class="staff-phase-title">🔄 継続</div>' +
+          '<div class="staff-phase-row"><span>回数券終了</span>' + vNum(s.keizoku_end_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>継続購入</span>'   + vNum(s.keizoku_continue_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>継続率</span>'     + vRate(s.keizoku_rate, 60, 40) + '</div>' +
+          '<div class="staff-phase-row"><span>継続単価</span>'   + vYen(s.keizoku_continue_unit_price) + '</div>' +
+        '</div>';
 
       const person = document.createElement('div');
       person.className = 'staff-person';
       person.innerHTML =
-        '<div class="staff-person-name">' + name + '</div>' +
-        '<div class="staff-metrics">' +
-          '<div class="dkpi" style="border-top:3px solid #6366f1">' +
-            '<div class="dkpi-label">総売上</div>' +
-            '<div class="dkpi-row"><span class="dkpi-actual" style="font-size:18px;color:#6366f1">' + fmt(s.total_sales) + '</span></div>' +
-          '</div>' +
-          '<div class="dkpi new">' +
-            '<div class="dkpi-label">新規数</div>' +
-            '<div class="dkpi-row"><span class="dkpi-actual" style="font-size:20px">' + s.new_count + '</span><span class="dkpi-dunit">人</span></div>' +
-          '</div>' +
-          '<div class="dkpi contract">' +
-            '<div class="dkpi-label">新規契約数</div>' +
-            '<div class="dkpi-row"><span class="dkpi-actual" style="font-size:20px">' + s.new_contract_count + '</span><span class="dkpi-dunit">件</span></div>' +
-          '</div>' +
-          '<div class="dkpi rate">' +
-            '<div class="dkpi-label">新規契約率</div>' +
-            '<div class="dkpi-row"><span class="dkpi-actual" style="font-size:20px;color:' + rateCls + '">' + (rateVal > 0 ? rateVal : '—') + '</span>' + (rateVal > 0 ? '<span class="dkpi-dunit">%</span>' : '') + '</div>' +
-          '</div>' +
-          '<div class="dkpi price">' +
-            '<div class="dkpi-label">契約単価</div>' +
-            '<div class="dkpi-row"><span class="dkpi-actual" style="font-size:18px">' + priceStr + '</span></div>' +
-          '</div>' +
-        '</div>';
+        '<div class="staff-person-header">' +
+          '<div class="staff-person-name">' + name + '</div>' +
+          summary +
+        '</div>' +
+        '<div class="staff-phase-grid">' + acquisition + nurture + retention + '</div>';
       staffContainer.appendChild(person);
     });
   } else {
