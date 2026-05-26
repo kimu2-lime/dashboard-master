@@ -350,22 +350,22 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .main-kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
 @media(max-width:1180px){.main-kpi-row{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:640px){.main-kpi-row{grid-template-columns:repeat(2,1fr)}}
-.mk-card{background:#fff;border:1.5px solid #eaeaf4;border-radius:14px;padding:12px 14px;transition:box-shadow .15s,transform .15s;position:relative;overflow:hidden;min-width:0}
-.mk-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px)}
-.mk-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.mk-card{background:#fff;border:1px solid #eef0f8;border-radius:14px;padding:14px 16px 12px;transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;overflow:hidden;min-width:0;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+.mk-card:hover{box-shadow:0 6px 20px rgba(15,23,42,.07);transform:translateY(-1px);border-color:#e2e6f3}
+.mk-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
 .mk-card.sales::before    {background:linear-gradient(180deg,#667eea,#764ba2)}
 .mk-card.royalty::before  {background:linear-gradient(180deg,#f59e0b,#d97706)}
 .mk-card.new::before      {background:#4f87f7}
 .mk-card.rate::before     {background:#38b06c}
 .mk-card.retention::before{background:#10b981}
 .mk-card.alert::before    {background:#ef4444}
-.mk-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;min-width:0}
-.mk-label{font-size:9.5px;font-weight:800;color:#999;letter-spacing:.7px;text-transform:uppercase;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mk-icon{font-size:14px;opacity:.85;flex-shrink:0;margin-left:6px}
-.mk-value-row{display:flex;align-items:baseline;gap:2px;margin-top:2px;min-width:0;flex-wrap:wrap}
-.mk-value{font-size:22px;font-weight:800;color:#1a1a2e;letter-spacing:-.5px;line-height:1.05;white-space:nowrap}
-.mk-unit{font-size:11px;font-weight:600;color:#aaa;margin-left:1px}
-.mk-trend-row{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.mk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;min-width:0;min-height:44px}
+.mk-label{font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:.8px;text-transform:uppercase;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:6px;flex:1 1 auto;min-width:0}
+.mk-icon{font-size:18px;opacity:.45;flex-shrink:0;padding-top:4px;line-height:1}
+.mk-value-row{display:flex;align-items:baseline;gap:2px;margin-top:0;min-width:0;flex-wrap:wrap}
+.mk-value{font-size:24px;font-weight:800;color:#1a1a2e;letter-spacing:-.6px;line-height:1.05;white-space:nowrap}
+.mk-unit{font-size:11px;font-weight:600;color:#aaa;margin-left:2px}
+.mk-trend-row{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
 .mk-trend{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:8px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
 .mk-trend.up   {background:#d1fae5;color:#065f46}
 .mk-trend.down {background:#fee2e2;color:#991b1b}
@@ -379,27 +379,23 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-card.rate      .mk-value{color:#38b06c}
 .mk-card.retention .mk-value{color:#10b981}
 .mk-card.alert     .mk-value{color:#ef4444}
-/* ── 進捗リング付き新レイアウト ─────────────────────── */
-.mk-body{display:flex;align-items:center;gap:10px;margin-top:2px;min-width:0}
-.mk-text-col{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
-.mk-ring-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px}
-.mk-ring-wrap .progress-ring{display:block}
-.mk-ring-label{font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.4px;text-align:center;line-height:1}
-.mk-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:8px;padding-top:6px;border-top:1px dashed #eef0f8}
-.mk-target{font-size:10px;color:#9ca3af;font-weight:700;white-space:nowrap}
-.mk-target b{color:#475569;font-weight:800;margin-left:2px}
-.mk-proj{font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;white-space:nowrap}
+/* ── 進捗リング（右上バッジ） ─────────────────────── */
+.mk-ring-wrap{flex:0 0 auto;line-height:0;position:relative}
+.mk-ring-wrap .progress-ring{display:block;filter:drop-shadow(0 1px 2px rgba(15,23,42,.06))}
+.mk-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;padding-top:8px;border-top:1px dashed #eef0f8}
+.mk-target{font-size:10px;color:#94a3b8;font-weight:700;white-space:nowrap;letter-spacing:.2px}
+.mk-target b{color:#475569;font-weight:800;margin-left:3px}
+.mk-proj{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap;letter-spacing:.2px}
 .mk-proj.ach-green {background:#d1fae5;color:#065f46}
 .mk-proj.ach-yellow{background:#fef3c7;color:#854d0e}
 .mk-proj.ach-orange{background:#ffedd5;color:#9a3412}
 .mk-proj.ach-red   {background:#fee2e2;color:#991b1b}
 .mk-proj.ach-na    {background:#f3f4f6;color:#888}
 body.mobile .main-kpi-row{grid-template-columns:repeat(2,1fr);gap:8px}
-body.mobile .mk-card{padding:10px 12px}
-body.mobile .mk-value{font-size:18px}
-body.mobile .mk-body{gap:8px}
-body.mobile .mk-ring-wrap .progress-ring{width:44px;height:44px}
-body.mobile .mk-foot{gap:4px 6px}
+body.mobile .mk-card{padding:11px 12px 10px}
+body.mobile .mk-value{font-size:19px}
+body.mobile .mk-head{min-height:38px;margin-bottom:6px}
+body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
 
 /* ===== TOTALS ROW ===== */
 .totals-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
@@ -1964,18 +1960,22 @@ function achievementClass(rate){
 function progressRing(rate, size, opts){
   opts = opts || {};
   const r0 = size / 2;
-  const sw = opts.stroke || Math.max(4, Math.round(size * 0.11));
+  const sw = opts.stroke || Math.max(3, Math.round(size * 0.09));  // 細めで上品に
   const R  = r0 - sw / 2 - 1;
   const C  = 2 * Math.PI * R;
   const v  = (rate == null) ? 0 : Math.max(0, Math.min(100, rate));
   const len = C * (v / 100);
   const trackColor = '#eef0f8';
   const stroke = (rate == null) ? '#cbd5e1' : achievementColor(rate);
-  const inner = (opts.label != null)
-    ? '<text x="' + r0 + '" y="' + (r0 + size*0.08) + '" text-anchor="middle" ' +
-      'font-size="' + Math.round(size * 0.30) + '" font-weight="800" fill="' + stroke + '">' +
-      opts.label + '</text>'
-    : '';
+  // ラベル：3文字以下は size*0.32、4文字は size*0.26 で自動縮小
+  let inner = '';
+  if (opts.label != null) {
+    const lbl = String(opts.label);
+    const fs = lbl.length <= 3 ? Math.round(size * 0.32) : Math.round(size * 0.26);
+    inner = '<text x="' + r0 + '" y="' + (r0 + fs * 0.36) + '" text-anchor="middle" ' +
+      'font-size="' + fs + '" font-weight="800" letter-spacing="-0.5" fill="' + stroke + '">' +
+      lbl + '</text>';
+  }
   return '<svg class="progress-ring" width="' + size + '" height="' + size +
          '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">' +
     '<circle cx="' + r0 + '" cy="' + r0 + '" r="' + R + '" fill="none" stroke="' + trackColor + '" stroke-width="' + sw + '"/>' +
@@ -2580,20 +2580,22 @@ function renderMainKpiRow(fstores, md, month){
     return '<span class="mk-target">目標<b>' +
       (yen ? fmt(tgtV) : tgtV.toLocaleString('ja-JP') + (unit || '')) + '</b></span>';
   };
-  // リング（達成率 or 率そのもの）
+  // リング（右上バッジ）
+  //   達成率/率そのものを 44px のミニリングで表示。値中央表記。
   const ring = function(rate, size){
-    size = size || 56;
-    const label = (rate == null) ? '—' : rate + '%';
-    return '<div class="mk-ring-wrap">' +
+    size = size || 44;
+    // 100以上は満タンで色だけ変える（リング自体は100%表示）
+    const label = (rate == null) ? '—' : (rate >= 100 ? Math.round(rate) + '%' : rate + '%');
+    return '<div class="mk-ring-wrap" title="達成率 ' + (rate == null ? '—' : rate + '%') + '">' +
       progressRing(rate, size, { label: label }) +
-      '<div class="mk-ring-label">達成率</div></div>';
+      '</div>';
   };
   const ringRate = function(rate, size){
-    size = size || 56;
+    size = size || 44;
     const label = (rate == null) ? '—' : rate + '%';
-    return '<div class="mk-ring-wrap">' +
+    return '<div class="mk-ring-wrap" title="当月実績 ' + label + '">' +
       progressRing(rate, size, { label: label }) +
-      '<div class="mk-ring-label">当月</div></div>';
+      '</div>';
   };
 
   // ロイヤリティ表示判定（直営のみ表示時は隠す）
@@ -2668,19 +2670,17 @@ function renderMainKpiRow(fstores, md, month){
   });
 
   el.innerHTML = cards.map(function(c){
-    const hasRing = !!c.ringHtml;
-    const textCol =
-      '<div class="mk-text-col">' +
-        '<div class="mk-value-row">' + c.valueHtml + '</div>' +
-        '<div class="mk-trend-row">' + c.trendHtml + (c.subHtml || '') + '</div>' +
-      '</div>';
-    const body = hasRing
-      ? '<div class="mk-body">' + textCol + c.ringHtml + '</div>'
-      : textCol;
+    // ヘッダ右側：リングがあれば優先、無ければアイコン
+    const headRight = c.ringHtml || ('<div class="mk-icon">' + c.icon + '</div>');
     const foot = c.footHtml ? '<div class="mk-foot">' + c.footHtml + '</div>' : '';
     return '<div class="mk-card ' + c.cls + '">' +
-      '<div class="mk-head"><div class="mk-label">' + c.label + '</div><div class="mk-icon">' + c.icon + '</div></div>' +
-      body + foot +
+      '<div class="mk-head">' +
+        '<div class="mk-label">' + c.label + '</div>' +
+        headRight +
+      '</div>' +
+      '<div class="mk-value-row">' + c.valueHtml + '</div>' +
+      '<div class="mk-trend-row">' + c.trendHtml + (c.subHtml || '') + '</div>' +
+      foot +
     '</div>';
   }).join('');
 }
