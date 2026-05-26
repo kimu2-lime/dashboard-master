@@ -359,9 +359,10 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-card.rate::before     {background:#38b06c}
 .mk-card.retention::before{background:#10b981}
 .mk-card.alert::before    {background:#ef4444}
-.mk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;min-width:0;min-height:44px}
+.mk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;min-width:0;min-height:80px}
 .mk-label{font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:.8px;text-transform:uppercase;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:6px;flex:1 1 auto;min-width:0}
 .mk-icon{font-size:18px;opacity:.45;flex-shrink:0;padding-top:4px;line-height:1}
+.mk-head.no-ring{min-height:auto}
 .mk-value-row{display:flex;align-items:baseline;gap:2px;margin-top:0;min-width:0;flex-wrap:wrap}
 .mk-value{font-size:24px;font-weight:800;color:#1a1a2e;letter-spacing:-.6px;line-height:1.05;white-space:nowrap}
 .mk-unit{font-size:11px;font-weight:600;color:#aaa;margin-left:2px}
@@ -379,9 +380,15 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-card.rate      .mk-value{color:#38b06c}
 .mk-card.retention .mk-value{color:#10b981}
 .mk-card.alert     .mk-value{color:#ef4444}
-/* ── 進捗リング（右上バッジ） ─────────────────────── */
-.mk-ring-wrap{flex:0 0 auto;line-height:0;position:relative}
-.mk-ring-wrap .progress-ring{display:block;filter:drop-shadow(0 1px 2px rgba(15,23,42,.06))}
+/* ── 進捗リング（右上：大きめ + 着地見込チップ） ─────── */
+.mk-ring-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;line-height:0}
+.mk-ring-wrap .progress-ring{display:block;filter:drop-shadow(0 2px 4px rgba(15,23,42,.08))}
+.mk-ring-proj{font-size:9.5px;font-weight:800;padding:1px 7px;border-radius:999px;white-space:nowrap;letter-spacing:.2px;line-height:1.4}
+.mk-ring-proj.ach-green {background:#d1fae5;color:#065f46}
+.mk-ring-proj.ach-yellow{background:#fef3c7;color:#854d0e}
+.mk-ring-proj.ach-orange{background:#ffedd5;color:#9a3412}
+.mk-ring-proj.ach-red   {background:#fee2e2;color:#991b1b}
+.mk-ring-proj.ach-na    {background:#f3f4f6;color:#888}
 .mk-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;padding-top:8px;border-top:1px dashed #eef0f8}
 .mk-target{font-size:10px;color:#94a3b8;font-weight:700;white-space:nowrap;letter-spacing:.2px}
 .mk-target b{color:#475569;font-weight:800;margin-left:3px}
@@ -2565,37 +2572,42 @@ function renderMainKpiRow(fstores, md, month){
     return '<span class="mk-trend flat">前月比 ±0</span>';
   };
 
-  // 着地見込チップ（目標に対する見込みで色分け）
-  const projChip = function(projV, tgtV, yen){
-    if (!isCur) return '';
-    if (!tgtV || tgtV === 0) {
-      return '<span class="mk-proj ach-na">着地 ' + (yen ? fmt(projV) : projV.toLocaleString('ja-JP')) + '</span>';
-    }
-    const pct = Math.round(projV / tgtV * 1000)/10;
-    return '<span class="mk-proj ' + achievementClass(pct) + '">着地 ' + pct + '%</span>';
-  };
-  // 目標表示
+  // foot 用の目標表示
   const tgtLabel = function(tgtV, yen, unit){
     if (!tgtV || tgtV === 0) return '<span class="mk-target">目標 <b>—</b></span>';
     return '<span class="mk-target">目標<b>' +
       (yen ? fmt(tgtV) : tgtV.toLocaleString('ja-JP') + (unit || '')) + '</b></span>';
   };
-  // リング（右上バッジ）
-  //   達成率/率そのものを 44px のミニリングで表示。値中央表記。
-  const ring = function(rate, size){
-    size = size || 44;
-    // 100以上は満タンで色だけ変える（リング自体は100%表示）
-    const label = (rate == null) ? '—' : (rate >= 100 ? Math.round(rate) + '%' : rate + '%');
-    return '<div class="mk-ring-wrap" title="達成率 ' + (rate == null ? '—' : rate + '%') + '">' +
-      progressRing(rate, size, { label: label }) +
-      '</div>';
+  // foot 用の前月値（rate系カードで使用）
+  const prevLabel = function(prvV, unit){
+    return '<span class="mk-target">前月 <b>' + (prvV || 0) + (unit || '') + '</b></span>';
   };
-  const ringRate = function(rate, size){
-    size = size || 44;
-    const label = (rate == null) ? '—' : rate + '%';
-    return '<div class="mk-ring-wrap" title="当月実績 ' + label + '">' +
-      progressRing(rate, size, { label: label }) +
-      '</div>';
+
+  // リング（達成率版・着地見込チップ付き）
+  //   - ring内側: 達成率 %（実績 / 目標）
+  //   - ring下:   着地見込 %（目標に対する月末予測。完了月は空）
+  const RING_SIZE = 56;
+  const ringAch = function(achRate, projRate){
+    const lblA = (achRate == null) ? '—' : (achRate >= 100 ? Math.round(achRate) : achRate) + '%';
+    const ringSvg = progressRing(achRate, RING_SIZE, { label: lblA });
+    const projHtml = (projRate == null) ? ''
+      : '<span class="mk-ring-proj ' + achievementClass(projRate) + '">着地 ' + projRate + '%</span>';
+    return '<div class="mk-ring-wrap" title="達成率 ' + lblA + '">' + ringSvg + projHtml + '</div>';
+  };
+
+  // リング（率そのもの版・着地予測なし・前月値を下に出すこともできる）
+  const ringRate = function(rate, prvRate){
+    const lbl = (rate == null) ? '—' : rate + '%';
+    const ringSvg = progressRing(rate, RING_SIZE, { label: lbl });
+    let chip = '';
+    if (prvRate != null && (prvRate > 0 || rate > 0)) {
+      const diff = (rate || 0) - prvRate;
+      const cls  = diff > 0.1 ? 'ach-green' : diff < -0.1 ? 'ach-red' : 'ach-na';
+      const arr  = diff > 0.1 ? '▲' : diff < -0.1 ? '▼' : '＝';
+      const sign = diff > 0 ? '+' : '';
+      chip = '<span class="mk-ring-proj ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + 'pt</span>';
+    }
+    return '<div class="mk-ring-wrap" title="当月 ' + lbl + '">' + ringSvg + chip + '</div>';
   };
 
   // ロイヤリティ表示判定（直営のみ表示時は隠す）
@@ -2603,14 +2615,20 @@ function renderMainKpiRow(fstores, md, month){
 
   const cards = [];
 
+  // 着地見込のターゲット比%（当月のみ）
+  const projPct = function(projV, tgtV){
+    if (!isCur || !tgtV || tgtV === 0) return null;
+    return Math.round(projV / tgtV * 1000)/10;
+  };
+
   // ① 売上合計
   cards.push({
     cls: 'sales', icon: '💰', label: '売上合計',
     valueHtml: '<span class="mk-value">' + fmt(cur.sales) + '</span>',
     trendHtml: pctTrend(cur.sales, prv.sales),
     subHtml:   '<span class="mk-sub">' + fstores.length + '店舗</span>',
-    ringHtml:  ring(achv(cur.sales, tgt.sales)),
-    footHtml:  tgtLabel(tgt.sales, true) + projChip(proj.sales, tgt.sales, true),
+    ringHtml:  ringAch(achv(cur.sales, tgt.sales), projPct(proj.sales, tgt.sales)),
+    footHtml:  tgtLabel(tgt.sales, true),
   });
 
   // ② ロイヤリティ
@@ -2620,8 +2638,8 @@ function renderMainKpiRow(fstores, md, month){
       valueHtml: '<span class="mk-value">' + fmt(cur.royalty) + '</span>',
       trendHtml: pctTrend(cur.royalty, prv.royalty),
       subHtml:   '<span class="mk-sub">加盟店合計</span>',
-      ringHtml:  ring(achv(cur.royalty, tgt.royalty)),
-      footHtml:  tgtLabel(tgt.royalty, true) + projChip(proj.royalty, tgt.royalty, true),
+      ringHtml:  ringAch(achv(cur.royalty, tgt.royalty), projPct(proj.royalty, tgt.royalty)),
+      footHtml:  tgtLabel(tgt.royalty, true),
     });
   }
 
@@ -2631,32 +2649,30 @@ function renderMainKpiRow(fstores, md, month){
     valueHtml: '<span class="mk-value">' + cur.new_count.toLocaleString('ja-JP') + '</span><span class="mk-unit">人</span>',
     trendHtml: pctTrend(cur.new_count, prv.new_count),
     subHtml: '',
-    ringHtml: ring(achv(cur.new_count, tgt.new_count)),
-    footHtml: tgtLabel(tgt.new_count, false, '人') + projChip(proj.new_count, tgt.new_count, false),
+    ringHtml: ringAch(achv(cur.new_count, tgt.new_count), projPct(proj.new_count, tgt.new_count)),
+    footHtml: tgtLabel(tgt.new_count, false, '人'),
   });
 
-  // ④ 初回契約率（リング=値そのもの、目標は加重平均）
+  // ④ 初回契約率（リング=値そのもの、下チップ=前月比pt）
   cards.push({
     cls: 'rate', icon: '🎯', label: '初回契約率',
     valueHtml: '<span class="mk-value">' + cur.initRate + '</span><span class="mk-unit">%</span>',
     trendHtml: ptTrend(cur.initRate, prv.initRate),
     subHtml: '<span class="mk-sub">契約' + cur.contracts + '/来店' + cur.visits + '</span>',
-    ringHtml: ringRate(cur.initRate),
+    ringHtml: ringRate(cur.initRate, prv.initRate),
     footHtml: tgt.initRate > 0
-      ? ('<span class="mk-target">目標<b>' + tgt.initRate + '%</b></span>' +
-         '<span class="mk-proj ' + achievementClass(achv(cur.initRate, tgt.initRate)) + '">対目標 ' +
-           (achv(cur.initRate, tgt.initRate) != null ? achv(cur.initRate, tgt.initRate) + '%' : '—') + '</span>')
+      ? ('<span class="mk-target">目標<b>' + tgt.initRate + '%</b></span>')
       : '<span class="mk-target">目標<b>—</b></span>',
   });
 
-  // ⑤ 継続率（目標未設定）
+  // ⑤ 継続率（目標未設定・前月比をリング下に）
   cards.push({
     cls: 'retention', icon: '🔄', label: '継続率',
     valueHtml: '<span class="mk-value">' + cur.retentionRate + '</span><span class="mk-unit">%</span>',
     trendHtml: ptTrend(cur.retentionRate, prv.retentionRate),
     subHtml: '<span class="mk-sub">成功' + cur.keizoku_cnt + '/対象' + cur.keizoku_end + '</span>',
-    ringHtml: ringRate(cur.retentionRate),
-    footHtml: '<span class="mk-target">前月 <b>' + (prv.retentionRate || 0) + '%</b></span>',
+    ringHtml: ringRate(cur.retentionRate, prv.retentionRate),
+    footHtml: prevLabel(prv.retentionRate, '%'),
   });
 
   // ⑥ アラート店舗（リングなし）
@@ -2671,10 +2687,11 @@ function renderMainKpiRow(fstores, md, month){
 
   el.innerHTML = cards.map(function(c){
     // ヘッダ右側：リングがあれば優先、無ければアイコン
+    const hasRing = !!c.ringHtml;
     const headRight = c.ringHtml || ('<div class="mk-icon">' + c.icon + '</div>');
     const foot = c.footHtml ? '<div class="mk-foot">' + c.footHtml + '</div>' : '';
     return '<div class="mk-card ' + c.cls + '">' +
-      '<div class="mk-head">' +
+      '<div class="mk-head' + (hasRing ? '' : ' no-ring') + '">' +
         '<div class="mk-label">' + c.label + '</div>' +
         headRight +
       '</div>' +
