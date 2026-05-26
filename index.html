@@ -249,6 +249,10 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .phase-chip-donut-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:-.3px}
 .phase-chip-donut-val .pcd-unit{font-size:7px;font-weight:700;margin-left:1px;opacity:.75}
 .phase-chip-sub{font-size:9px;color:#aaa;font-weight:600;line-height:1.2;margin-top:1px}
+.phase-chip-mom{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:6px;margin-top:2px;display:inline-block;letter-spacing:.2px}
+.phase-chip-mom.up   {background:#d1fae5;color:#065f46}
+.phase-chip-mom.down {background:#fee2e2;color:#991b1b}
+.phase-chip-mom.flat {background:#f3f4f6;color:#888}
 .phase-chip.acquisition .phase-chip-donut-val{color:#4f87f7}
 .phase-chip.acquisition .phase-chip-name{color:#4f87f7}
 .phase-chip.nurture     .phase-chip-donut-val{color:#a855f7}
@@ -375,9 +379,27 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-card.rate      .mk-value{color:#38b06c}
 .mk-card.retention .mk-value{color:#10b981}
 .mk-card.alert     .mk-value{color:#ef4444}
+/* ── 進捗リング付き新レイアウト ─────────────────────── */
+.mk-body{display:flex;align-items:center;gap:10px;margin-top:2px;min-width:0}
+.mk-text-col{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.mk-ring-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mk-ring-wrap .progress-ring{display:block}
+.mk-ring-label{font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.4px;text-align:center;line-height:1}
+.mk-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:8px;padding-top:6px;border-top:1px dashed #eef0f8}
+.mk-target{font-size:10px;color:#9ca3af;font-weight:700;white-space:nowrap}
+.mk-target b{color:#475569;font-weight:800;margin-left:2px}
+.mk-proj{font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;white-space:nowrap}
+.mk-proj.ach-green {background:#d1fae5;color:#065f46}
+.mk-proj.ach-yellow{background:#fef3c7;color:#854d0e}
+.mk-proj.ach-orange{background:#ffedd5;color:#9a3412}
+.mk-proj.ach-red   {background:#fee2e2;color:#991b1b}
+.mk-proj.ach-na    {background:#f3f4f6;color:#888}
 body.mobile .main-kpi-row{grid-template-columns:repeat(2,1fr);gap:8px}
 body.mobile .mk-card{padding:10px 12px}
 body.mobile .mk-value{font-size:18px}
+body.mobile .mk-body{gap:8px}
+body.mobile .mk-ring-wrap .progress-ring{width:44px;height:44px}
+body.mobile .mk-foot{gap:4px 6px}
 
 /* ===== TOTALS ROW ===== */
 .totals-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
@@ -1916,6 +1938,100 @@ function cardMiniDonut(rate, color, dim){
 }
 
 /* ============================================================
+ *  達成率→色（経営判断UI用）
+ *   100%以上:緑 / 80-99%:黄 / 70-79%:橙 / 70%未満:赤 / nullは中立グレー
+ * ============================================================ */
+function achievementColor(rate){
+  if (rate == null) return '#9ca3af';
+  if (rate >= 100)  return '#16a34a';  // green
+  if (rate >= 80)   return '#eab308';  // yellow
+  if (rate >= 70)   return '#f97316';  // orange
+  return '#ef4444';                    // red
+}
+function achievementClass(rate){
+  if (rate == null) return 'ach-na';
+  if (rate >= 100)  return 'ach-green';
+  if (rate >= 80)   return 'ach-yellow';
+  if (rate >= 70)   return 'ach-orange';
+  return 'ach-red';
+}
+
+/* ============================================================
+ *  進捗リング（メインKPI用・中央に達成率%表示）
+ *   rate: 達成率(0-200) / size: 外径px
+ *   max180度クランプはせず、100%以上は満タンリングで色だけ変える
+ * ============================================================ */
+function progressRing(rate, size, opts){
+  opts = opts || {};
+  const r0 = size / 2;
+  const sw = opts.stroke || Math.max(4, Math.round(size * 0.11));
+  const R  = r0 - sw / 2 - 1;
+  const C  = 2 * Math.PI * R;
+  const v  = (rate == null) ? 0 : Math.max(0, Math.min(100, rate));
+  const len = C * (v / 100);
+  const trackColor = '#eef0f8';
+  const stroke = (rate == null) ? '#cbd5e1' : achievementColor(rate);
+  const inner = (opts.label != null)
+    ? '<text x="' + r0 + '" y="' + (r0 + size*0.08) + '" text-anchor="middle" ' +
+      'font-size="' + Math.round(size * 0.30) + '" font-weight="800" fill="' + stroke + '">' +
+      opts.label + '</text>'
+    : '';
+  return '<svg class="progress-ring" width="' + size + '" height="' + size +
+         '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">' +
+    '<circle cx="' + r0 + '" cy="' + r0 + '" r="' + R + '" fill="none" stroke="' + trackColor + '" stroke-width="' + sw + '"/>' +
+    (v > 0 ? '<circle cx="' + r0 + '" cy="' + r0 + '" r="' + R + '" fill="none" stroke="' + stroke + '" stroke-width="' + sw + '" ' +
+      'stroke-dasharray="' + len.toFixed(2) + ' ' + C.toFixed(2) + '" stroke-linecap="round" ' +
+      'transform="rotate(-90 ' + r0 + ' ' + r0 + ')"/>' : '') +
+    inner +
+  '</svg>';
+}
+
+/* ============================================================
+ *  着地見込（月末予測・線形外挿）
+ *   実績 × (月日数 / 経過日数)
+ *   - 完了月：実績そのまま返す
+ *   - 未着手月：0
+ * ============================================================ */
+function landingProjection(actual, yyyymm){
+  if (!yyyymm || !actual) return actual || 0;
+  const y = parseInt(yyyymm.slice(0,4));
+  const m = parseInt(yyyymm.slice(4,6));
+  const today = new Date();
+  const monthStart = new Date(y, m-1, 1);
+  const monthEnd   = new Date(y, m, 0);
+  const daysInMonth = monthEnd.getDate();
+  if (today < monthStart) return 0;
+  if (today > monthEnd)   return actual;
+  const day = today.getDate();
+  if (day <= 0) return actual;
+  return Math.round(actual * daysInMonth / day);
+}
+
+/* ============================================================
+ *  目標集計：フィルター適用済み店舗の目標合計
+ * ============================================================ */
+function sumTargetKey(fstores, yyyymm, key){
+  if (!DATA.targets) return 0;
+  let total = 0;
+  fstores.forEach(function(s){
+    const t = DATA.targets[s] && DATA.targets[s][yyyymm];
+    if (t && t[key]) total += t[key];
+  });
+  return total;
+}
+function sumTargetRoyalty(fstores, yyyymm){
+  if (!DATA.targets) return 0;
+  let total = 0;
+  fstores.forEach(function(s){
+    const st = DATA.store_type ? DATA.store_type[s] : '';
+    if (st === '直営') return; // 直営はロイヤリティ対象外
+    const t = DATA.targets[s] && DATA.targets[s][yyyymm];
+    if (t && t.royalty) total += t.royalty;
+  });
+  return total;
+}
+
+/* ============================================================
  *  Phase 1: 店舗インサイト
  *  =====================================================
  *  「優先度」「危険度」「状態ラベル」を1つの純粋関数で生成
@@ -2402,6 +2518,26 @@ function renderMainKpiRow(fstores, md, month){
   prv.initRate      = prv.visits      > 0 ? Math.round(prv.contracts   / prv.visits      * 1000)/10 : 0;
   prv.retentionRate = prv.keizoku_end > 0 ? Math.round(prv.keizoku_cnt / prv.keizoku_end * 1000)/10 : 0;
 
+  // ▼ 目標集計（フィルター済み店舗の合算）
+  const tgt = {
+    sales:     sumTargetKey(fstores, month, 'total_sales'),
+    royalty:   sumTargetRoyalty(fstores, month),
+    new_count: sumTargetKey(fstores, month, 'new_count'),
+    contracts: sumTargetKey(fstores, month, 'new_contract_count'),
+  };
+  tgt.initRate = tgt.new_count > 0 ? Math.round(tgt.contracts / tgt.new_count * 1000)/10 : 0;
+
+  // ▼ 着地見込（当月のみ線形外挿、過去月は実績そのまま）
+  const isCur = isCurrentYYYYMM(month);
+  const proj  = {
+    sales:     isCur ? landingProjection(cur.sales,     month) : cur.sales,
+    royalty:   isCur ? landingProjection(cur.royalty,   month) : cur.royalty,
+    new_count: isCur ? landingProjection(cur.new_count, month) : cur.new_count,
+  };
+
+  // ── 達成率（実績／目標）── 0除算は null
+  const achv = function(c, t){ return (t > 0) ? Math.round(c / t * 1000)/10 : null; };
+
   // 前月比チップHTML（%表記）
   const pctTrend = function(curV, prvV){
     if(!prvV || prvV === 0) return '<span class="mk-trend flat">前月比 —</span>';
@@ -2429,54 +2565,122 @@ function renderMainKpiRow(fstores, md, month){
     return '<span class="mk-trend flat">前月比 ±0</span>';
   };
 
+  // 着地見込チップ（目標に対する見込みで色分け）
+  const projChip = function(projV, tgtV, yen){
+    if (!isCur) return '';
+    if (!tgtV || tgtV === 0) {
+      return '<span class="mk-proj ach-na">着地 ' + (yen ? fmt(projV) : projV.toLocaleString('ja-JP')) + '</span>';
+    }
+    const pct = Math.round(projV / tgtV * 1000)/10;
+    return '<span class="mk-proj ' + achievementClass(pct) + '">着地 ' + pct + '%</span>';
+  };
+  // 目標表示
+  const tgtLabel = function(tgtV, yen, unit){
+    if (!tgtV || tgtV === 0) return '<span class="mk-target">目標 <b>—</b></span>';
+    return '<span class="mk-target">目標<b>' +
+      (yen ? fmt(tgtV) : tgtV.toLocaleString('ja-JP') + (unit || '')) + '</b></span>';
+  };
+  // リング（達成率 or 率そのもの）
+  const ring = function(rate, size){
+    size = size || 56;
+    const label = (rate == null) ? '—' : rate + '%';
+    return '<div class="mk-ring-wrap">' +
+      progressRing(rate, size, { label: label }) +
+      '<div class="mk-ring-label">達成率</div></div>';
+  };
+  const ringRate = function(rate, size){
+    size = size || 56;
+    const label = (rate == null) ? '—' : rate + '%';
+    return '<div class="mk-ring-wrap">' +
+      progressRing(rate, size, { label: label }) +
+      '<div class="mk-ring-label">当月</div></div>';
+  };
+
   // ロイヤリティ表示判定（直営のみ表示時は隠す）
   const hasFranchise = fstores.some(function(s){ return (DATA.store_type ? DATA.store_type[s] : '') !== '直営'; });
 
   const cards = [];
+
+  // ① 売上合計
   cards.push({
     cls: 'sales', icon: '💰', label: '売上合計',
     valueHtml: '<span class="mk-value">' + fmt(cur.sales) + '</span>',
     trendHtml: pctTrend(cur.sales, prv.sales),
     subHtml:   '<span class="mk-sub">' + fstores.length + '店舗</span>',
+    ringHtml:  ring(achv(cur.sales, tgt.sales)),
+    footHtml:  tgtLabel(tgt.sales, true) + projChip(proj.sales, tgt.sales, true),
   });
+
+  // ② ロイヤリティ
   if(hasFranchise){
     cards.push({
       cls: 'royalty', icon: '💎', label: 'ロイヤリティ',
       valueHtml: '<span class="mk-value">' + fmt(cur.royalty) + '</span>',
       trendHtml: pctTrend(cur.royalty, prv.royalty),
       subHtml:   '<span class="mk-sub">加盟店合計</span>',
+      ringHtml:  ring(achv(cur.royalty, tgt.royalty)),
+      footHtml:  tgtLabel(tgt.royalty, true) + projChip(proj.royalty, tgt.royalty, true),
     });
   }
+
+  // ③ 新規来店
   cards.push({
     cls: 'new', icon: '👤', label: '新規来店',
     valueHtml: '<span class="mk-value">' + cur.new_count.toLocaleString('ja-JP') + '</span><span class="mk-unit">人</span>',
     trendHtml: pctTrend(cur.new_count, prv.new_count),
     subHtml: '',
+    ringHtml: ring(achv(cur.new_count, tgt.new_count)),
+    footHtml: tgtLabel(tgt.new_count, false, '人') + projChip(proj.new_count, tgt.new_count, false),
   });
+
+  // ④ 初回契約率（リング=値そのもの、目標は加重平均）
   cards.push({
     cls: 'rate', icon: '🎯', label: '初回契約率',
     valueHtml: '<span class="mk-value">' + cur.initRate + '</span><span class="mk-unit">%</span>',
     trendHtml: ptTrend(cur.initRate, prv.initRate),
     subHtml: '<span class="mk-sub">契約' + cur.contracts + '/来店' + cur.visits + '</span>',
+    ringHtml: ringRate(cur.initRate),
+    footHtml: tgt.initRate > 0
+      ? ('<span class="mk-target">目標<b>' + tgt.initRate + '%</b></span>' +
+         '<span class="mk-proj ' + achievementClass(achv(cur.initRate, tgt.initRate)) + '">対目標 ' +
+           (achv(cur.initRate, tgt.initRate) != null ? achv(cur.initRate, tgt.initRate) + '%' : '—') + '</span>')
+      : '<span class="mk-target">目標<b>—</b></span>',
   });
+
+  // ⑤ 継続率（目標未設定）
   cards.push({
     cls: 'retention', icon: '🔄', label: '継続率',
     valueHtml: '<span class="mk-value">' + cur.retentionRate + '</span><span class="mk-unit">%</span>',
     trendHtml: ptTrend(cur.retentionRate, prv.retentionRate),
     subHtml: '<span class="mk-sub">成功' + cur.keizoku_cnt + '/対象' + cur.keizoku_end + '</span>',
+    ringHtml: ringRate(cur.retentionRate),
+    footHtml: '<span class="mk-target">前月 <b>' + (prv.retentionRate || 0) + '%</b></span>',
   });
+
+  // ⑥ アラート店舗（リングなし）
   cards.push({
     cls: 'alert', icon: '⚠️', label: 'アラート店舗',
     valueHtml: '<span class="mk-value">' + cur.alerts + '</span><span class="mk-unit">店</span>',
     trendHtml: alertTrend(cur.alerts, prv.alerts),
     subHtml: '<span class="mk-sub">目標70%未満 / 前月-30%</span>',
+    ringHtml: '',
+    footHtml: '',
   });
 
   el.innerHTML = cards.map(function(c){
+    const hasRing = !!c.ringHtml;
+    const textCol =
+      '<div class="mk-text-col">' +
+        '<div class="mk-value-row">' + c.valueHtml + '</div>' +
+        '<div class="mk-trend-row">' + c.trendHtml + (c.subHtml || '') + '</div>' +
+      '</div>';
+    const body = hasRing
+      ? '<div class="mk-body">' + textCol + c.ringHtml + '</div>'
+      : textCol;
+    const foot = c.footHtml ? '<div class="mk-foot">' + c.footHtml + '</div>' : '';
     return '<div class="mk-card ' + c.cls + '">' +
       '<div class="mk-head"><div class="mk-label">' + c.label + '</div><div class="mk-icon">' + c.icon + '</div></div>' +
-      '<div class="mk-value-row">' + c.valueHtml + '</div>' +
-      '<div class="mk-trend-row">' + c.trendHtml + (c.subHtml || '') + '</div>' +
+      body + foot +
     '</div>';
   }).join('');
 }
@@ -2759,37 +2963,63 @@ function renderList(){
           const hasReappo  = (d.reappo_count||0) > 0 || (d.reappo_contract_count||0) > 0;
           const hasKeizoku = (d.keizoku_end_count||0) > 0;
           if (!hasNew && !hasReappo && !hasKeizoku) return '';
-          const newRate   = d.new_contract_rate || 0;
-          const recovery  = d.reappo_recovery_rate || 0;
-          const keizoku   = d.keizoku_rate || 0;
-          const dropout   = d.dropout_count || 0;
+          const newRate    = d.new_contract_rate || 0;
+          const reappoRate = d.reappo_contract_rate || 0;  // \u518d\u30a2\u30dd\u5951\u7d04\u7387\uff08\u65e7 recovery \u3092\u7f6e\u63db\uff09
+          const keizoku    = d.keizoku_rate || 0;
+          const dropout    = d.dropout_count || 0;
           const newCls    = hasNew     ? 'acquisition' : 'dim';
           const nurCls    = hasReappo  ? 'nurture'     : 'dim';
           const retCls    = hasKeizoku ? 'retention'   : 'dim';
           const subNew    = hasNew     ? ('\u65b0\u898f' + (d.new_count||0) + '\u2192' + (d.new_contract_count||0) + '\u5951\u7d04') : '\u30c7\u30fc\u30bf\u306a\u3057';
           const subReappo = hasReappo  ? ('\u518d\u30a2\u30dd' + (d.reappo_count||0) + '\u2192' + (d.reappo_contract_count||0) + '\u5951\u7d04') : '\u30c7\u30fc\u30bf\u306a\u3057';
-          const subKeiz   = hasKeizoku ? ('\u7d99\u7d9a' + (d.keizoku_continue_count||0) + '/' + (d.keizoku_end_count||0)) : '\u30c7\u30fc\u30bf\u306a\u3057';
+          const subKeiz   = hasKeizoku ? ('\u7d99\u7d9a' + (d.keizoku_continue_count||0) + '/\u5bfe\u8c61' + (d.keizoku_end_count||0)) : '\u30c7\u30fc\u30bf\u306a\u3057';
           const valHtml = (rate, has) => has
             ? ('<div class="phase-chip-donut-val">' + rate + '<span class="pcd-unit">%</span></div>')
             : ('<div class="phase-chip-donut-val">\u2014</div>');
           const dropoutBadge = (hasKeizoku && dropout > 0)
             ? '<div class="phase-chip-alert" title="\u96e2\u8131 ' + dropout + '\u4eba">!' + dropout + '</div>'
             : '';
+          // \u524d\u6708\u30c7\u30fc\u30bf\u53d6\u5f97
+          const _prev = (DATA.data[getPrevMonth(curMonth)] && DATA.data[getPrevMonth(curMonth)][s]) || null;
+          // \u7372\u5f97=\u76ee\u6a19\u9054\u6210\u7387\u3001\u80b2\u6210/\u7d99\u7d9a=\u524d\u6708\u6bd4(pt)
+          const momPt = function(curV, prvV){
+            if (prvV == null || (prvV === 0 && curV === 0)) return '<span class="phase-chip-mom flat">\u524d\u6708 \u2014</span>';
+            const diff = curV - prvV;
+            const cls  = diff >  0.1 ? 'up' : diff < -0.1 ? 'down' : 'flat';
+            const arr  = diff >  0.1 ? '\u25b2' : diff < -0.1 ? '\u25bc' : '\uff1d';
+            const sign = diff > 0 ? '+' : '';
+            return '<span class="phase-chip-mom ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + 'pt</span>';
+          };
+          // \u7372\u5f97\u306f\u76ee\u6a19\u9054\u6210\u7387\uff08\u7121\u3051\u308c\u3070\u524d\u6708\u6bd4\u3092\u30d5\u30a9\u30fc\u30eb\u30d0\u30c3\u30af\uff09
+          const tgtNewRate = tgt && tgt.new_contract_rate ? tgt.new_contract_rate : 0;
+          const newAch = (hasNew && tgtNewRate > 0) ? Math.round(newRate / tgtNewRate * 1000)/10 : null;
+          const newMom = (newAch != null)
+            ? ('<span class="phase-chip-mom ' + (newAch >= 100 ? 'up' : newAch < 80 ? 'down' : 'flat') + '">\u9054\u6210 ' + newAch + '%</span>')
+            : ((hasNew && _prev) ? momPt(newRate, _prev.new_contract_rate || 0) : '');
+          const reappoMom = hasReappo && _prev
+            ? momPt(reappoRate, _prev.reappo_contract_rate || 0)
+            : '';
+          const keizokuMom = hasKeizoku && _prev
+            ? momPt(keizoku, _prev.keizoku_rate || 0)
+            : '';
           return '<div class="card-phase-chips">'+
             '<div class="phase-chip '+newCls+'">'+
               '<div class="phase-chip-name">\ud83d\udcca \u7372\u5f97</div>'+
               '<div class="phase-chip-donut-wrap">'+ cardMiniDonut(newRate, '#4f87f7', !hasNew) + valHtml(newRate, hasNew) +'</div>'+
               '<div class="phase-chip-sub">'+subNew+'</div>'+
+              newMom +
             '</div>'+
             '<div class="phase-chip '+nurCls+'">'+
               '<div class="phase-chip-name">\ud83c\udfaf \u80b2\u6210</div>'+
-              '<div class="phase-chip-donut-wrap">'+ cardMiniDonut(recovery, '#a855f7', !hasReappo) + valHtml(recovery, hasReappo) +'</div>'+
+              '<div class="phase-chip-donut-wrap">'+ cardMiniDonut(reappoRate, '#a855f7', !hasReappo) + valHtml(reappoRate, hasReappo) +'</div>'+
               '<div class="phase-chip-sub">'+subReappo+'</div>'+
+              reappoMom +
             '</div>'+
             '<div class="phase-chip '+retCls+'">'+
               '<div class="phase-chip-name">\ud83d\udd04 \u7d99\u7d9a</div>'+
               '<div class="phase-chip-donut-wrap">'+ cardMiniDonut(keizoku, '#10b981', !hasKeizoku) + valHtml(keizoku, hasKeizoku) + dropoutBadge +'</div>'+
               '<div class="phase-chip-sub">'+subKeiz+'</div>'+
+              keizokuMom +
             '</div>'+
           '</div>';
         })();
