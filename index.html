@@ -1305,12 +1305,12 @@ body.mobile .mk-value{font-size:18px}
       <div class="detail-kpis-5">
         <div class="dkpi nurture-count">
           <div class="dkpi-icon">🔁</div><div class="dkpi-label">再アポ数</div>
-          <div class="dkpi-sublabel">単発再来（未契約）</div>
+          <div class="dkpi-sublabel">未契約状態の再来</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dReappo"></span><span class="dkpi-dunit">人</span></div>
         </div>
         <div class="dkpi nurture-contract">
           <div class="dkpi-icon">✍️</div><div class="dkpi-label">再アポ契約数</div>
-          <div class="dkpi-sublabel">再来時に初契約</div>
+          <div class="dkpi-sublabel">再来時に初回契約</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dReappoContract"></span><span class="dkpi-dunit">件</span></div>
         </div>
         <div class="dkpi nurture-rate">
@@ -1331,31 +1331,31 @@ body.mobile .mk-value{font-size:18px}
       </div>
 
       <!-- ▼ 継続フェーズ -->
-      <div class="phase-label retention">🔄 継続フェーズ<span class="phase-sub">回数券終了 → 再購入か離脱か</span></div>
+      <div class="phase-label retention">🔄 継続フェーズ<span class="phase-sub">終了・継続・追加で継続意思を評価</span></div>
       <div class="detail-kpis-5">
         <div class="dkpi retention-end">
-          <div class="dkpi-icon">⌛</div><div class="dkpi-label">回数券終了数</div>
-          <div class="dkpi-sublabel">終了 or 再購入対象</div>
+          <div class="dkpi-icon">⌛</div><div class="dkpi-label">継続対象数</div>
+          <div class="dkpi-sublabel">終了+継続+追加（会計IDユニーク）</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuEnd"></span><span class="dkpi-dunit">件</span></div>
         </div>
         <div class="dkpi retention-cont">
-          <div class="dkpi-icon">🔄</div><div class="dkpi-label">継続購入数</div>
-          <div class="dkpi-sublabel">再購入完了</div>
+          <div class="dkpi-icon">🔄</div><div class="dkpi-label">継続成功数</div>
+          <div class="dkpi-sublabel">継続 or 追加で再購入</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuCont"></span><span class="dkpi-dunit">件</span></div>
         </div>
         <div class="dkpi retention-rate">
           <div class="dkpi-icon">📈</div><div class="dkpi-label">継続率</div>
-          <div class="dkpi-sublabel">継続購入数 ÷ 終了数</div>
+          <div class="dkpi-sublabel">成功 ÷ 対象</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuRate"></span><span class="dkpi-dunit">%</span></div>
         </div>
         <div class="dkpi" style="border-top:3px solid #0d9488">
           <div class="dkpi-icon">💴</div><div class="dkpi-label" style="color:#0d9488">継続契約単価</div>
-          <div class="dkpi-sublabel">売上 ÷ 継続購入数</div>
+          <div class="dkpi-sublabel">継続契約売上 ÷ 継続成功数</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuPrice" style="color:#0d9488"></span></div>
         </div>
         <div class="dkpi" style="border-top:3px solid #047857">
           <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#047857">継続契約売上</div>
-          <div class="dkpi-sublabel">「再購入」行の金額合計</div>
+          <div class="dkpi-sublabel">継続/追加 会計IDの「契約」行合計</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuSales" style="color:#047857"></span></div>
         </div>
       </div>
@@ -2463,7 +2463,7 @@ function renderMainKpiRow(fstores, md, month){
     cls: 'retention', icon: '🔄', label: '継続率',
     valueHtml: '<span class="mk-value">' + cur.retentionRate + '</span><span class="mk-unit">%</span>',
     trendHtml: ptTrend(cur.retentionRate, prv.retentionRate),
-    subHtml: '<span class="mk-sub">継続' + cur.keizoku_cnt + '/終了' + cur.keizoku_end + '</span>',
+    subHtml: '<span class="mk-sub">成功' + cur.keizoku_cnt + '/対象' + cur.keizoku_end + '</span>',
   });
   cards.push({
     cls: 'alert', icon: '⚠️', label: 'アラート店舗',
@@ -3270,8 +3270,8 @@ function showDetail(store,d,tgt){
       const retention =
         '<div class="staff-phase-block retention">' +
           '<div class="staff-phase-title">🔄 継続</div>' +
-          '<div class="staff-phase-row"><span>回数券終了</span>' + vNum(s.keizoku_end_count, '件') + '</div>' +
-          '<div class="staff-phase-row"><span>継続購入</span>'   + vNum(s.keizoku_continue_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>継続対象</span>' + vNum(s.keizoku_end_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>継続成功</span>'   + vNum(s.keizoku_continue_count, '件') + '</div>' +
           '<div class="staff-phase-row"><span>継続率</span>'     + vRate(s.keizoku_rate, 60, 40) + '</div>' +
           '<div class="staff-phase-row"><span>継続単価</span>'   + vYen(s.keizoku_continue_unit_price) + '</div>' +
         '</div>';

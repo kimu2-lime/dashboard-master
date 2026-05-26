@@ -763,20 +763,24 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         }
       }
 
-      // 行ごとの集計
-      let totalAmt = 0;          // 会計ID全行の金額合計
-      let contractSalesAmt = 0;  // 契約売上（契約or消化or利用）
-      let newContractAmt = 0;    // 新規契約売上
-      let isNewContract = false; // 新規契約フラグ
+      // ▼ 会計ID単位フラグ（正式仕様）
+      //   hasFirst : 回数券（初回）  ← 育成フェーズで初契約
+      //   hasUse   : 回数券（消化）  ← 既に契約状態
+      //   hasEnd   : 回数券（終了）  ← 契約満了
+      //   hasAdd   : 回数券（追加）  ← 継続意思あり（追加購入）
+      //   hasCont  : 回数券（継続）  ← 継続意思あり（再購入）
+      let hasFirst = false;
+      let hasUse   = false;
+      let hasEnd   = false;
+      let hasAdd   = false;
+      let hasCont  = false;
 
-      // ▼ 再来系KPI（会計ID単位フラグ・金額）
-      let isReappoContract = false;  // ⑤ U=再来 & H=サービス & I「初めて契約|初めて購入」
-      let reappoContractAmt = 0;     // 再アポ契約売上（後で確定）
-      let isKeizokuEnd     = false;  // ⑧ U=再来 & H=サービス & I「終了|再購入」
-      let isKeizokuContinue = false; // ⑨ U=再来 & H=サービス & I「再購入」
-      let keizokuContinueAmt = 0;    // 継続購入売上（後で確定）
-      let reappoOrKeizokuContractAmtCandidate = 0; // 再来 & 契約行の金額（再アポ・継続両方で共通）
-      let hasServiceCategory = false;// ④判定用：H=サービスの行が1つでもあるか
+      // ▼ 行ごとの集計
+      let totalAmt         = 0;     // 会計ID全行の金額合計
+      let contractSalesAmt = 0;     // 契約売上（広義: 契約|消化|利用）
+      let allContractAmt   = 0;     // 厳密「契約」行の金額（カテゴリ=F/B/O & I「契約」）
+      let newContractAmt   = 0;     // 新規契約売上
+      let isNewContract    = false; // 新規契約フラグ
 
       accRows.forEach(function(row) {
         const amt      = parseAmt(g(row, '金額'));
@@ -784,45 +788,49 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         const menu     = gs(row, 'メニュー・店販・ 割引・サービス・オプション');
         totalAmt += amt;
 
-        // カテゴリ=フェイシャル or その他 or ボディ かつ メニューに契約or消化or利用を含む → 契約売上
-        const isContractCategory = category === 'フェイシャル' || category === 'その他' || category === 'ボディ';
+        // ▼ 契約売上はカテゴリ=フェイシャル/ボディ/その他 から取得（H=サービスは¥0ラベル行のため除外）
+        const isContractCategory = category === 'フェイシャル' || category === 'ボディ' || category === 'その他';
+
+        // 契約売上（広義: 契約・消化・利用）
         if (isContractCategory && /契約|消化|利用/.test(menu)) {
           contractSalesAmt += amt;
-          // さらに新規 かつ メニューに契約を含む → 新規契約
-          if (shinki === '新規' && /契約/.test(menu)) {
+        }
+        // 厳密「契約」行 → 再アポ・継続契約売上、新規契約売上の元金
+        if (isContractCategory && /契約/.test(menu)) {
+          allContractAmt += amt;
+          if (shinki === '新規') {
             newContractAmt += amt;
-            isNewContract = true;
+            isNewContract   = true;
           }
         }
 
-        // ▼ 再来系判定
+        // ▼ 会計ID単位フラグ（H=サービス行のラベルから抽出）
         if (category === 'サービス') {
-          hasServiceCategory = true;
-          if (shinki === '再来') {
-            if (/初めて契約|初めて購入/.test(menu)) {
-              isReappoContract = true;
-            }
-            if (/終了|再購入/.test(menu)) isKeizokuEnd = true;
-            if (/再購入/.test(menu)) isKeizokuContinue = true;
-          }
-        }
-        // ▼ 再来 & 「契約」行の金額を候補に積む（再アポ契約・継続契約の両方で共通利用）
-        //    実際の購入金額はラベル行（サービス・0円）ではなく契約行（フェイシャル/ボディ/その他）に乗っている
-        //    isReappoContract / isKeizokuContinue が確定したらこの候補を採用
-        if (shinki === '再来') {
-          const isContractScope = (category === 'サービス' || isContractCategory);
-          if (isContractScope && /契約/.test(menu)) {
-            reappoOrKeizokuContractAmtCandidate += amt;
-          }
+          if (/初回|初めて契約|初めて購入/.test(menu)) hasFirst = true;
+          if (/消化/.test(menu))                       hasUse   = true;
+          if (/終了/.test(menu))                       hasEnd   = true;
+          if (/追加/.test(menu))                       hasAdd   = true;
+          if (/継続|再購入/.test(menu))                hasCont  = true;
         }
       });
 
-      // 再アポ契約・継続購入と判定された会計のみ売上を確定（候補を採用）
-      if (isReappoContract)  reappoContractAmt  = reappoOrKeizokuContractAmtCandidate;
-      if (isKeizokuContinue) keizokuContinueAmt = reappoOrKeizokuContractAmtCandidate;
+      // ▼ 既存契約状態フラグ：既に回数券契約状態にある顧客
+      const hasExistingContract = hasUse || hasEnd || hasAdd || hasCont;
 
-      // ④ 再アポ数：U=再来 & どの行もH=サービスを含まない（=単発再来）
-      const isReappo = (shinki === '再来' && !hasServiceCategory);
+      // ▼ 再アポ判定（正式仕様）
+      //   再アポ数    = U=再来 AND NOT hasExistingContract（未契約状態の再来＝育成対象）
+      //   再アポ契約数 = 再アポ AND hasFirst（再来時にクーポン施術後 or その場で契約）
+      const isReappo         = (shinki === '再来') && !hasExistingContract;
+      const isReappoContract = isReappo && hasFirst;
+      const reappoContractAmt = isReappoContract ? allContractAmt : 0;
+
+      // ▼ 継続フェーズ判定（正式仕様・会計IDユニーク）
+      //   継続対象数 = hasEnd OR hasCont OR hasAdd（再来時の新規/再来を問わない）
+      //   継続成功数 = hasCont OR hasAdd（顧客が継続意思を示したか重視 → 継続+追加を成功扱い）
+      //   継続契約売上 = 上記成功会計ID × 契約行金額（F/B/O & I=契約）
+      const isKeizokuTarget  = hasEnd || hasCont || hasAdd;
+      const isKeizokuSuccess = hasCont || hasAdd;
+      const keizokuContinueAmt = isKeizokuSuccess ? allContractAmt : 0;
 
       if (!storeMap[storeName]) {
         storeMap[storeName] = {
@@ -852,18 +860,21 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         }
       }
 
-      // ▼ 再来系集計
-      if (shinki === '再来') {
-        if (isReappo)          sm.reappo_count           += isCancelled ? -1 : 1;
+      // ▼ 再アポフェーズ集計（再来 & 未契約状態を対象）
+      if (isReappo) {
+        sm.reappo_count += isCancelled ? -1 : 1;
         if (isReappoContract) {
           sm.reappo_contract_count += isCancelled ? -1 : 1;
           sm.reappo_contract_sales += reappoContractAmt;
         }
-        if (isKeizokuEnd)      sm.keizoku_end_count      += isCancelled ? -1 : 1;
-        if (isKeizokuContinue) {
-          sm.keizoku_continue_count += isCancelled ? -1 : 1;
-          sm.keizoku_continue_sales += keizokuContinueAmt;
-        }
+      }
+
+      // ▼ 継続フェーズ集計（会計IDユニーク・shinki不問）
+      //   同一会計ID内で hasEnd / hasCont / hasAdd が複数立っても二重計上しない
+      if (isKeizokuTarget)  sm.keizoku_end_count      += isCancelled ? -1 : 1;
+      if (isKeizokuSuccess) {
+        sm.keizoku_continue_count += isCancelled ? -1 : 1;
+        sm.keizoku_continue_sales += keizokuContinueAmt;
       }
 
       // スタッフ別集計（会計のみ）
@@ -886,17 +897,17 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
             sd.new_contract_sales += newContractAmt;
           }
         }
-        if (shinki === '再来') {
-          if (isReappo)          sd.reappo_count += 1;
+        if (isReappo) {
+          sd.reappo_count += 1;
           if (isReappoContract) {
             sd.reappo_contract_count += 1;
             sd.reappo_contract_sales += reappoContractAmt;
           }
-          if (isKeizokuEnd)      sd.keizoku_end_count      += 1;
-          if (isKeizokuContinue) {
-            sd.keizoku_continue_count += 1;
-            sd.keizoku_continue_sales += keizokuContinueAmt;
-          }
+        }
+        if (isKeizokuTarget)  sd.keizoku_end_count      += 1;
+        if (isKeizokuSuccess) {
+          sd.keizoku_continue_count += 1;
+          sd.keizoku_continue_sales += keizokuContinueAmt;
         }
       }
     });
