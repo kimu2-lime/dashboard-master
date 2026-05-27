@@ -348,13 +348,13 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .stats-count-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f0f2ff;color:#667eea;margin-top:12px}
 
 /* ===== MAIN KPI ROW（一覧最上部の6個サマリ） ===== */
-.main-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
-@media(max-width:1280px){.main-kpi-row{grid-template-columns:repeat(3,1fr)}}
+.main-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(186px,1fr));gap:12px;margin-bottom:16px}
 @media(max-width:720px){.main-kpi-row{grid-template-columns:repeat(2,1fr)}}
 .mk-card{background:#fff;border:1px solid #eef0f8;border-radius:14px;padding:14px 16px 12px;transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;overflow:hidden;min-width:0;box-shadow:0 1px 2px rgba(15,23,42,.03)}
 .mk-card:hover{box-shadow:0 6px 20px rgba(15,23,42,.07);transform:translateY(-1px);border-color:#e2e6f3}
 .mk-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
 .mk-card.sales::before    {background:linear-gradient(180deg,#667eea,#764ba2)}
+.mk-card.lime::before     {background:linear-gradient(180deg,#22c55e,#16a34a)}
 .mk-card.royalty::before  {background:linear-gradient(180deg,#f59e0b,#d97706)}
 .mk-card.new::before      {background:#4f87f7}
 .mk-card.rate::before     {background:#38b06c}
@@ -376,6 +376,7 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-trend.alert-down {background:#d1fae5;color:#065f46}  /* アラート減少=改善 */
 .mk-sub{font-size:10px;color:#bbb;font-weight:600;white-space:nowrap}
 .mk-card.sales     .mk-value{color:#5b52d8}
+.mk-card.lime      .mk-value{color:#15803d}
 .mk-card.royalty   .mk-value{color:#d97706}
 .mk-card.new       .mk-value{color:#4f87f7}
 .mk-card.rate      .mk-value{color:#38b06c}
@@ -2657,12 +2658,16 @@ function renderMainKpiRow(fstores, md, month){
 
   // ロイヤリティ表示判定（直営のみ表示時は隠す）
   const hasFranchise = fstores.some(function(s){ return (DATA.store_type ? DATA.store_type[s] : '') !== '直営'; });
+  const hasDirect    = fstores.some(function(s){ return (DATA.store_type ? DATA.store_type[s] : '') === '直営'; });
+  // 「全店表示」= 担当者・店舗タイプともに絞り込みなし
+  const isAllStoresView = (curPerson === '全店舗') && (curStoreType === '全店舗') && hasDirect && hasFranchise;
 
   const cards = [];
 
-  // ① 売上合計
+  // ① 売上合計（全店表示時は「全店舗末端売上合計」と表記）
+  const salesLabel = isAllStoresView ? '全店舗末端売上合計' : '売上合計';
   cards.push({
-    cls: 'sales', icon: '💰', label: '売上合計',
+    cls: 'sales', icon: '💰', label: salesLabel,
     valueHtml: '<span class="mk-value">' + fmt(cur.sales) + '</span>',
     tgtHtml:   tgtLine(tgt.sales, true),
     barHtml:   barHtml(achv(cur.sales, tgt.sales)),
@@ -2670,6 +2675,47 @@ function renderMainKpiRow(fstores, md, month){
     projHtml:  projVal(proj.sales, true),
     ringHtml:  ringAch(achv(cur.sales, tgt.sales)),
   });
+
+  // ①.5 Lime売上（全店表示時のみ）＝ 直営売上 + 加盟ロイヤリティ
+  if(isAllStoresView){
+    // 当月／前月／目標／着地見込 を直営total + 加盟royalty で集計
+    const sumLime = function(data, tgtMap){
+      let v = 0;
+      fstores.forEach(function(s){
+        const dd = data ? data[s] : null;
+        if(!dd) return;
+        const st = (DATA.store_type && DATA.store_type[s]) || '';
+        if(st === '直営') v += (dd.total_sales || 0);
+        else              v += (dd.royalty !== undefined ? dd.royalty : royalty(dd.total_sales || 0));
+      });
+      return v;
+    };
+    const sumLimeTarget = function(){
+      let v = 0;
+      if(!DATA.targets) return 0;
+      fstores.forEach(function(s){
+        const t = DATA.targets[s] && DATA.targets[s][month];
+        if(!t) return;
+        const st = (DATA.store_type && DATA.store_type[s]) || '';
+        if(st === '直営') v += (t.total_sales || 0);
+        else              v += (t.royalty || 0);
+      });
+      return v;
+    };
+    const curLime  = sumLime(md);
+    const prvLime  = sumLime(mdPrev);
+    const tgtLime  = sumLimeTarget();
+    const projLime = isCur ? landingProjection(curLime, month) : curLime;
+    cards.push({
+      cls: 'lime', icon: '🟢', label: 'Lime売上',
+      valueHtml: '<span class="mk-value">' + fmt(curLime) + '</span>',
+      tgtHtml:   tgtLine(tgtLime, true),
+      barHtml:   barHtml(achv(curLime, tgtLime)),
+      trendHtml: pctTrendChip(trendVsPrev(projLime, prvLime)),
+      projHtml:  projVal(projLime, true),
+      ringHtml:  ringAch(achv(curLime, tgtLime)),
+    });
+  }
 
   // ② ロイヤリティ合計
   if(hasFranchise){
