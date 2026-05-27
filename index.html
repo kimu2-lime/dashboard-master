@@ -1260,7 +1260,6 @@ body.mobile .side-menu-overlay{display:block!important}
       <div class="list-header">
         <div>
           <div class="list-title" id="listTitle">店舗一覧</div>
-          <div class="list-meta" id="listMeta"></div>
         </div>
         <input type="text" class="search-box" id="searchBox" placeholder="店舗名で絞り込み..." oninput="filterCards()">
       </div>
@@ -2772,12 +2771,14 @@ function _storeHqRevenue(store, monthData){
 
 /* ============================================================
  *  直近6ヶ月の売上推移（棒グラフ）
- *   - 集計値はビューに応じて変わる：
- *     * 全店表示時: 直営 total_sales + 加盟 royalty （本部収益）
- *     * 担当者選択時: 担当店舗（加盟）の royalty 合計
- *     * 店舗詳細: その店舗単体の値（同ルール）
+ *   - 既定: 直営=total_sales / 加盟=royalty で「本部収益」を合算
+ *     * 全店表示: 直営売上 + 加盟ロイヤリティ
+ *     * 担当者表示: 加盟ロイヤリティの合計
+ *   - opts.useRawTotal=true: 全店舗とも total_sales をそのまま合算
+ *     * 店舗詳細ビューで使用（直営/加盟問わず売上）
  * ============================================================ */
-function renderSalesTrendBarChartHtml(fstores, month){
+function renderSalesTrendBarChartHtml(fstores, month, opts){
+  opts = opts || {};
   // 直近6ヶ月：表示月を末尾に、過去5ヶ月遡る
   const months = [month];
   for(let i = 0; i < 5; i++) months.unshift(getPrevMonth(months[0]));
@@ -2785,14 +2786,20 @@ function renderSalesTrendBarChartHtml(fstores, month){
   // ビュー判定（ラベル切替用）
   const onlyDirect    = fstores.length > 0 && fstores.every(function(s){ return (DATA.store_type && DATA.store_type[s]) === '直営'; });
   const onlyFranchise = fstores.length > 0 && fstores.every(function(s){ return (DATA.store_type && DATA.store_type[s]) !== '直営'; });
-  const titleSub = onlyDirect    ? '直営売上の合計'
-                : onlyFranchise   ? 'ロイヤリティの合計'
-                                  : '直営売上 + 加盟ロイヤリティ';
+  const titleSub = opts.useRawTotal ? '売上合計'
+                : onlyDirect        ? '直営売上の合計'
+                : onlyFranchise     ? 'ロイヤリティの合計'
+                                    : '直営売上 + 加盟ロイヤリティ';
 
+  const storeVal = function(s, md){
+    if(!md[s]) return 0;
+    if(opts.useRawTotal) return md[s].total_sales || 0;
+    return _storeHqRevenue(s, md[s]);
+  };
   const series = months.map(function(mo){
     const md = DATA.data[mo] || {};
     let v = 0;
-    fstores.forEach(function(s){ v += _storeHqRevenue(s, md[s]); });
+    fstores.forEach(function(s){ v += storeVal(s, md); });
     return { month: mo, val: Math.max(0, v) };
   });
 
@@ -3085,12 +3092,6 @@ function renderList(){
 
   const personLabel=curPerson==='\u5168\u5e97\u8217'?'\u5168\u5e97\u8217':curPerson+'\u62c5\u5f53';
   document.getElementById('listTitle').textContent=personLabel+' \u5e97\u8217\u4e00\u89a7';
-  let metaText=ml+' \uff0f '+fstores.length+'\u5e97\u8217 \uff0f \u58f2\u4e0a\u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')+'\u5186';
-  if(curStoreType!=='\u76f4\u55b6'){
-    metaText+=' \uff0f \u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')+'\u5186'
-      +'\uff08\u7740\u5730\u898b\u8fbc \xa5'+totalRoyaltyProj.toLocaleString('ja-JP')+'\u5186\uff09';
-  }
-  document.getElementById('listMeta').textContent=metaText;
 
   // 統計パネル
   renderStats(fstores,md);
@@ -3485,7 +3486,7 @@ function showDetail(store,d,tgt){
     dChartsRow.innerHTML =
       renderSalesCompositionHtml([store], md) +
       renderTreatmentCompositionHtml([store], curMonth) +
-      renderSalesTrendBarChartHtml([store], curMonth);
+      renderSalesTrendBarChartHtml([store], curMonth, {useRawTotal: true});
   }
 
   const roy=d.royalty!==undefined?d.royalty:royalty(d.total_sales);
