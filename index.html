@@ -429,13 +429,10 @@ body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
 body.mobile .mk-target-line{font-size:10px}
 body.mobile .mk-foot-val{font-size:11px}
 
-/* ===== サマリチャート行（7日推移 + 売上構成比 + 施術構成比） ===== */
-.mk-charts-row{display:grid;grid-template-columns:1.3fr 1fr 1.3fr;gap:12px;margin-bottom:16px}
-@media(max-width:1280px){
-  .mk-charts-row{grid-template-columns:1fr 1fr}
-  .mk-charts-row > :first-child{grid-column:1 / -1}
-}
-@media(max-width:760px){.mk-charts-row{grid-template-columns:1fr}.mk-charts-row > :first-child{grid-column:auto}}
+/* ===== サマリチャート行（売上構成比 + 施術構成比 + 売上推移6mo） ===== */
+.mk-charts-row{display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:12px;margin-bottom:16px}
+@media(max-width:1280px){.mk-charts-row{grid-template-columns:1fr 1fr}.mk-charts-row > :last-child{grid-column:1 / -1}}
+@media(max-width:760px){.mk-charts-row{grid-template-columns:1fr}.mk-charts-row > :last-child{grid-column:auto}}
 .chart-card{background:#fff;border:1px solid #eef0f8;border-radius:14px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.03);min-width:0;overflow:hidden}
 .chart-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .chart-card-title{font-size:13px;font-weight:800;color:#1a1a2e;letter-spacing:.3px}
@@ -457,15 +454,6 @@ body.mobile .mk-foot-val{font-size:11px}
 .pie-legend-pct{font-weight:800;color:#94a3b8;font-size:11px;margin-left:4px;white-space:nowrap}
 body.mobile .mk-charts-row{grid-template-columns:1fr;gap:8px}
 body.mobile .chart-card{padding:12px 14px}
-
-/* ===== TOTALS ROW ===== */
-.totals-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
-.total-chip{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap}
-.total-chip.all{background:#f0f2ff;color:#667eea}
-.total-chip.direct{background:#fff5f5;color:#c53030}
-.total-chip.franchise{background:#ebf8ff;color:#2c5282}
-.total-chip.royalty{background:#fff3e0;color:#d97706}
-.total-chip.royalty-proj{background:#fffaf2;color:#c2410c;border:1.5px dashed #f0b27a}
 
 /* ===== SETTINGS BUTTON & MODAL ===== */
 .settings-btn{padding:6px 12px;border-radius:8px;border:1.5px solid #e0e0ec;background:transparent;color:#888;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
@@ -952,7 +940,6 @@ body.mobile .side-menu-overlay{display:block!important}
   .list-header{margin-bottom:12px;gap:10px}
   .list-title{font-size:18px}
   .list-meta{font-size:11.5px}
-  .total-chip{font-size:11px;padding:3px 10px}
 
   /* === ANALYSIS HEADER === */
   .analysis-header{margin-bottom:14px;gap:8px;align-items:flex-start}
@@ -1273,7 +1260,6 @@ body.mobile .side-menu-overlay{display:block!important}
       <div class="list-header">
         <div>
           <div class="list-title" id="listTitle">店舗一覧</div>
-          <div id="totalsRow" class="totals-row" style="margin-top:6px"></div>
           <div class="list-meta" id="listMeta"></div>
         </div>
         <input type="text" class="search-box" id="searchBox" placeholder="店舗名で絞り込み..." oninput="filterCards()">
@@ -1479,17 +1465,17 @@ body.mobile .side-menu-overlay{display:block!important}
       <div class="phase-label" style="color:#1a1a2e">🎯 初回契約サマリ<span class="phase-sub">新規＋再アポ＝店舗の本当の決定力</span></div>
       <div class="detail-kpis-2">
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">👥</div><div class="dkpi-label">初回来店数</div>
+          <div class="dkpi-icon">👥</div><div class="dkpi-label">新規＋再アポ数</div>
           <div class="dkpi-sublabel">新規 + 再アポ</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dTotalVisits"></span><span class="dkpi-dunit">人</span></div>
         </div>
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">📋</div><div class="dkpi-label">初回契約数</div>
+          <div class="dkpi-icon">📋</div><div class="dkpi-label">新規契約数＋再アポ契約数</div>
           <div class="dkpi-sublabel">新規契約 + 再アポ契約</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dTotalContract"></span><span class="dkpi-dunit">件</span></div>
         </div>
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">📈</div><div class="dkpi-label">初回契約率</div>
+          <div class="dkpi-icon">📈</div><div class="dkpi-label">契約率</div>
           <div class="dkpi-sublabel">2回目までに決められたか</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dTotalRate"></span><span class="dkpi-dunit">%</span></div>
         </div>
@@ -2765,93 +2751,69 @@ function renderMkCharts(fstores, md, month){
   const wrap = document.getElementById('mkChartsRow');
   if(!wrap) return;
   if(!md || fstores.length === 0){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = renderDailySalesChartHtml(fstores, month)
-                 + renderSalesCompositionHtml(fstores, md)
-                 + renderTreatmentCompositionHtml(fstores, month);
+  wrap.innerHTML = renderSalesCompositionHtml(fstores, md)
+                 + renderTreatmentCompositionHtml(fstores, month)
+                 + renderSalesTrendBarChartHtml(fstores, month);
 }
-
-// ── 日付計算ユーティリティ ─────────────────────────
-function _addDays(d, n){
-  const r = new Date(d.getTime());
-  r.setDate(r.getDate() + n);
-  return r;
-}
-function _dateKey(d){
-  const y = d.getFullYear();
-  const m = ('0' + (d.getMonth()+1)).slice(-2);
-  const day = ('0' + d.getDate()).slice(-2);
-  return y + '-' + m + '-' + day;
-}
-function _shortDateLabel(d){ return (d.getMonth()+1) + '/' + d.getDate(); }
 
 /* ============================================================
- *  日次売上を fstores 横断で集計（複数月分も走査）
+ *  本部収益ベースの店舗値
+ *   - 直営: total_sales をそのまま計上
+ *   - 加盟・未分類: royalty を計上
+ *  → fstores 横断で合算するとそのまま「本部収益」になる
  * ============================================================ */
-function _aggregateDailySales(fstores, months){
-  const out = {};
-  (months || []).forEach(function(month){
-    const md = DATA.data[month];
-    if(!md) return;
-    fstores.forEach(function(s){
-      const sd = md[s] && md[s].daily_sales;
-      if(!sd) return;
-      Object.keys(sd).forEach(function(k){
-        out[k] = (out[k] || 0) + (sd[k] || 0);
-      });
-    });
+function _storeHqRevenue(store, monthData){
+  if(!monthData) return 0;
+  const st = (DATA.store_type && DATA.store_type[store]) || '';
+  if(st === '直営') return monthData.total_sales || 0;
+  if(monthData.royalty !== undefined) return monthData.royalty;
+  return royalty(monthData.total_sales || 0);
+}
+
+/* ============================================================
+ *  直近6ヶ月の売上推移（棒グラフ）
+ *   - 集計値はビューに応じて変わる：
+ *     * 全店表示時: 直営 total_sales + 加盟 royalty （本部収益）
+ *     * 担当者選択時: 担当店舗（加盟）の royalty 合計
+ *     * 店舗詳細: その店舗単体の値（同ルール）
+ * ============================================================ */
+function renderSalesTrendBarChartHtml(fstores, month){
+  // 直近6ヶ月：表示月を末尾に、過去5ヶ月遡る
+  const months = [month];
+  for(let i = 0; i < 5; i++) months.unshift(getPrevMonth(months[0]));
+
+  // ビュー判定（ラベル切替用）
+  const onlyDirect    = fstores.length > 0 && fstores.every(function(s){ return (DATA.store_type && DATA.store_type[s]) === '直営'; });
+  const onlyFranchise = fstores.length > 0 && fstores.every(function(s){ return (DATA.store_type && DATA.store_type[s]) !== '直営'; });
+  const titleSub = onlyDirect    ? '直営売上の合計'
+                : onlyFranchise   ? 'ロイヤリティの合計'
+                                  : '直営売上 + 加盟ロイヤリティ';
+
+  const series = months.map(function(mo){
+    const md = DATA.data[mo] || {};
+    let v = 0;
+    fstores.forEach(function(s){ v += _storeHqRevenue(s, md[s]); });
+    return { month: mo, val: Math.max(0, v) };
   });
-  return out;
-}
 
-/* ============================================================
- *  直近7日 + 前7日 の売上推移カード
- * ============================================================ */
-function renderDailySalesChartHtml(fstores, month){
-  // 表示月の最終日 vs 今日 のうち早い方を endDate に
-  const y = parseInt(month.slice(0,4));
-  const m = parseInt(month.slice(4,6));
-  const monthEnd = new Date(y, m, 0);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const monthStart = new Date(y, m-1, 1);
-  const isFuture = today < monthStart;
-  if(isFuture){
-    return '<div class="chart-card"><div class="chart-card-head"><div class="chart-card-title">📈 直近7日の売上推移</div></div>' +
-           '<div class="chart-empty">未来月のためデータなし</div></div>';
+  const maxV = Math.max.apply(null, series.map(function(p){ return p.val; }));
+  if(maxV <= 0){
+    return '<div class="chart-card"><div class="chart-card-head"><div class="chart-card-title">📊 売上推移（直近6ヶ月）</div></div>' +
+           '<div class="chart-empty">データなし</div></div>';
   }
-  const endDate = (today < monthEnd) ? today : monthEnd;
+  const yMax = maxV * 1.12;
 
-  // 14日分の daily を取得（前月も含めて集計）
-  const months = [getPrevMonth(month), month];
-  const daily = _aggregateDailySales(fstores, months);
-
-  const recent = []; // {date, val} 7件 endDate-6..endDate
-  const prev   = []; // {date, val} 7件 endDate-13..endDate-7
-  for(let i = 6; i >= 0; i--){
-    const dR = _addDays(endDate, -i);
-    const dP = _addDays(endDate, -i - 7);
-    recent.push({date: dR, val: daily[_dateKey(dR)] || 0});
-    prev.push  ({date: dP, val: daily[_dateKey(dP)] || 0});
-  }
-
-  // 全部 0 なら空状態
-  const anyVal = recent.concat(prev).some(function(p){ return p.val > 0; });
-  if(!anyVal){
-    return '<div class="chart-card"><div class="chart-card-head"><div class="chart-card-title">📈 直近7日の売上推移</div></div>' +
-           '<div class="chart-empty">日次データなし（GASを更新するとデータが反映されます）</div></div>';
-  }
-
-  const maxVal = Math.max.apply(null, recent.concat(prev).map(function(p){ return p.val; }));
-  const yMax   = maxVal > 0 ? maxVal * 1.15 : 100;
-
-  // SVG 寸法
-  const W = 560, H = 220;
-  const padL = 56, padR = 16, padT = 18, padB = 38;
+  const W = 520, H = 220;
+  const padL = 56, padR = 12, padT = 18, padB = 32;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
-  const xAt = function(i){ return padL + innerW * (i / 6); };
+  const slot = innerW / series.length;
+  const barW = Math.min(40, slot * 0.62);
   const yAt = function(v){ return padT + innerH - innerH * (v / yMax); };
 
-  // Y軸グリッド（4本）
+  const BAR_COLOR = '#667eea';
+
+  // Y軸グリッド
   let gridSvg = '';
   for(let i = 0; i <= 4; i++){
     const yv = yMax * i / 4;
@@ -2860,51 +2822,38 @@ function renderDailySalesChartHtml(fstores, month){
     gridSvg += '<text x="' + (padL - 8) + '" y="' + (py + 3).toFixed(1) + '" text-anchor="end" font-size="10" fill="#94a3b8" font-weight="600">' + _shortYen(yv) + '</text>';
   }
 
-  // X軸ラベル
+  // バー + 上部数値 + X軸ラベル
+  let barsSvg = '';
   let xLabels = '';
-  recent.forEach(function(p, i){
-    xLabels += '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - padB + 14) + '" text-anchor="middle" font-size="10" fill="#94a3b8" font-weight="600">' + _shortDateLabel(p.date) + '</text>';
-    xLabels += '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - padB + 26) + '" text-anchor="middle" font-size="9" fill="#cbd5e1" font-weight="500">(' + _shortDateLabel(prev[i].date) + ')</text>';
+  series.forEach(function(p, i){
+    const cx = padL + slot * (i + 0.5);
+    const xb = cx - barW / 2;
+    const yV = yAt(p.val);
+    const hV = yAt(0) - yV;
+    barsSvg += '<rect x="' + xb.toFixed(1) + '" y="' + yV.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + hV.toFixed(1) + '" fill="' + BAR_COLOR + '" rx="3" ry="3"><title>' + (MONTH_MAP[p.month] || p.month) + ' ' + _shortYen(p.val) + '</title></rect>';
+    if(p.val > 0){
+      barsSvg += '<text x="' + cx.toFixed(1) + '" y="' + (yV - 4).toFixed(1) + '" text-anchor="middle" font-size="10" fill="#475569" font-weight="800">' + _shortYen(p.val) + '</text>';
+    }
+    const mLbl = (MONTH_MAP[p.month] || p.month);
+    xLabels += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14) + '" text-anchor="middle" font-size="10" fill="#94a3b8" font-weight="600">' + mLbl + '</text>';
   });
 
-  // 線（recent=実線、prev=点線）
-  const pathFor = function(arr){
-    return arr.map(function(p, i){ return (i === 0 ? 'M' : 'L') + xAt(i).toFixed(1) + ',' + yAt(p.val).toFixed(1); }).join(' ');
-  };
-  const recentPath = pathFor(recent);
-  const prevPath   = pathFor(prev);
+  const baseY = yAt(0).toFixed(1);
+  gridSvg += '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W - padR) + '" y2="' + baseY + '" stroke="#cbd5e1" stroke-width="1.2"/>';
 
-  // ドット（recent のみ）
-  let dotsSvg = '';
-  recent.forEach(function(p, i){
-    dotsSvg += '<circle cx="' + xAt(i).toFixed(1) + '" cy="' + yAt(p.val).toFixed(1) + '" r="3.5" fill="#fff" stroke="#667eea" stroke-width="2"><title>' + _dateKey(p.date) + ' : ¥' + p.val.toLocaleString('ja-JP') + '</title></circle>';
-  });
-  prev.forEach(function(p, i){
-    dotsSvg += '<circle cx="' + xAt(i).toFixed(1) + '" cy="' + yAt(p.val).toFixed(1) + '" r="2.6" fill="#fff" stroke="#94a3b8" stroke-width="1.5"><title>' + _dateKey(p.date) + ' : ¥' + p.val.toLocaleString('ja-JP') + '</title></circle>';
-  });
+  const cur = series[series.length - 1];
+  const prev = series[series.length - 2];
+  const momPct = (prev && prev.val > 0) ? Math.round((cur.val - prev.val) / prev.val * 1000) / 10 : null;
+  const momHtml = (momPct == null) ? ''
+    : ('前月比 ' + (momPct > 0 ? '+' : '') + momPct.toFixed(1) + '%');
 
-  const recentSum = recent.reduce(function(a, p){ return a + p.val; }, 0);
-  const prevSum   = prev.reduce(function(a, p){ return a + p.val; }, 0);
-  const rangeR = _shortDateLabel(recent[0].date) + '〜' + _shortDateLabel(recent[6].date);
-  const rangeP = _shortDateLabel(prev[0].date)   + '〜' + _shortDateLabel(prev[6].date);
-
-  const svg =
-    '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="直近7日の売上推移">' +
-      gridSvg +
-      '<path d="' + prevPath   + '" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="' + recentPath + '" fill="none" stroke="#667eea" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
-      dotsSvg +
-      xLabels +
-    '</svg>';
+  const svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="売上推移 直近6ヶ月">' +
+    gridSvg + barsSvg + xLabels + '</svg>';
 
   return '<div class="chart-card">' +
     '<div class="chart-card-head">' +
-      '<div><div class="chart-card-title">📈 直近7日の売上推移</div>' +
-        '<div class="chart-card-sub">今週 ¥' + recentSum.toLocaleString('ja-JP') + ' ／ 先週 ¥' + prevSum.toLocaleString('ja-JP') + '</div>' +
-      '</div>' +
-      '<div class="chart-legend">' +
-        '<span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#667eea"></span>今週 (' + rangeR + ')</span>' +
-        '<span class="chart-legend-item"><span class="chart-legend-swatch dotted"></span>先週 (' + rangeP + ')</span>' +
+      '<div><div class="chart-card-title">📊 売上推移（直近6ヶ月）</div>' +
+        '<div class="chart-card-sub">' + titleSub + (momHtml ? ' ／ ' + momHtml : '') + '</div>' +
       '</div>' +
     '</div>' +
     '<div class="chart-svg-wrap">' + svg + '</div>' +
@@ -3142,25 +3091,6 @@ function renderList(){
       +'\uff08\u7740\u5730\u898b\u8fbc \xa5'+totalRoyaltyProj.toLocaleString('ja-JP')+'\u5186\uff09';
   }
   document.getElementById('listMeta').textContent=metaText;
-
-  // 直営/加盟 内訳チップ
-  const totalsRow=document.getElementById('totalsRow');
-  totalsRow.innerHTML='';
-  if(hasType&&curStoreType==='\u5168\u5e97\u8217'&&(directCount>0||franchiseCount>0)){
-    const chips=[
-      {cls:'all',txt:'\u58f2\u4e0a\u5408\u8a08 \xa5'+totalSales.toLocaleString('ja-JP')},
-      {cls:'direct',txt:'\u76f4\u55b6'+directCount+'\u5e97 \xa5'+directSales.toLocaleString('ja-JP')},
-      {cls:'franchise',txt:'\u52a0\u76df'+franchiseCount+'\u5e97 \xa5'+franchiseSales.toLocaleString('ja-JP')},
-      {cls:'royalty',txt:'\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u5408\u8a08 \xa5'+totalRoyalty.toLocaleString('ja-JP')},
-      {cls:'royalty-proj',txt:'\u30ed\u30a4\u30e4\u30ea\u30c6\u30a3\u7740\u5730\u898b\u8fbc \xa5'+totalRoyaltyProj.toLocaleString('ja-JP')}
-    ];
-    chips.forEach(c=>{
-      const s=document.createElement('span');
-      s.className='total-chip '+c.cls;
-      s.textContent=c.txt;
-      totalsRow.appendChild(s);
-    });
-  }
 
   // 統計パネル
   renderStats(fstores,md);
@@ -3553,9 +3483,9 @@ function showDetail(store,d,tgt){
   if(dChartsRow){
     const md = DATA.data[curMonth] || {};
     dChartsRow.innerHTML =
-      renderDailySalesChartHtml([store], curMonth) +
       renderSalesCompositionHtml([store], md) +
-      renderTreatmentCompositionHtml([store], curMonth);
+      renderTreatmentCompositionHtml([store], curMonth) +
+      renderSalesTrendBarChartHtml([store], curMonth);
   }
 
   const roy=d.royalty!==undefined?d.royalty:royalty(d.total_sales);
