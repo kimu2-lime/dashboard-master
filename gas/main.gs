@@ -273,6 +273,16 @@ function buildData(since, targetsOnly) {
           sb.keizoku_end_count       = (sb.keizoku_end_count||0)       + (bm.keizoku_end_count||0);
           sb.keizoku_continue_count  = (sb.keizoku_continue_count||0)  + (bm.keizoku_continue_count||0);
           sb.keizoku_continue_sales  = (sb.keizoku_continue_sales||0)  + (bm.keizoku_continue_sales||0);
+          // ▼ 売上内訳（BMは0だが将来対応のため）
+          sb.coupon_sales            = (sb.coupon_sales||0)            + (bm.coupon_sales||0);
+          sb.option_sales            = (sb.option_sales||0)            + (bm.option_sales||0);
+          sb.buppan_sales            = (sb.buppan_sales||0)            + (bm.buppan_sales||0);
+          sb.other_sales             = (sb.other_sales||0)             + (bm.other_sales||0);
+          // ▼ 日次売上：日付キーごとに加算
+          const dmerged = {};
+          if (sb.daily_sales) Object.keys(sb.daily_sales).forEach(function(k){ dmerged[k] = (dmerged[k]||0) + sb.daily_sales[k]; });
+          if (bm.daily_sales) Object.keys(bm.daily_sales).forEach(function(k){ dmerged[k] = (dmerged[k]||0) + bm.daily_sales[k]; });
+          sb.daily_sales             = dmerged;
           const totalContracts = sb.new_contract_count;
           const totalNew       = sb.new_count;
           sb.new_contract_rate       = totalNew > 0 ? Math.round((totalContracts / totalNew) * 1000) / 10 : 0;
@@ -328,9 +338,16 @@ function buildData(since, targetsOnly) {
       'new_contract_sales','contract_sales','total_treatments','royalty',
       // ▼ 再来系KPI（実数）
       'reappo_count','reappo_contract_count','reappo_contract_sales',
-      'keizoku_end_count','keizoku_continue_count','keizoku_continue_sales'];
+      'keizoku_end_count','keizoku_continue_count','keizoku_continue_sales',
+      // ▼ 売上内訳（円グラフ用）
+      'coupon_sales','option_sales','buppan_sales','other_sales'];
     const merged = JSON.parse(JSON.stringify(a));
     numKeys.forEach(function(k) { merged[k] = (a[k]||0) + (b[k]||0); });
+    // ▼ 日次売上：日付キーごとに加算
+    const md = {};
+    if (a.daily_sales) Object.keys(a.daily_sales).forEach(function(k){ md[k] = (md[k]||0) + a.daily_sales[k]; });
+    if (b.daily_sales) Object.keys(b.daily_sales).forEach(function(k){ md[k] = (md[k]||0) + b.daily_sales[k]; });
+    merged.daily_sales = md;
     const nc = merged.new_contract_count;
     const nn = merged.new_count;
     merged.new_contract_rate       = nn > 0 ? Math.round(nc/nn*1000)/10 : 0;
@@ -611,6 +628,13 @@ function getActualDataBM(ss, royalty_pattern, since) {
         total_treatments:        sm.total_treatments,
         contract_sales:          Math.round(sm.contract_sales),
         new_contract_sales:      Math.round(sm.new_contract_sales),
+        // ▼ 売上内訳（BMは内訳取得未対応、その他に寄せる）
+        coupon_sales:            0,
+        option_sales:            0,
+        buppan_sales:            0,
+        other_sales:             Math.round(sm.total_sales) - Math.round(sm.contract_sales),
+        // ▼ 日次売上（BMは未取得 — 空オブジェクト）
+        daily_sales:             {},
         // ▼ 再来系KPI（BMは項目構造が異なるため一旦0初期化。後でBM側判定追加予定）
         reappo_count:                0,
         reappo_contract_count:       0,
@@ -843,6 +867,12 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
           keizoku_end_count: 0,
           keizoku_continue_count: 0,
           keizoku_continue_sales: 0,
+          // ▼ 売上内訳（円グラフ用）
+          coupon_sales: 0,
+          option_sales: 0,
+          buppan_sales: 0,
+          // ▼ 日次売上（折れ線グラフ用）
+          daily_sales: {},
           staff_data: {}
         };
       }
@@ -851,6 +881,41 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
       sm.total_sales      += totalAmt;
       sm.total_treatments += isCancelled ? -1 : 1; // 件数だけsignを使う
       sm.contract_sales   += contractSalesAmt;
+
+      // ▼ 売上内訳集計（行単位で再走査）
+      //   - クーポン売上: H列カテゴリ=「メニュー付クーポン」AND I列メニューに「契約/消化/回数券/利用」を含まない
+      //   - オプション売上: H列カテゴリ=「オプション」
+      //   - 物販売上: F列区分=「店販」
+      //   ※ 取り消し会計は CSV上で金額がマイナスのためそのまま加算でOK
+      accRows.forEach(function(row) {
+        const amt      = parseAmt(g(row, '金額'));
+        const kubun    = gs(row, '区分');
+        const category = gs(row, 'カテゴリ');
+        const menu     = gs(row, 'メニュー・店販・ 割引・サービス・オプション');
+        if (kubun === '店販') {
+          sm.buppan_sales += amt;
+        } else if (category === 'オプション') {
+          sm.option_sales += amt;
+        } else if (category === 'メニュー付クーポン' && !/契約|消化|回数券|利用/.test(menu)) {
+          sm.coupon_sales += amt;
+        }
+      });
+
+      // ▼ 日次売上：会計日キーに会計ID単位の金額合計を加算
+      const dateVal0 = g(firstRow, '会計日');
+      let dayKey = '';
+      if (dateVal0) {
+        if (dateVal0 instanceof Date) {
+          dayKey = Utilities.formatDate(dateVal0, 'Asia/Tokyo', 'yyyy-MM-dd');
+        } else {
+          const s0 = dateVal0.toString().trim().replace(/[\/]/g, '-');
+          const m0 = s0.match(/^(\d{4})-?(\d{1,2})-?(\d{1,2})/);
+          if (m0) dayKey = m0[1] + '-' + ('0' + m0[2]).slice(-2) + '-' + ('0' + m0[3]).slice(-2);
+        }
+      }
+      if (dayKey) {
+        sm.daily_sales[dayKey] = (sm.daily_sales[dayKey] || 0) + totalAmt;
+      }
 
       if (shinki === '新規') {
         sm.new_count += isCancelled ? -1 : 1;
@@ -946,16 +1011,37 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
       const totalVisits        = newCount + reappoCount;
       const newLost            = Math.max(0, newCount - newContCount); // 初回逃した数
 
+      // ▼ 売上内訳（円グラフ用） — その他は残差
+      const couponSalesR = Math.round(sm.coupon_sales);
+      const optionSalesR = Math.round(sm.option_sales);
+      const buppanSalesR = Math.round(sm.buppan_sales);
+      const contractSalesR = Math.round(sm.contract_sales);
+      const totalSalesR  = Math.round(sm.total_sales);
+      const otherSalesR  = totalSalesR - contractSalesR - couponSalesR - optionSalesR - buppanSalesR;
+
+      // ▼ 日次売上を丸めて出力
+      const daily_sales = {};
+      Object.keys(sm.daily_sales).forEach(function(k) {
+        daily_sales[k] = Math.round(sm.daily_sales[k]);
+      });
+
       actual_data[month][storeName] = {
-        total_sales:             Math.round(sm.total_sales),
-        royalty:                 calcRoyalty(Math.round(sm.total_sales), royPat),
+        total_sales:             totalSalesR,
+        royalty:                 calcRoyalty(totalSalesR, royPat),
         new_count:               newCount,
         new_contract_count:      newContCount,
         new_contract_unit_price: sm.new_contract_count > 0 ? Math.round(sm.new_contract_sales / sm.new_contract_count) : 0,
         new_contract_rate:       sm.new_count > 0 ? Math.round((sm.new_contract_count / sm.new_count) * 1000) / 10 : 0,
         total_treatments:        Math.max(0, sm.total_treatments),
-        contract_sales:          Math.round(sm.contract_sales),
+        contract_sales:          contractSalesR,
         new_contract_sales:      Math.round(sm.new_contract_sales),
+        // ▼ 売上内訳（円グラフ用）
+        coupon_sales:            couponSalesR,
+        option_sales:            optionSalesR,
+        buppan_sales:            buppanSalesR,
+        other_sales:             otherSalesR,
+        // ▼ 日次売上（折れ線グラフ用）
+        daily_sales:             daily_sales,
         // ▼ 再来系KPI（実数）
         reappo_count:                reappoCount,
         reappo_contract_count:       reappoContCount,

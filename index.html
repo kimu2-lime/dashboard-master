@@ -347,9 +347,9 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .stats-count-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f0f2ff;color:#667eea;margin-top:12px}
 
 /* ===== MAIN KPI ROW（一覧最上部の6個サマリ） ===== */
-.main-kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
-@media(max-width:1180px){.main-kpi-row{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:640px){.main-kpi-row{grid-template-columns:repeat(2,1fr)}}
+.main-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:1280px){.main-kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:720px){.main-kpi-row{grid-template-columns:repeat(2,1fr)}}
 .mk-card{background:#fff;border:1px solid #eef0f8;border-radius:14px;padding:14px 16px 12px;transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;overflow:hidden;min-width:0;box-shadow:0 1px 2px rgba(15,23,42,.03)}
 .mk-card:hover{box-shadow:0 6px 20px rgba(15,23,42,.07);transform:translateY(-1px);border-color:#e2e6f3}
 .mk-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
@@ -389,7 +389,29 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-ring-proj.ach-orange{background:#ffedd5;color:#9a3412}
 .mk-ring-proj.ach-red   {background:#fee2e2;color:#991b1b}
 .mk-ring-proj.ach-na    {background:#f3f4f6;color:#888}
-.mk-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;padding-top:8px;border-top:1px dashed #eef0f8}
+/* ── 目標表示行（値の直下） ─────── */
+.mk-target-line{font-size:11px;color:#94a3b8;font-weight:700;margin-top:4px;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-target-line b{color:#475569;font-weight:800;margin-left:4px}
+/* ── 横向き進捗バー（達成率） ─────── */
+.mk-bar-wrap{margin-top:8px}
+.mk-bar-track{position:relative;height:8px;border-radius:999px;background:#eef0f8;overflow:hidden}
+.mk-bar-fill{position:absolute;top:0;left:0;bottom:0;border-radius:999px;transition:width .3s ease}
+.mk-bar-fill.ach-green {background:linear-gradient(90deg,#10b981,#22c55e)}
+.mk-bar-fill.ach-yellow{background:linear-gradient(90deg,#f59e0b,#eab308)}
+.mk-bar-fill.ach-orange{background:linear-gradient(90deg,#f97316,#fb923c)}
+.mk-bar-fill.ach-red   {background:linear-gradient(90deg,#ef4444,#f87171)}
+.mk-bar-fill.ach-na    {background:#cbd5e1}
+.mk-bar-meta{display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:10px;color:#94a3b8;font-weight:700}
+.mk-bar-meta .mk-bar-pct{font-weight:800;color:#475569;font-size:11px}
+/* ── 前月比 + 着地見込（バー下） ─────── */
+.mk-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;padding-top:8px;border-top:1px dashed #eef0f8;justify-content:space-between}
+.mk-foot-item{display:flex;align-items:baseline;gap:4px;min-width:0}
+.mk-foot-label{font-size:9.5px;color:#94a3b8;font-weight:700;letter-spacing:.4px;text-transform:uppercase;flex-shrink:0}
+.mk-foot-val{font-size:12px;font-weight:800;color:#1a1a2e;white-space:nowrap}
+.mk-trend-chip{font-size:11px;font-weight:800;padding:2px 8px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.mk-trend-chip.up   {background:#d1fae5;color:#065f46}
+.mk-trend-chip.down {background:#fee2e2;color:#991b1b}
+.mk-trend-chip.flat {background:#f3f4f6;color:#888}
 .mk-target{font-size:10px;color:#94a3b8;font-weight:700;white-space:nowrap;letter-spacing:.2px}
 .mk-target b{color:#475569;font-weight:800;margin-left:3px}
 .mk-proj{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap;letter-spacing:.2px}
@@ -403,6 +425,33 @@ body.mobile .mk-card{padding:11px 12px 10px}
 body.mobile .mk-value{font-size:19px}
 body.mobile .mk-head{min-height:38px;margin-bottom:6px}
 body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
+body.mobile .mk-target-line{font-size:10px}
+body.mobile .mk-foot-val{font-size:11px}
+
+/* ===== サマリチャート行（7日推移 + 売上構成比） ===== */
+.mk-charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:980px){.mk-charts-row{grid-template-columns:1fr}}
+.chart-card{background:#fff;border:1px solid #eef0f8;border-radius:14px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.03);min-width:0;overflow:hidden}
+.chart-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.chart-card-title{font-size:13px;font-weight:800;color:#1a1a2e;letter-spacing:.3px}
+.chart-card-sub{font-size:11px;color:#94a3b8;font-weight:600}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#475569;font-weight:600;margin-top:6px}
+.chart-legend-item{display:inline-flex;align-items:center;gap:5px}
+.chart-legend-swatch{width:18px;height:3px;border-radius:2px;background:#667eea;display:inline-block}
+.chart-legend-swatch.dotted{background:repeating-linear-gradient(90deg,#94a3b8 0 4px,transparent 4px 8px);height:3px}
+.chart-svg-wrap{width:100%;overflow:visible}
+.chart-svg-wrap svg{display:block;width:100%;height:auto}
+.chart-empty{padding:32px 12px;text-align:center;color:#aaa;font-size:12px}
+.pie-wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pie-svg{flex:0 0 auto}
+.pie-legend{flex:1 1 auto;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pie-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#1a1a2e;min-width:0}
+.pie-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.pie-legend-label{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pie-legend-val{font-weight:700;color:#475569;white-space:nowrap}
+.pie-legend-pct{font-weight:800;color:#94a3b8;font-size:11px;margin-left:4px;white-space:nowrap}
+body.mobile .mk-charts-row{grid-template-columns:1fr;gap:8px}
+body.mobile .chart-card{padding:12px 14px}
 
 /* ===== TOTALS ROW ===== */
 .totals-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
@@ -463,6 +512,22 @@ body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
 .side-panel .person-btn,.side-panel .type-btn{text-align:left;width:100%;padding:8px 12px;border-radius:8px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-panel .person-btn{border-radius:8px}
 .side-panel .type-btn{border-radius:8px}
+
+/* 常時表示モード（PCサイズ）：左にドック、本文を右にシフト */
+@media(min-width:1100px){
+  body{padding-left:280px}
+  .side-panel{transform:translateX(0)!important;box-shadow:1px 0 0 #eef0f8;width:280px}
+  .side-menu-overlay{display:none!important}
+  .hamburger-btn{display:none!important}
+  .side-panel-close{display:none}
+  #pwScreen{padding-left:0}
+}
+body.mobile{padding-left:0!important}
+body.mobile .side-panel{transform:translateX(-100%)!important;box-shadow:6px 0 32px rgba(0,0,0,.18)}
+body.mobile .side-panel.open{transform:translateX(0)!important}
+body.mobile .hamburger-btn{display:flex!important}
+body.mobile .side-panel-close{display:flex}
+body.mobile .side-menu-overlay{display:block!important}
 
 /* ===== MAIN NAV TABS ===== */
 .main-nav{background:#fff;border-bottom:2px solid #eaeaf4;padding:0 24px;display:flex;gap:0}
@@ -1199,6 +1264,7 @@ body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
   <div class="main">
     <div id="listView">
       <div class="main-kpi-row" id="mainKpiRow"></div>
+      <div class="mk-charts-row" id="mkChartsRow"></div>
       <div class="list-header">
         <div>
           <div class="list-title" id="listTitle">店舗一覧</div>
@@ -2459,7 +2525,6 @@ function renderMainKpiRow(fstores, md, month){
 
   const prevMonth = getPrevMonth(month);
   const mdPrev = DATA.data[prevMonth] || {};
-  const tgts   = DATA.targets || {};
 
   // 集計ヘルパー：fstoresに含まれる店舗のみ集計
   const sumKey = function(data, key){
@@ -2481,133 +2546,119 @@ function renderMainKpiRow(fstores, md, month){
     });
     return total;
   };
-  // アラート店舗数：売上目標達成率<70% OR 売上が前月比-30%以下
-  const countAlerts = function(data, dataPrev){
-    let n = 0;
-    fstores.forEach(function(s){
-      if(!data[s]) return;
-      const cur = data[s];
-      const tgt = tgts[s];
-      let alert = false;
-      if(tgt && tgt.total_sales > 0 && (cur.total_sales / tgt.total_sales) < 0.70) alert = true;
-      const prev = dataPrev[s];
-      if(prev && prev.total_sales > 0 && (cur.total_sales / prev.total_sales) < 0.70) alert = true;
-      if(alert) n++;
-    });
-    return n;
-  };
 
   // 当月集計
   const cur = {
-    sales:     sumKey(md, 'total_sales'),
-    royalty:   sumRoyalty(md),
-    new_count: sumKey(md, 'new_count'),
-    visits:    sumKey(md, 'new_count') + sumKey(md, 'reappo_count'),
-    contracts: sumKey(md, 'total_contract_count'),
-    keizoku_end: sumKey(md, 'keizoku_end_count'),
-    keizoku_cnt: sumKey(md, 'keizoku_continue_count'),
-    alerts:    countAlerts(md, mdPrev),
+    sales:        sumKey(md, 'total_sales'),
+    royalty:      sumRoyalty(md),
+    new_count:    sumKey(md, 'new_count'),
+    visits:       sumKey(md, 'new_count') + sumKey(md, 'reappo_count'),
+    new_contract: sumKey(md, 'new_contract_count'),
+    contracts:    sumKey(md, 'total_contract_count'),
   };
-  cur.initRate     = cur.visits      > 0 ? Math.round(cur.contracts   / cur.visits      * 1000)/10 : 0;
-  cur.retentionRate= cur.keizoku_end > 0 ? Math.round(cur.keizoku_cnt / cur.keizoku_end * 1000)/10 : 0;
+  cur.initRate = cur.visits > 0 ? Math.round(cur.contracts / cur.visits * 1000)/10 : 0;
 
   // 前月集計
   const prv = {
-    sales:     sumKey(mdPrev, 'total_sales'),
-    royalty:   sumRoyalty(mdPrev),
-    new_count: sumKey(mdPrev, 'new_count'),
-    visits:    sumKey(mdPrev, 'new_count') + sumKey(mdPrev, 'reappo_count'),
-    contracts: sumKey(mdPrev, 'total_contract_count'),
-    keizoku_end: sumKey(mdPrev, 'keizoku_end_count'),
-    keizoku_cnt: sumKey(mdPrev, 'keizoku_continue_count'),
-    alerts:    countAlerts(mdPrev, DATA.data[getPrevMonth(prevMonth)] || {}),
+    sales:        sumKey(mdPrev, 'total_sales'),
+    royalty:      sumRoyalty(mdPrev),
+    new_count:    sumKey(mdPrev, 'new_count'),
+    visits:       sumKey(mdPrev, 'new_count') + sumKey(mdPrev, 'reappo_count'),
+    new_contract: sumKey(mdPrev, 'new_contract_count'),
+    contracts:    sumKey(mdPrev, 'total_contract_count'),
   };
-  prv.initRate      = prv.visits      > 0 ? Math.round(prv.contracts   / prv.visits      * 1000)/10 : 0;
-  prv.retentionRate = prv.keizoku_end > 0 ? Math.round(prv.keizoku_cnt / prv.keizoku_end * 1000)/10 : 0;
+  prv.initRate = prv.visits > 0 ? Math.round(prv.contracts / prv.visits * 1000)/10 : 0;
 
   // ▼ 目標集計（フィルター済み店舗の合算）
   const tgt = {
-    sales:     sumTargetKey(fstores, month, 'total_sales'),
-    royalty:   sumTargetRoyalty(fstores, month),
-    new_count: sumTargetKey(fstores, month, 'new_count'),
-    contracts: sumTargetKey(fstores, month, 'new_contract_count'),
+    sales:        sumTargetKey(fstores, month, 'total_sales'),
+    royalty:      sumTargetRoyalty(fstores, month),
+    new_count:    sumTargetKey(fstores, month, 'new_count'),
+    new_contract: sumTargetKey(fstores, month, 'new_contract_count'),
   };
-  tgt.initRate = tgt.new_count > 0 ? Math.round(tgt.contracts / tgt.new_count * 1000)/10 : 0;
+  tgt.initRate = tgt.new_count > 0 ? Math.round(tgt.new_contract / tgt.new_count * 1000)/10 : 0;
 
   // ▼ 着地見込（当月のみ線形外挿、過去月は実績そのまま）
   const isCur = isCurrentYYYYMM(month);
   const proj  = {
-    sales:     isCur ? landingProjection(cur.sales,     month) : cur.sales,
-    royalty:   isCur ? landingProjection(cur.royalty,   month) : cur.royalty,
-    new_count: isCur ? landingProjection(cur.new_count, month) : cur.new_count,
+    sales:        isCur ? landingProjection(cur.sales,        month) : cur.sales,
+    royalty:      isCur ? landingProjection(cur.royalty,      month) : cur.royalty,
+    new_count:    isCur ? landingProjection(cur.new_count,    month) : cur.new_count,
+    new_contract: isCur ? landingProjection(cur.new_contract, month) : cur.new_contract,
+    // 率は外挿しない（当月実績値をそのまま）
+    initRate:     cur.initRate,
   };
 
-  // ── 達成率（実績／目標）── 0除算は null
+  // ── 達成率（実績／目標） ── 0除算は null
   const achv = function(c, t){ return (t > 0) ? Math.round(c / t * 1000)/10 : null; };
 
-  // 前月比チップHTML（%表記）
-  const pctTrend = function(curV, prvV){
-    if(!prvV || prvV === 0) return '<span class="mk-trend flat">前月比 —</span>';
-    const diff = (curV - prvV) / prvV * 100;
+  // ── 着地見込 vs 前月 の％差（売上・件数系）
+  const trendVsPrev = function(projV, prvV){
+    if(!prvV || prvV === 0) return null;
+    return (projV - prvV) / prvV * 100;
+  };
+  // ── 率系の pt差（着地見込rate vs 前月rate）
+  const trendPt = function(curV, prvV){
+    if(prvV == null) return null;
+    if(prvV === 0 && curV === 0) return null;
+    return curV - prvV;
+  };
+
+  // 前月比チップHTML（%表記）— 着地見込ベース
+  const pctTrendChip = function(diff){
+    if(diff == null) return '<span class="mk-trend-chip flat">—</span>';
     const cls  = diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat';
     const arr  = diff > 0.5 ? '▲' : diff < -0.5 ? '▼' : '＝';
     const sign = diff > 0 ? '+' : '';
-    return '<span class="mk-trend ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + '%</span>';
+    return '<span class="mk-trend-chip ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + '%</span>';
   };
-  // pt表記（率系）
-  const ptTrend = function(curV, prvV){
-    if(prvV == null) return '<span class="mk-trend flat">前月比 —</span>';
-    const diff = curV - prvV;
-    if(prvV === 0 && curV === 0) return '<span class="mk-trend flat">前月比 —</span>';
+  // 前月比チップ（pt表記）
+  const ptTrendChip = function(diff){
+    if(diff == null) return '<span class="mk-trend-chip flat">—</span>';
     const cls  = diff > 0.1 ? 'up' : diff < -0.1 ? 'down' : 'flat';
     const arr  = diff > 0.1 ? '▲' : diff < -0.1 ? '▼' : '＝';
     const sign = diff > 0 ? '+' : '';
-    return '<span class="mk-trend ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + 'pt</span>';
-  };
-  // アラート店舗数（増加=悪化）
-  const alertTrend = function(curV, prvV){
-    const diff = curV - prvV;
-    if(diff > 0) return '<span class="mk-trend alert-up">▲ +' + diff + '店</span>';
-    if(diff < 0) return '<span class="mk-trend alert-down">▼ ' + diff + '店</span>';
-    return '<span class="mk-trend flat">前月比 ±0</span>';
+    return '<span class="mk-trend-chip ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + 'pt</span>';
   };
 
-  // foot 用の目標表示
-  const tgtLabel = function(tgtV, yen, unit){
-    if (!tgtV || tgtV === 0) return '<span class="mk-target">目標 <b>—</b></span>';
-    return '<span class="mk-target">目標<b>' +
-      (yen ? fmt(tgtV) : tgtV.toLocaleString('ja-JP') + (unit || '')) + '</b></span>';
-  };
-  // foot 用の前月値（rate系カードで使用）
-  const prevLabel = function(prvV, unit){
-    return '<span class="mk-target">前月 <b>' + (prvV || 0) + (unit || '') + '</b></span>';
+  // 横向き達成率バー
+  const barHtml = function(achRate){
+    const v = (achRate == null) ? 0 : Math.max(0, Math.min(100, achRate));
+    const cls = achievementClass(achRate);
+    const lbl = (achRate == null) ? '—' : (achRate >= 100 ? Math.round(achRate) : achRate) + '%';
+    return '<div class="mk-bar-wrap">' +
+      '<div class="mk-bar-track"><div class="mk-bar-fill ' + cls + '" style="width:' + v + '%"></div></div>' +
+      '<div class="mk-bar-meta"><span>達成率</span><span class="mk-bar-pct">' + lbl + '</span></div>' +
+    '</div>';
   };
 
-  // リング（達成率版・着地見込チップ付き）
-  //   - ring内側: 達成率 %（実績 / 目標）
-  //   - ring下:   着地見込 %（目標に対する月末予測。完了月は空）
-  const RING_SIZE = 56;
-  const ringAch = function(achRate, projRate){
+  // 目標行
+  const tgtLine = function(tgtV, yen, unit){
+    if(!tgtV || tgtV === 0) return '<div class="mk-target-line">目標 <b>—</b></div>';
+    const val = yen ? fmt(tgtV) : tgtV.toLocaleString('ja-JP') + (unit || '');
+    return '<div class="mk-target-line">目標 <b>' + val + '</b></div>';
+  };
+
+  // 着地見込ラベル（円/件など）
+  const projVal = function(projV, yen, unit){
+    if(!isCur) return '—';
+    if(yen) return fmt(projV);
+    return projV.toLocaleString('ja-JP') + (unit || '');
+  };
+
+  // リング（達成率%中央表示・太め）
+  const RING_SIZE = 64;
+  const RING_STROKE = 9;
+  const ringAch = function(achRate){
     const lblA = (achRate == null) ? '—' : (achRate >= 100 ? Math.round(achRate) : achRate) + '%';
-    const ringSvg = progressRing(achRate, RING_SIZE, { label: lblA });
-    const projHtml = (projRate == null) ? ''
-      : '<span class="mk-ring-proj ' + achievementClass(projRate) + '">着地 ' + projRate + '%</span>';
-    return '<div class="mk-ring-wrap" title="達成率 ' + lblA + '">' + ringSvg + projHtml + '</div>';
+    const ringSvg = progressRing(achRate, RING_SIZE, { label: lblA, stroke: RING_STROKE });
+    return '<div class="mk-ring-wrap" title="達成率 ' + lblA + '">' + ringSvg + '</div>';
   };
-
-  // リング（率そのもの版・着地予測なし・前月値を下に出すこともできる）
-  const ringRate = function(rate, prvRate){
+  // リング（率そのもの版）
+  const ringRate = function(rate){
     const lbl = (rate == null) ? '—' : rate + '%';
-    const ringSvg = progressRing(rate, RING_SIZE, { label: lbl });
-    let chip = '';
-    if (prvRate != null && (prvRate > 0 || rate > 0)) {
-      const diff = (rate || 0) - prvRate;
-      const cls  = diff > 0.1 ? 'ach-green' : diff < -0.1 ? 'ach-red' : 'ach-na';
-      const arr  = diff > 0.1 ? '▲' : diff < -0.1 ? '▼' : '＝';
-      const sign = diff > 0 ? '+' : '';
-      chip = '<span class="mk-ring-proj ' + cls + '">' + arr + ' ' + sign + diff.toFixed(1) + 'pt</span>';
-    }
-    return '<div class="mk-ring-wrap" title="当月 ' + lbl + '">' + ringSvg + chip + '</div>';
+    const ringSvg = progressRing(rate, RING_SIZE, { label: lbl, stroke: RING_STROKE });
+    return '<div class="mk-ring-wrap" title="' + lbl + '">' + ringSvg + '</div>';
   };
 
   // ロイヤリティ表示判定（直営のみ表示時は隠す）
@@ -2615,91 +2666,326 @@ function renderMainKpiRow(fstores, md, month){
 
   const cards = [];
 
-  // 着地見込のターゲット比%（当月のみ）
-  const projPct = function(projV, tgtV){
-    if (!isCur || !tgtV || tgtV === 0) return null;
-    return Math.round(projV / tgtV * 1000)/10;
-  };
-
   // ① 売上合計
   cards.push({
     cls: 'sales', icon: '💰', label: '売上合計',
     valueHtml: '<span class="mk-value">' + fmt(cur.sales) + '</span>',
-    trendHtml: pctTrend(cur.sales, prv.sales),
-    subHtml:   '<span class="mk-sub">' + fstores.length + '店舗</span>',
-    ringHtml:  ringAch(achv(cur.sales, tgt.sales), projPct(proj.sales, tgt.sales)),
-    footHtml:  tgtLabel(tgt.sales, true),
+    tgtHtml:   tgtLine(tgt.sales, true),
+    barHtml:   barHtml(achv(cur.sales, tgt.sales)),
+    trendHtml: pctTrendChip(trendVsPrev(proj.sales, prv.sales)),
+    projHtml:  projVal(proj.sales, true),
+    ringHtml:  ringAch(achv(cur.sales, tgt.sales)),
   });
 
-  // ② ロイヤリティ
+  // ② ロイヤリティ合計
   if(hasFranchise){
     cards.push({
-      cls: 'royalty', icon: '💎', label: 'ロイヤリティ',
+      cls: 'royalty', icon: '💎', label: 'ロイヤリティ合計',
       valueHtml: '<span class="mk-value">' + fmt(cur.royalty) + '</span>',
-      trendHtml: pctTrend(cur.royalty, prv.royalty),
-      subHtml:   '<span class="mk-sub">加盟店合計</span>',
-      ringHtml:  ringAch(achv(cur.royalty, tgt.royalty), projPct(proj.royalty, tgt.royalty)),
-      footHtml:  tgtLabel(tgt.royalty, true),
+      tgtHtml:   tgtLine(tgt.royalty, true),
+      barHtml:   barHtml(achv(cur.royalty, tgt.royalty)),
+      trendHtml: pctTrendChip(trendVsPrev(proj.royalty, prv.royalty)),
+      projHtml:  projVal(proj.royalty, true),
+      ringHtml:  ringAch(achv(cur.royalty, tgt.royalty)),
     });
   }
 
-  // ③ 新規来店
+  // ③ 新規数合計
   cards.push({
-    cls: 'new', icon: '👤', label: '新規来店',
+    cls: 'new', icon: '👤', label: '新規数合計',
     valueHtml: '<span class="mk-value">' + cur.new_count.toLocaleString('ja-JP') + '</span><span class="mk-unit">人</span>',
-    trendHtml: pctTrend(cur.new_count, prv.new_count),
-    subHtml: '',
-    ringHtml: ringAch(achv(cur.new_count, tgt.new_count), projPct(proj.new_count, tgt.new_count)),
-    footHtml: tgtLabel(tgt.new_count, false, '人'),
+    tgtHtml:   tgtLine(tgt.new_count, false, '人'),
+    barHtml:   barHtml(achv(cur.new_count, tgt.new_count)),
+    trendHtml: pctTrendChip(trendVsPrev(proj.new_count, prv.new_count)),
+    projHtml:  projVal(proj.new_count, false, '人'),
+    ringHtml:  ringAch(achv(cur.new_count, tgt.new_count)),
   });
 
-  // ④ 初回契約率（リング=値そのもの、下チップ=前月比pt）
+  // ④ 全体を見た時の新規契約率（new+reappo を分母とした契約率）
   cards.push({
-    cls: 'rate', icon: '🎯', label: '初回契約率',
+    cls: 'rate', icon: '🎯', label: '新規契約率（全体）',
     valueHtml: '<span class="mk-value">' + cur.initRate + '</span><span class="mk-unit">%</span>',
-    trendHtml: ptTrend(cur.initRate, prv.initRate),
-    subHtml: '<span class="mk-sub">契約' + cur.contracts + '/来店' + cur.visits + '</span>',
-    ringHtml: ringRate(cur.initRate, prv.initRate),
-    footHtml: tgt.initRate > 0
-      ? ('<span class="mk-target">目標<b>' + tgt.initRate + '%</b></span>')
-      : '<span class="mk-target">目標<b>—</b></span>',
+    tgtHtml:   (tgt.initRate > 0
+      ? '<div class="mk-target-line">目標 <b>' + tgt.initRate + '%</b></div>'
+      : '<div class="mk-target-line">目標 <b>—</b></div>'),
+    barHtml:   barHtml(achv(cur.initRate, tgt.initRate)),
+    trendHtml: ptTrendChip(trendPt(cur.initRate, prv.initRate)),
+    projHtml:  cur.initRate + '%',
+    ringHtml:  ringRate(cur.initRate),
   });
 
-  // ⑤ 継続率（目標未設定・前月比をリング下に）
+  // ⑤ 新規契約数（new_contract_count）
   cards.push({
-    cls: 'retention', icon: '🔄', label: '継続率',
-    valueHtml: '<span class="mk-value">' + cur.retentionRate + '</span><span class="mk-unit">%</span>',
-    trendHtml: ptTrend(cur.retentionRate, prv.retentionRate),
-    subHtml: '<span class="mk-sub">成功' + cur.keizoku_cnt + '/対象' + cur.keizoku_end + '</span>',
-    ringHtml: ringRate(cur.retentionRate, prv.retentionRate),
-    footHtml: prevLabel(prv.retentionRate, '%'),
-  });
-
-  // ⑥ アラート店舗（リングなし）
-  cards.push({
-    cls: 'alert', icon: '⚠️', label: 'アラート店舗',
-    valueHtml: '<span class="mk-value">' + cur.alerts + '</span><span class="mk-unit">店</span>',
-    trendHtml: alertTrend(cur.alerts, prv.alerts),
-    subHtml: '<span class="mk-sub">目標70%未満 / 前月-30%</span>',
-    ringHtml: '',
-    footHtml: '',
+    cls: 'retention', icon: '📋', label: '新規契約数',
+    valueHtml: '<span class="mk-value">' + cur.new_contract.toLocaleString('ja-JP') + '</span><span class="mk-unit">件</span>',
+    tgtHtml:   tgtLine(tgt.new_contract, false, '件'),
+    barHtml:   barHtml(achv(cur.new_contract, tgt.new_contract)),
+    trendHtml: pctTrendChip(trendVsPrev(proj.new_contract, prv.new_contract)),
+    projHtml:  projVal(proj.new_contract, false, '件'),
+    ringHtml:  ringAch(achv(cur.new_contract, tgt.new_contract)),
   });
 
   el.innerHTML = cards.map(function(c){
-    // ヘッダ右側：リングがあれば優先、無ければアイコン
-    const hasRing = !!c.ringHtml;
-    const headRight = c.ringHtml || ('<div class="mk-icon">' + c.icon + '</div>');
-    const foot = c.footHtml ? '<div class="mk-foot">' + c.footHtml + '</div>' : '';
     return '<div class="mk-card ' + c.cls + '">' +
-      '<div class="mk-head' + (hasRing ? '' : ' no-ring') + '">' +
+      '<div class="mk-head">' +
         '<div class="mk-label">' + c.label + '</div>' +
-        headRight +
+        c.ringHtml +
       '</div>' +
       '<div class="mk-value-row">' + c.valueHtml + '</div>' +
-      '<div class="mk-trend-row">' + c.trendHtml + (c.subHtml || '') + '</div>' +
-      foot +
+      c.tgtHtml +
+      c.barHtml +
+      '<div class="mk-foot">' +
+        '<div class="mk-foot-item">' +
+          '<span class="mk-foot-label">前月比</span>' + c.trendHtml +
+        '</div>' +
+        '<div class="mk-foot-item">' +
+          '<span class="mk-foot-label">着地</span>' +
+          '<span class="mk-foot-val">' + c.projHtml + '</span>' +
+        '</div>' +
+      '</div>' +
     '</div>';
   }).join('');
+}
+
+/* ============================================================
+ *  メインKPI下のサマリチャート
+ *   - 左：直近7日（実線）と前7日（点線）の売上推移
+ *   - 右：表示月の売上構成比 円グラフ
+ * ============================================================ */
+function renderMkCharts(fstores, md, month){
+  const wrap = document.getElementById('mkChartsRow');
+  if(!wrap) return;
+  if(!md || fstores.length === 0){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = renderDailySalesChartHtml(fstores, month) + renderSalesCompositionHtml(fstores, md);
+}
+
+// ── 日付計算ユーティリティ ─────────────────────────
+function _addDays(d, n){
+  const r = new Date(d.getTime());
+  r.setDate(r.getDate() + n);
+  return r;
+}
+function _dateKey(d){
+  const y = d.getFullYear();
+  const m = ('0' + (d.getMonth()+1)).slice(-2);
+  const day = ('0' + d.getDate()).slice(-2);
+  return y + '-' + m + '-' + day;
+}
+function _shortDateLabel(d){ return (d.getMonth()+1) + '/' + d.getDate(); }
+
+/* ============================================================
+ *  日次売上を fstores 横断で集計（複数月分も走査）
+ * ============================================================ */
+function _aggregateDailySales(fstores, months){
+  const out = {};
+  (months || []).forEach(function(month){
+    const md = DATA.data[month];
+    if(!md) return;
+    fstores.forEach(function(s){
+      const sd = md[s] && md[s].daily_sales;
+      if(!sd) return;
+      Object.keys(sd).forEach(function(k){
+        out[k] = (out[k] || 0) + (sd[k] || 0);
+      });
+    });
+  });
+  return out;
+}
+
+/* ============================================================
+ *  直近7日 + 前7日 の売上推移カード
+ * ============================================================ */
+function renderDailySalesChartHtml(fstores, month){
+  // 表示月の最終日 vs 今日 のうち早い方を endDate に
+  const y = parseInt(month.slice(0,4));
+  const m = parseInt(month.slice(4,6));
+  const monthEnd = new Date(y, m, 0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const monthStart = new Date(y, m-1, 1);
+  const isFuture = today < monthStart;
+  if(isFuture){
+    return '<div class="chart-card"><div class="chart-card-head"><div class="chart-card-title">📈 直近7日の売上推移</div></div>' +
+           '<div class="chart-empty">未来月のためデータなし</div></div>';
+  }
+  const endDate = (today < monthEnd) ? today : monthEnd;
+
+  // 14日分の daily を取得（前月も含めて集計）
+  const months = [getPrevMonth(month), month];
+  const daily = _aggregateDailySales(fstores, months);
+
+  const recent = []; // {date, val} 7件 endDate-6..endDate
+  const prev   = []; // {date, val} 7件 endDate-13..endDate-7
+  for(let i = 6; i >= 0; i--){
+    const dR = _addDays(endDate, -i);
+    const dP = _addDays(endDate, -i - 7);
+    recent.push({date: dR, val: daily[_dateKey(dR)] || 0});
+    prev.push  ({date: dP, val: daily[_dateKey(dP)] || 0});
+  }
+
+  // 全部 0 なら空状態
+  const anyVal = recent.concat(prev).some(function(p){ return p.val > 0; });
+  if(!anyVal){
+    return '<div class="chart-card"><div class="chart-card-head"><div class="chart-card-title">📈 直近7日の売上推移</div></div>' +
+           '<div class="chart-empty">日次データなし（GASを更新するとデータが反映されます）</div></div>';
+  }
+
+  const maxVal = Math.max.apply(null, recent.concat(prev).map(function(p){ return p.val; }));
+  const yMax   = maxVal > 0 ? maxVal * 1.15 : 100;
+
+  // SVG 寸法
+  const W = 560, H = 220;
+  const padL = 56, padR = 16, padT = 18, padB = 38;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const xAt = function(i){ return padL + innerW * (i / 6); };
+  const yAt = function(v){ return padT + innerH - innerH * (v / yMax); };
+
+  // Y軸グリッド（4本）
+  let gridSvg = '';
+  for(let i = 0; i <= 4; i++){
+    const yv = yMax * i / 4;
+    const py = padT + innerH - innerH * (i / 4);
+    gridSvg += '<line x1="' + padL + '" y1="' + py.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + py.toFixed(1) + '" stroke="#eef0f8" stroke-width="1"/>';
+    gridSvg += '<text x="' + (padL - 8) + '" y="' + (py + 3).toFixed(1) + '" text-anchor="end" font-size="10" fill="#94a3b8" font-weight="600">' + _shortYen(yv) + '</text>';
+  }
+
+  // X軸ラベル
+  let xLabels = '';
+  recent.forEach(function(p, i){
+    xLabels += '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - padB + 14) + '" text-anchor="middle" font-size="10" fill="#94a3b8" font-weight="600">' + _shortDateLabel(p.date) + '</text>';
+    xLabels += '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - padB + 26) + '" text-anchor="middle" font-size="9" fill="#cbd5e1" font-weight="500">(' + _shortDateLabel(prev[i].date) + ')</text>';
+  });
+
+  // 線（recent=実線、prev=点線）
+  const pathFor = function(arr){
+    return arr.map(function(p, i){ return (i === 0 ? 'M' : 'L') + xAt(i).toFixed(1) + ',' + yAt(p.val).toFixed(1); }).join(' ');
+  };
+  const recentPath = pathFor(recent);
+  const prevPath   = pathFor(prev);
+
+  // ドット（recent のみ）
+  let dotsSvg = '';
+  recent.forEach(function(p, i){
+    dotsSvg += '<circle cx="' + xAt(i).toFixed(1) + '" cy="' + yAt(p.val).toFixed(1) + '" r="3.5" fill="#fff" stroke="#667eea" stroke-width="2"><title>' + _dateKey(p.date) + ' : ¥' + p.val.toLocaleString('ja-JP') + '</title></circle>';
+  });
+  prev.forEach(function(p, i){
+    dotsSvg += '<circle cx="' + xAt(i).toFixed(1) + '" cy="' + yAt(p.val).toFixed(1) + '" r="2.6" fill="#fff" stroke="#94a3b8" stroke-width="1.5"><title>' + _dateKey(p.date) + ' : ¥' + p.val.toLocaleString('ja-JP') + '</title></circle>';
+  });
+
+  const recentSum = recent.reduce(function(a, p){ return a + p.val; }, 0);
+  const prevSum   = prev.reduce(function(a, p){ return a + p.val; }, 0);
+  const rangeR = _shortDateLabel(recent[0].date) + '〜' + _shortDateLabel(recent[6].date);
+  const rangeP = _shortDateLabel(prev[0].date)   + '〜' + _shortDateLabel(prev[6].date);
+
+  const svg =
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="直近7日の売上推移">' +
+      gridSvg +
+      '<path d="' + prevPath   + '" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="' + recentPath + '" fill="none" stroke="#667eea" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+      dotsSvg +
+      xLabels +
+    '</svg>';
+
+  return '<div class="chart-card">' +
+    '<div class="chart-card-head">' +
+      '<div><div class="chart-card-title">📈 直近7日の売上推移</div>' +
+        '<div class="chart-card-sub">今週 ¥' + recentSum.toLocaleString('ja-JP') + ' ／ 先週 ¥' + prevSum.toLocaleString('ja-JP') + '</div>' +
+      '</div>' +
+      '<div class="chart-legend">' +
+        '<span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#667eea"></span>今週 (' + rangeR + ')</span>' +
+        '<span class="chart-legend-item"><span class="chart-legend-swatch dotted"></span>先週 (' + rangeP + ')</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="chart-svg-wrap">' + svg + '</div>' +
+  '</div>';
+}
+
+// 短縮¥表記（軸ラベル用）
+function _shortYen(v){
+  if(v >= 100000000) return '¥' + (v/100000000).toFixed(1).replace(/\.0$/,'') + '億';
+  if(v >= 10000)     return '¥' + Math.round(v/10000) + '万';
+  if(v === 0)        return '¥0';
+  return '¥' + Math.round(v).toLocaleString('ja-JP');
+}
+
+/* ============================================================
+ *  売上構成比 円グラフ
+ *   クーポン / 契約 / オプション / 物販 / その他
+ * ============================================================ */
+function renderSalesCompositionHtml(fstores, md){
+  const sumKey = function(k){
+    let t = 0;
+    fstores.forEach(function(s){ if(md[s]) t += (md[s][k] || 0); });
+    return t;
+  };
+  // other_sales が GAS 側で定義済みかチェック（未対応時は残差で補完）
+  const hasOtherField = fstores.some(function(s){ return md[s] && md[s].other_sales !== undefined; });
+  const totalSum    = sumKey('total_sales');
+  const contractSum = Math.max(0, sumKey('contract_sales'));
+  const couponSum   = Math.max(0, sumKey('coupon_sales'));
+  const optionSum   = Math.max(0, sumKey('option_sales'));
+  const buppanSum   = Math.max(0, sumKey('buppan_sales'));
+  const otherSum    = hasOtherField
+    ? Math.max(0, sumKey('other_sales'))
+    : Math.max(0, totalSum - contractSum - couponSum - optionSum - buppanSum);
+  const seg = [
+    {key: 'contract_sales', label: '契約売上',     color: '#667eea', val: contractSum},
+    {key: 'coupon_sales',   label: 'クーポン売上', color: '#f59e0b', val: couponSum},
+    {key: 'option_sales',   label: 'オプション売上', color: '#10b981', val: optionSum},
+    {key: 'buppan_sales',   label: '物販売上',     color: '#a855f7', val: buppanSum},
+    {key: 'other_sales',    label: 'その他',       color: '#94a3b8', val: otherSum},
+  ];
+  // その他＝0 なら凡例から除外
+  const segs = seg.filter(function(s){ return s.val > 0; });
+  const total = segs.reduce(function(a, s){ return a + s.val; }, 0);
+  if(total <= 0){
+    return '<div class="chart-card"><div class="chart-card-head"><div class="chart-card-title">🍩 売上構成比</div></div>' +
+           '<div class="chart-empty">内訳データなし（GASを更新するとデータが反映されます）</div></div>';
+  }
+
+  // ドーナツ SVG
+  const size = 160, cx = size/2, cy = size/2;
+  const rOuter = 72, rInner = 44;
+  let cumAng = -Math.PI/2; // 12時起点
+  let arcsSvg = '';
+  segs.forEach(function(s){
+    const ang = (s.val / total) * Math.PI * 2;
+    const a0 = cumAng;
+    const a1 = cumAng + ang;
+    const large = ang > Math.PI ? 1 : 0;
+    const x0o = cx + rOuter * Math.cos(a0), y0o = cy + rOuter * Math.sin(a0);
+    const x1o = cx + rOuter * Math.cos(a1), y1o = cy + rOuter * Math.sin(a1);
+    const x0i = cx + rInner * Math.cos(a1), y0i = cy + rInner * Math.sin(a1);
+    const x1i = cx + rInner * Math.cos(a0), y1i = cy + rInner * Math.sin(a0);
+    arcsSvg += '<path d="M ' + x0o.toFixed(2) + ' ' + y0o.toFixed(2) +
+               ' A ' + rOuter + ' ' + rOuter + ' 0 ' + large + ' 1 ' + x1o.toFixed(2) + ' ' + y1o.toFixed(2) +
+               ' L ' + x0i.toFixed(2) + ' ' + y0i.toFixed(2) +
+               ' A ' + rInner + ' ' + rInner + ' 0 ' + large + ' 0 ' + x1i.toFixed(2) + ' ' + y1i.toFixed(2) +
+               ' Z" fill="' + s.color + '"><title>' + s.label + ' ¥' + s.val.toLocaleString('ja-JP') + '</title></path>';
+    cumAng = a1;
+  });
+  const centerLabel =
+    '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="10" fill="#94a3b8" font-weight="700">合計</text>' +
+    '<text x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle" font-size="13" fill="#1a1a2e" font-weight="800">' + _shortYen(total) + '</text>';
+  const pieSvg = '<svg class="pie-svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" role="img" aria-label="売上構成比">' + arcsSvg + centerLabel + '</svg>';
+
+  const legendHtml = segs.map(function(s){
+    const pct = (s.val / total * 100);
+    return '<div class="pie-legend-row">' +
+      '<span class="pie-legend-dot" style="background:' + s.color + '"></span>' +
+      '<span class="pie-legend-label">' + s.label + '</span>' +
+      '<span class="pie-legend-val">' + _shortYen(s.val) + '</span>' +
+      '<span class="pie-legend-pct">' + pct.toFixed(1) + '%</span>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="chart-card">' +
+    '<div class="chart-card-head">' +
+      '<div class="chart-card-title">🍩 売上構成比</div>' +
+      '<div class="chart-card-sub">' + fstores.length + '店舗合計</div>' +
+    '</div>' +
+    '<div class="pie-wrap">' + pieSvg + '<div class="pie-legend">' + legendHtml + '</div></div>' +
+  '</div>';
 }
 
 function renderList(){
@@ -2711,6 +2997,8 @@ function renderList(){
 
   // ▼ メインKPIロウ（全店サマリ × 前月比）
   renderMainKpiRow(fstores, md, curMonth);
+  // ▼ サマリチャート（7日推移 + 売上構成比）
+  renderMkCharts(fstores, md, curMonth);
 
   let totalSales=0,directSales=0,franchiseSales=0,directCount=0,franchiseCount=0,totalRoyalty=0,totalRoyaltyProj=0;
   fstores.forEach(s=>{
