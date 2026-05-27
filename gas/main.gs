@@ -815,8 +815,10 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         // ▼ 契約売上はカテゴリ=フェイシャル/ボディ/その他 から取得（H=サービスは¥0ラベル行のため除外）
         const isContractCategory = category === 'フェイシャル' || category === 'ボディ' || category === 'その他';
 
-        // 契約売上（広義: 契約・消化・利用）
-        if (isContractCategory && /契約|消化|利用/.test(menu)) {
+        // 契約売上（広義: 契約・消化・利用・分割・都度）
+        //   ・契約時の支払（新規/再アポ/継続契約売上）
+        //   ・回数券の消化中の支払（分割払い・都度払い等を含む）
+        if (isContractCategory && /契約|消化|利用|分割|都度/.test(menu)) {
           contractSalesAmt += amt;
         }
         // 厳密「契約」行 → 再アポ・継続契約売上、新規契約売上の元金

@@ -428,9 +428,13 @@ body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
 body.mobile .mk-target-line{font-size:10px}
 body.mobile .mk-foot-val{font-size:11px}
 
-/* ===== サマリチャート行（7日推移 + 売上構成比） ===== */
-.mk-charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-bottom:16px}
-@media(max-width:980px){.mk-charts-row{grid-template-columns:1fr}}
+/* ===== サマリチャート行（7日推移 + 売上構成比 + 施術構成比） ===== */
+.mk-charts-row{display:grid;grid-template-columns:1.3fr 1fr 1.3fr;gap:12px;margin-bottom:16px}
+@media(max-width:1280px){
+  .mk-charts-row{grid-template-columns:1fr 1fr}
+  .mk-charts-row > :first-child{grid-column:1 / -1}
+}
+@media(max-width:760px){.mk-charts-row{grid-template-columns:1fr}.mk-charts-row > :first-child{grid-column:auto}}
 .chart-card{background:#fff;border:1px solid #eef0f8;border-radius:14px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.03);min-width:0;overflow:hidden}
 .chart-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .chart-card-title{font-size:13px;font-weight:800;color:#1a1a2e;letter-spacing:.3px}
@@ -2040,13 +2044,14 @@ function progressRing(rate, size, opts){
   const len = C * (v / 100);
   const trackColor = '#eef0f8';
   const stroke = (rate == null) ? '#cbd5e1' : achievementColor(rate);
-  // ラベル：3文字以下は size*0.32、4文字は size*0.26 で自動縮小
+  // ラベル：細めの 600 / サイズも控えめ
   let inner = '';
   if (opts.label != null) {
     const lbl = String(opts.label);
-    const fs = lbl.length <= 3 ? Math.round(size * 0.32) : Math.round(size * 0.26);
+    const fs = lbl.length <= 3 ? Math.round(size * 0.26) : Math.round(size * 0.22);
+    const fw = (opts.labelWeight != null) ? opts.labelWeight : 600;
     inner = '<text x="' + r0 + '" y="' + (r0 + fs * 0.36) + '" text-anchor="middle" ' +
-      'font-size="' + fs + '" font-weight="800" letter-spacing="-0.5" fill="' + stroke + '">' +
+      'font-size="' + fs + '" font-weight="' + fw + '" letter-spacing="-0.3" fill="' + stroke + '">' +
       lbl + '</text>';
   }
   return '<svg class="progress-ring" width="' + size + '" height="' + size +
@@ -2646,9 +2651,9 @@ function renderMainKpiRow(fstores, md, month){
     return projV.toLocaleString('ja-JP') + (unit || '');
   };
 
-  // リング（達成率%中央表示・太め）
+  // リング（達成率%中央表示・細めストローク + 軽いフォント）
   const RING_SIZE = 64;
-  const RING_STROKE = 9;
+  const RING_STROKE = 5;
   const ringAch = function(achRate){
     const lblA = (achRate == null) ? '—' : (achRate >= 100 ? Math.round(achRate) : achRate) + '%';
     const ringSvg = progressRing(achRate, RING_SIZE, { label: lblA, stroke: RING_STROKE });
@@ -2739,7 +2744,7 @@ function renderMainKpiRow(fstores, md, month){
           '<span class="mk-foot-label">前月比</span>' + c.trendHtml +
         '</div>' +
         '<div class="mk-foot-item">' +
-          '<span class="mk-foot-label">着地</span>' +
+          '<span class="mk-foot-label">着地見込</span>' +
           '<span class="mk-foot-val">' + c.projHtml + '</span>' +
         '</div>' +
       '</div>' +
@@ -2756,7 +2761,9 @@ function renderMkCharts(fstores, md, month){
   const wrap = document.getElementById('mkChartsRow');
   if(!wrap) return;
   if(!md || fstores.length === 0){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = renderDailySalesChartHtml(fstores, month) + renderSalesCompositionHtml(fstores, md);
+  wrap.innerHTML = renderDailySalesChartHtml(fstores, month)
+                 + renderSalesCompositionHtml(fstores, md)
+                 + renderTreatmentCompositionHtml(fstores, month);
 }
 
 // ── 日付計算ユーティリティ ─────────────────────────
@@ -2985,6 +2992,111 @@ function renderSalesCompositionHtml(fstores, md){
       '<div class="chart-card-sub">' + fstores.length + '店舗合計</div>' +
     '</div>' +
     '<div class="pie-wrap">' + pieSvg + '<div class="pie-legend">' + legendHtml + '</div></div>' +
+  '</div>';
+}
+
+/* ============================================================
+ *  施術構成比（直近6ヶ月） — 新規 / 再アポ / 回数券 の積み上げ棒グラフ
+ *   回数券 = total_treatments - new_count - reappo_count
+ * ============================================================ */
+function renderTreatmentCompositionHtml(fstores, month){
+  // 直近6ヶ月：表示月を末尾に、過去5ヶ月遡る
+  const months = [month];
+  for(let i = 0; i < 5; i++) months.unshift(getPrevMonth(months[0]));
+
+  const sumIn = function(mo, key){
+    const md = DATA.data[mo];
+    if(!md) return 0;
+    let t = 0;
+    fstores.forEach(function(s){ if(md[s]) t += (md[s][key] || 0); });
+    return t;
+  };
+
+  const series = months.map(function(mo){
+    const nNew    = Math.max(0, sumIn(mo, 'new_count'));
+    const nReappo = Math.max(0, sumIn(mo, 'reappo_count'));
+    const nTotal  = Math.max(0, sumIn(mo, 'total_treatments'));
+    const nKei    = Math.max(0, nTotal - nNew - nReappo);
+    return { month: mo, total: nNew + nReappo + nKei, n: nNew, r: nReappo, k: nKei };
+  });
+
+  const maxTotal = Math.max.apply(null, series.map(function(p){ return p.total; }));
+  if(maxTotal <= 0){
+    return '<div class="chart-card"><div class="chart-card-head"><div class="chart-card-title">📊 施術構成比（直近6ヶ月）</div></div>' +
+           '<div class="chart-empty">施術データなし</div></div>';
+  }
+  const yMax = maxTotal * 1.12;
+
+  // SVG レイアウト
+  const W = 520, H = 220;
+  const padL = 48, padR = 12, padT = 16, padB = 32;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const slot = innerW / series.length;
+  const barW = Math.min(34, slot * 0.62);
+  const yAt = function(v){ return padT + innerH - innerH * (v / yMax); };
+
+  const COL_NEW = '#4f87f7', COL_REA = '#f59e0b', COL_KEI = '#10b981';
+
+  // グリッド
+  let gridSvg = '';
+  for(let i = 0; i <= 4; i++){
+    const yv = yMax * i / 4;
+    const py = padT + innerH - innerH * (i / 4);
+    gridSvg += '<line x1="' + padL + '" y1="' + py.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + py.toFixed(1) + '" stroke="#eef0f8" stroke-width="1"/>';
+    gridSvg += '<text x="' + (padL - 8) + '" y="' + (py + 3).toFixed(1) + '" text-anchor="end" font-size="10" fill="#94a3b8" font-weight="600">' + Math.round(yv).toLocaleString('ja-JP') + '</text>';
+  }
+
+  // バー
+  let barsSvg = '';
+  let xLabels = '';
+  series.forEach(function(p, i){
+    const cx = padL + slot * (i + 0.5);
+    const xb = cx - barW / 2;
+    const yN = yAt(p.n);
+    const hN = yAt(0) - yN;
+    const yR = yAt(p.n + p.r);
+    const hR = yN - yR;
+    const yK = yAt(p.n + p.r + p.k);
+    const hK = yR - yK;
+    // 新規（下）
+    if(p.n > 0) barsSvg += '<rect x="' + xb.toFixed(1) + '" y="' + yN.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + hN.toFixed(1) + '" fill="' + COL_NEW + '" rx="2" ry="2"><title>新規 ' + p.n.toLocaleString('ja-JP') + '件</title></rect>';
+    // 再アポ（中）
+    if(p.r > 0) barsSvg += '<rect x="' + xb.toFixed(1) + '" y="' + yR.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + hR.toFixed(1) + '" fill="' + COL_REA + '"><title>再アポ ' + p.r.toLocaleString('ja-JP') + '件</title></rect>';
+    // 回数券（上）
+    if(p.k > 0) barsSvg += '<rect x="' + xb.toFixed(1) + '" y="' + yK.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + hK.toFixed(1) + '" fill="' + COL_KEI + '" rx="2" ry="2"><title>回数券 ' + p.k.toLocaleString('ja-JP') + '件</title></rect>';
+    // 合計ラベル（上に表示）
+    if(p.total > 0){
+      barsSvg += '<text x="' + cx.toFixed(1) + '" y="' + (yK - 4).toFixed(1) + '" text-anchor="middle" font-size="10" fill="#475569" font-weight="800">' + p.total.toLocaleString('ja-JP') + '</text>';
+    }
+    // X 軸ラベル
+    const mLbl = (MONTH_MAP[p.month] || p.month);
+    xLabels += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14) + '" text-anchor="middle" font-size="10" fill="#94a3b8" font-weight="600">' + mLbl + '</text>';
+  });
+
+  // X 軸ベースライン
+  const baseY = yAt(0).toFixed(1);
+  gridSvg += '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W - padR) + '" y2="' + baseY + '" stroke="#cbd5e1" stroke-width="1.2"/>';
+
+  // 当月合計
+  const cur = series[series.length - 1];
+  const subText = '当月 新規 ' + cur.n.toLocaleString('ja-JP') + ' / 再アポ ' + cur.r.toLocaleString('ja-JP') + ' / 回数券 ' + cur.k.toLocaleString('ja-JP');
+
+  const svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="施術構成比 直近6ヶ月">' +
+    gridSvg + barsSvg + xLabels + '</svg>';
+
+  return '<div class="chart-card">' +
+    '<div class="chart-card-head">' +
+      '<div><div class="chart-card-title">📊 施術構成比（直近6ヶ月）</div>' +
+        '<div class="chart-card-sub">' + subText + '</div>' +
+      '</div>' +
+      '<div class="chart-legend">' +
+        '<span class="chart-legend-item"><span class="chart-legend-swatch" style="background:' + COL_NEW + '"></span>新規</span>' +
+        '<span class="chart-legend-item"><span class="chart-legend-swatch" style="background:' + COL_REA + '"></span>再アポ</span>' +
+        '<span class="chart-legend-item"><span class="chart-legend-swatch" style="background:' + COL_KEI + '"></span>回数券</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="chart-svg-wrap">' + svg + '</div>' +
   '</div>';
 }
 
