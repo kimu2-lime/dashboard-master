@@ -360,6 +360,8 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-card.rate::before     {background:#38b06c}
 .mk-card.retention::before{background:#10b981}
 .mk-card.alert::before    {background:#ef4444}
+.mk-card.reappo::before   {background:linear-gradient(180deg,#06b6d4,#0891b2)}
+.mk-card.visit::before    {background:linear-gradient(180deg,#a855f7,#7c3aed)}
 .mk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;min-width:0;min-height:80px}
 .mk-label{font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:.8px;text-transform:uppercase;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:6px;flex:1 1 auto;min-width:0}
 .mk-icon{font-size:18px;opacity:.45;flex-shrink:0;padding-top:4px;line-height:1}
@@ -382,6 +384,8 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .mk-card.rate      .mk-value{color:#38b06c}
 .mk-card.retention .mk-value{color:#10b981}
 .mk-card.alert     .mk-value{color:#ef4444}
+.mk-card.reappo    .mk-value{color:#0891b2}
+.mk-card.visit     .mk-value{color:#7c3aed}
 /* ── 進捗リング（右上：大きめ + 着地見込チップ） ─────── */
 .mk-ring-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;line-height:0}
 .mk-ring-wrap .progress-ring{display:block;filter:drop-shadow(0 2px 4px rgba(15,23,42,.08))}
@@ -2547,6 +2551,7 @@ function renderMainKpiRow(fstores, md, month){
     sales:        sumKey(md, 'total_sales'),
     royalty:      sumRoyalty(md),
     new_count:    sumKey(md, 'new_count'),
+    reappo_count: sumKey(md, 'reappo_count'),
     visits:       sumKey(md, 'new_count') + sumKey(md, 'reappo_count'),
     new_contract: sumKey(md, 'new_contract_count'),
     contracts:    sumKey(md, 'total_contract_count'),
@@ -2558,6 +2563,7 @@ function renderMainKpiRow(fstores, md, month){
     sales:        sumKey(mdPrev, 'total_sales'),
     royalty:      sumRoyalty(mdPrev),
     new_count:    sumKey(mdPrev, 'new_count'),
+    reappo_count: sumKey(mdPrev, 'reappo_count'),
     visits:       sumKey(mdPrev, 'new_count') + sumKey(mdPrev, 'reappo_count'),
     new_contract: sumKey(mdPrev, 'new_contract_count'),
     contracts:    sumKey(mdPrev, 'total_contract_count'),
@@ -2579,6 +2585,8 @@ function renderMainKpiRow(fstores, md, month){
     sales:        isCur ? landingProjection(cur.sales,        month) : cur.sales,
     royalty:      isCur ? landingProjection(cur.royalty,      month) : cur.royalty,
     new_count:    isCur ? landingProjection(cur.new_count,    month) : cur.new_count,
+    reappo_count: isCur ? landingProjection(cur.reappo_count, month) : cur.reappo_count,
+    visits:       isCur ? landingProjection(cur.visits,       month) : cur.visits,
     new_contract: isCur ? landingProjection(cur.new_contract, month) : cur.new_contract,
     // 率は外挿しない（当月実績値をそのまま）
     initRate:     cur.initRate,
@@ -2763,6 +2771,54 @@ function renderMainKpiRow(fstores, md, month){
     trendHtml: pctTrendChip(trendVsPrev(proj.new_contract, prv.new_contract)),
     projHtml:  projVal(proj.new_contract, false, '件'),
     ringHtml:  ringAch(achv(cur.new_contract, tgt.new_contract)),
+  });
+
+  // ── 店舗平均カード用ヘルパー（小数1桁表記） ──
+  const n = fstores.length;
+  const fmtAvg = function(v){ return (Math.round((v||0)*10)/10).toFixed(1); };
+  const avgVal = function(total, unit){
+    return '<span class="mk-value">' + (n > 0 ? fmtAvg(total / n) : '0.0') + '</span><span class="mk-unit">' + (unit || '') + '/店</span>';
+  };
+  const tgtLineAvg = function(tgtTotal, unit){
+    if(!tgtTotal || tgtTotal === 0 || n === 0) return '<div class="mk-target-line">目標 <b>—</b></div>';
+    return '<div class="mk-target-line">目標 <b>' + fmtAvg(tgtTotal / n) + (unit || '') + '/店</b></div>';
+  };
+  const projValAvg = function(projTotal, unit){
+    if(!isCur || n === 0) return '—';
+    return fmtAvg(projTotal / n) + (unit || '') + '/店';
+  };
+
+  // ⑥ 新規数（店舗平均）  — 達成率は cur/tgt の比なので N で割っても同値
+  cards.push({
+    cls: 'new', icon: '👤', label: '新規数（店舗平均）',
+    valueHtml: avgVal(cur.new_count, '人'),
+    tgtHtml:   tgtLineAvg(tgt.new_count, '人'),
+    barHtml:   barHtml(achv(cur.new_count, tgt.new_count)),
+    trendHtml: pctTrendChip(trendVsPrev(proj.new_count, prv.new_count)),
+    projHtml:  projValAvg(proj.new_count, '人'),
+    ringHtml:  ringAch(achv(cur.new_count, tgt.new_count)),
+  });
+
+  // ⑦ 再アポ数（店舗平均）  — 再アポ目標はデータ未収録のため達成率はN/A
+  cards.push({
+    cls: 'reappo', icon: '🔁', label: '再アポ数（店舗平均）',
+    valueHtml: avgVal(cur.reappo_count, '人'),
+    tgtHtml:   tgtLineAvg(0, '人'),
+    barHtml:   barHtml(null),
+    trendHtml: pctTrendChip(trendVsPrev(proj.reappo_count, prv.reappo_count)),
+    projHtml:  projValAvg(proj.reappo_count, '人'),
+    ringHtml:  ringAch(null),
+  });
+
+  // ⑧ 来店数（店舗平均）＝ 新規+再アポ  — 来店目標もデータ未収録のため達成率N/A
+  cards.push({
+    cls: 'visit', icon: '🚶', label: '来店数（店舗平均）',
+    valueHtml: avgVal(cur.visits, '人'),
+    tgtHtml:   tgtLineAvg(0, '人'),
+    barHtml:   barHtml(null),
+    trendHtml: pctTrendChip(trendVsPrev(proj.visits, prv.visits)),
+    projHtml:  projValAvg(proj.visits, '人'),
+    ringHtml:  ringAch(null),
   });
 
   el.innerHTML = cards.map(function(c){
