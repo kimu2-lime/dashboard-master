@@ -1226,8 +1226,8 @@ function exportToGitHub() {
   // CSVから新店舗を検出して店舗一覧スプシに追記
   try { syncNewStoresToMaster(); } catch(e) { Logger.log('⚠️ syncNewStoresToMaster: ' + e); }
 
-  // HPB取得（失敗してもexportは続行）
-  try { refreshHpbCache(); } catch(e) { Logger.log('⚠️ refreshHpbCache: ' + e); }
+  // HPB取得はここでは行わない（遅いため別関数 refreshHpbCache / refreshHpbThenExport に分離）。
+  // ダッシュボードには HPB_Cache シートの内容（前回スクレイプ済み）が readHpbCache 経由で反映される。
 
   const result  = buildData(null, false);
   const jsonStr = JSON.stringify(result);
@@ -1278,6 +1278,13 @@ function exportToGitHub() {
   } else {
     Logger.log('❌ push失敗 HTTP ' + code + ': ' + putResp.getContentText().slice(0, 200));
   }
+}
+
+// HPB（ホットペッパー）をスクレイピングして HPB_Cache を更新し、その後 export する。
+// 「ホットペッパーまで含めて最新化したい」とき用。通常の定期更新は exportToGitHub のみでよい。
+function refreshHpbThenExport() {
+  try { refreshHpbCache(); } catch(e) { Logger.log('⚠️ refreshHpbCache: ' + e); }
+  exportToGitHub();
 }
 
 // ============================================================
