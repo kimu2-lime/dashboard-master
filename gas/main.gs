@@ -113,8 +113,6 @@ function generateAbbr(fullName) {
 //  メインデータ生成
 // ============================================================
 function buildData(since, targetsOnly) {
-  const ss = getSS('SS_KAMEL');
-
   const shortToFull     = {};
   const store_short     = {};
   const store_type      = {};
@@ -122,6 +120,8 @@ function buildData(since, targetsOnly) {
   const store_person    = {};
   const targets         = {};
   const store_hpb_url   = {};
+  const personOrder     = [];   // 担当者の出現順（店舗一覧D列ベース・ダッシュボードのpersons用）
+  const personSeen      = {};
 
   // 店舗マスターをSS_MASTERの店舗一覧タブから読む
   // A=フル名 B=略称 C=直営加盟 D=担当者 E=ロイヤリティパターン F=HPB_URL
@@ -141,106 +141,34 @@ function buildData(since, targetsOnly) {
       if (full && type)   store_type[full]         = type;
       if (full && royPat) royalty_pattern[full]    = royPat;
       if (full && hpbUrl) store_hpb_url[full]      = hpbUrl;
-      // 担当者情報もここから読む
-      if (full && person && person !== '担当なし') store_person[full] = person;
+      // 担当者情報もここから読む（personsの並び順も店舗一覧D列の出現順で確定）
+      if (full && person && person !== '担当なし') {
+        store_person[full] = person;
+        if (!personSeen[person]) { personSeen[person] = true; personOrder.push(person); }
+      }
     }
   }
 
-  getPersons().forEach(function(person) {
-    const sheet = ss.getSheetByName(person);
-    if (!sheet) return;
-    const data = sheet.getDataRange().getValues();
-    if (data.length < 5) return;
-
-    // 新フォーマット判定: 4行目(index=3)のB列に'項目'があれば新フォーマット
-    const isNewFormat = data[3] && data[3][1] && data[3][1].toString().includes('項目');
-    const blockSize   = isNewFormat ? KAMEL_BLOCK_DEF : BLOCK;  // 新フォーマット=15行
-    const dataStart   = isNewFormat ? KAMEL_DATA_START - 1 : DATA_START;
-    const maxBlocks   = isNewFormat ? KAMEL_MAX_STORES : N_BLOCKS;
-
-    for (let i = 0; i < maxBlocks; i++) {
-      const baseRow = dataStart + i * blockSize;
-      if (baseRow >= data.length) break;
-
-      const storeRaw = data[baseRow] && data[baseRow][0];
-      if (!storeRaw || storeRaw.toString().trim() === '') continue;
-
-      const shortName = storeRaw.toString().trim();
-      const fullName  = shortToFull[shortName];
-      if (!fullName) continue;
-
-      store_person[shortName] = person;  // 略称キーで統一
-      // targetsのキーは略称で統一（actual_dataやstore_typeと一致させる）
-      const shortKey = shortName;
-      if (!targets[shortKey]) targets[shortKey] = {};
-
-      // ロイヤリティパターンは店舗一覧E列から読むので担当者タブからは読まない
-
-      // 新フォーマット用月→列マップ（D列=4列目が4月、0始まりで3）
-      const kamelMonthColMap = {};
-      KAMEL_MONTHS.forEach(function(m, i) {
-        const match = m.match(/(\d{4})年(\d+)月/);
-        if (match) {
-          const yyyymm = match[1] + ('0' + match[2]).slice(-2);
-          kamelMonthColMap[yyyymm] = KAMEL_MONTH_START_COL - 1 + i; // 0始まり
-        }
-      });
-
-      TARGET_MONTHS.forEach(function(month) {
-        // 新フォーマットはKAMEL_MONTH_START_COLベース、旧フォーマットはMONTH_COL
-        const col = isNewFormat
-          ? kamelMonthColMap[month]
-          : MONTH_COL[month];
-        if (col === undefined) return;
-
-        let newCountVal, rateVal, priceVal, contractCalc, totalSalesCalc, royaltyCalc;
-        let keizokuSales = 0, optionSales = 0, reappoSales = 0;
-
-        if (isNewFormat) {
-          // 新フォーマット（15行ブロック・KB定数に合わせてオフセット指定）
-          totalSalesCalc = data[baseRow + KB.total_sales]    ? data[baseRow + KB.total_sales][col]    : null;
-          royaltyCalc    = data[baseRow + KB.royalty]        ? data[baseRow + KB.royalty][col]        : null;
-          newCountVal    = data[baseRow + KB.new_count]      ? data[baseRow + KB.new_count][col]      : null;
-          contractCalc   = data[baseRow + KB.new_cont_count] ? data[baseRow + KB.new_cont_count][col] : null;
-          rateVal        = data[baseRow + KB.new_cont_rate]  ? data[baseRow + KB.new_cont_rate][col]  : null;
-          priceVal       = data[baseRow + KB.new_cont_price] ? data[baseRow + KB.new_cont_price][col] : null;
-          keizokuSales   = parseFloat(data[baseRow + KB.keizoku_sales] && data[baseRow + KB.keizoku_sales][col]) || 0;
-          optionSales    = parseFloat(data[baseRow + KB.option_sales]  && data[baseRow + KB.option_sales][col])  || 0;
-          reappoSales    = parseFloat(data[baseRow + KB.reappo_sales]  && data[baseRow + KB.reappo_sales][col])  || 0;
-        } else {
-          // 旧フォーマット（12行ブロック）
-          newCountVal    = data[baseRow + 2]  ? data[baseRow + 2][col]  : null;
-          rateVal        = data[baseRow + 3]  ? data[baseRow + 3][col]  : null;
-          priceVal       = data[baseRow + 4]  ? data[baseRow + 4][col]  : null;
-          contractCalc   = data[baseRow + 5]  ? data[baseRow + 5][col]  : null;
-          totalSalesCalc = data[baseRow + 6]  ? data[baseRow + 6][col]  : null;
-          royaltyCalc    = data[baseRow + 10] ? data[baseRow + 10][col] : null;
-        }
-
-        if (!totalSalesCalc && !newCountVal && !rateVal && !priceVal) return;
-
-        const n = parseFloat(newCountVal) || 0;
-        let   r = parseFloat(rateVal)     || 0;
-        if (r > 1) r = r / 100;
-        const p             = parseFloat(priceVal)    || 0;
-        const totalSales    = Math.round(parseFloat(totalSalesCalc) || 0);
-        const contractCount = Math.round(parseFloat(contractCalc)   || (n * r));
-        const royPat        = royalty_pattern[fullName] || '';
-        const royalty       = (royaltyCalc && parseFloat(royaltyCalc) > 0)
-                              ? Math.round(parseFloat(royaltyCalc))
-                              : calcRoyalty(totalSales, royPat);
-
-        targets[shortKey][month] = {
-          total_sales:             totalSales,
-          royalty:                 royalty,
-          new_count:               Math.round(n),
-          new_contract_count:      contractCount,
-          new_contract_rate:       n > 0 ? Math.round((contractCount / n) * 1000) / 10 : 0,
-          new_contract_unit_price: contractCount > 0 ? Math.round(contractCount * p / contractCount) : 0
-        };
-      });
-    }
+  // ── 加盟店目標：新「目標」スプシ（V2縦持ち1タブ）から読む ──
+  //   旧 SS_KAMEL の担当者タブ読み取りは廃止。新スプシIDは スクリプトプロパティ
+  //   SS_KAMEL_V2 に設定する（未設定だと SS_KAMEL にフォールバックするので必ず設定）。
+  //   getKamelTargetsV2_() の返り値 { 略称: { "YYYYMM": { tkey: 値 } } } を targets にマージ。
+  //   キー(略称=ブランド+店舗名)・KPI名(total_sales/royalty/new_count/new_contract_count/
+  //   new_contract_rate/new_contract_unit_price …)は従来の targets 形と互換。
+  const kamelTargetsV2 = getKamelTargetsV2_();
+  const unmatchedKamel = [];
+  Object.keys(kamelTargetsV2).forEach(function(short) {
+    // 略称(ブランド+店舗名)が店舗一覧マスターに存在するものだけ取り込む（旧挙動と同等）
+    if (!shortToFull[short]) { unmatchedKamel.push(short); return; }
+    if (!targets[short]) targets[short] = {};
+    const byMonth = kamelTargetsV2[short];
+    Object.keys(byMonth).forEach(function(ym) {
+      targets[short][ym] = byMonth[ym];
+    });
   });
+  Logger.log('加盟店目標(V2): 取込 ' + (Object.keys(kamelTargetsV2).length - unmatchedKamel.length) +
+             ' 店舗 / マスター未一致 ' + unmatchedKamel.length +
+             (unmatchedKamel.length ? ' → ' + unmatchedKamel.join(', ') : ''));
 
   // 実績データ
   const ssSalon = getSS('SS_SALON');
@@ -420,7 +348,7 @@ function buildData(since, targetsOnly) {
 
   return {
     updated_at:            new Date().toISOString(),
-    persons:               getPersons(),
+    persons:               personOrder,   // 店舗一覧D列の担当者（旧SS_KAMELのタブ名は参照しない）
     store_person:          sp_short,
     store_type:            st_short,
     store_short:           store_short,
@@ -1219,7 +1147,7 @@ function exportToGitHub() {
   if (!token) { Logger.log('❌ GITHUB_TOKEN が未設定'); return; }
 
   Logger.log('📊 データ生成中...');
-  Logger.log('SS_KAMEL: ' + (props.getProperty('SS_KAMEL') || 'アクティブシート'));
+  Logger.log('SS_KAMEL_V2(加盟店目標): ' + (props.getProperty('SS_KAMEL_V2') || '⚠️未設定→SS_KAMELにフォールバック'));
   Logger.log('SS_SALON: ' + (props.getProperty('SS_SALON') || 'アクティブシート'));
   Logger.log('SS_BM: '    + (props.getProperty('SS_BM')    || 'アクティブシート'));
 
