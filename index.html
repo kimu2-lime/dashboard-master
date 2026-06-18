@@ -434,6 +434,9 @@ body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
 body.mobile .mk-target-line{font-size:10px}
 body.mobile .mk-foot-val{font-size:11px}
 /* ── 目標サマリ（担当者サマリ準拠）2段セクション見出し ─────── */
+/* コンテナ自身のグリッドは無効化（中の本部収益/店舗KPIの2セクションを上下に積む。
+   各セクション内のカードは内側の .main-kpi-row でグリッド表示される） */
+#mainKpiRow{display:block}
 .mk-section{margin-bottom:16px}
 .mk-section-title{font-size:12px;font-weight:800;color:#475569;letter-spacing:.4px;margin:0 2px 8px;display:flex;align-items:center;gap:8px}
 .mk-section-tag{font-size:10px;font-weight:800;color:#667eea;background:#eef0ff;border-radius:6px;padding:2px 8px;letter-spacing:.3px}
