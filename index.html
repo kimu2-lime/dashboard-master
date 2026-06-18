@@ -433,20 +433,10 @@ body.mobile .mk-head{min-height:38px;margin-bottom:6px}
 body.mobile .mk-foot{gap:4px 8px;margin-top:8px;padding-top:6px}
 body.mobile .mk-target-line{font-size:10px}
 body.mobile .mk-foot-val{font-size:11px}
-/* ── 目標サマリ（担当者サマリ準拠）2段カード ─────── */
+/* ── 目標サマリ（担当者サマリ準拠）2段セクション見出し ─────── */
 .mk-section{margin-bottom:16px}
 .mk-section-title{font-size:12px;font-weight:800;color:#475569;letter-spacing:.4px;margin:0 2px 8px;display:flex;align-items:center;gap:8px}
 .mk-section-tag{font-size:10px;font-weight:800;color:#667eea;background:#eef0ff;border-radius:6px;padding:2px 8px;letter-spacing:.3px}
-.mk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-@media(max-width:720px){.mk-grid{grid-template-columns:repeat(2,1fr)}}
-body.mobile .mk-grid{grid-template-columns:repeat(2,1fr);gap:8px}
-.mk-card2{background:#fff;border:1px solid #eef0f8;border-radius:12px;padding:12px 14px;position:relative;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.03);min-width:0}
-.mk-card2::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:linear-gradient(180deg,#667eea,#764ba2)}
-.mk-card2.kpi::before{background:linear-gradient(180deg,#06b6d4,#0891b2)}
-.mk-c2-label{font-size:10.5px;font-weight:800;color:#94a3b8;letter-spacing:.3px;line-height:1.3;margin-bottom:6px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;min-height:28px}
-.mk-c2-value{font-size:22px;font-weight:800;color:#1a1a2e;letter-spacing:-.5px;line-height:1.05;white-space:nowrap}
-.mk-c2-value .mk-unit{font-size:11px;font-weight:600;color:#aaa;margin-left:2px}
-body.mobile .mk-c2-value{font-size:18px}
 
 /* ===== サマリチャート行（売上構成比 + 施術構成比 + 売上推移6mo） ===== */
 .mk-charts-row{display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:12px;margin-bottom:16px}
@@ -2549,96 +2539,137 @@ function filteredStores(){
 function renderMainKpiRow(fstores, md, month){
   const el = document.getElementById('mainKpiRow');
   if(!el) return;
-  if(!md){ el.innerHTML = ''; return; }
+  if(!md || fstores.length === 0){ el.innerHTML = ''; return; }
 
-  // ── 目標サマリ（目標スプシ「担当者サマリ」準拠）──
-  //   表示はすべて当月の「目標」集計（フィルター中の担当者／店舗タイプの合算）。
-  //   実績ではなく目標値（担当者サマリの数値）をそのまま見せる。
-  //   集計母数は「当月の目標がある店舗（フィルタ適用）」＝実績有無に依存しない。
-  const tstores = Object.keys(DATA.targets || {}).filter(function(s){
-    if(!DATA.targets[s] || !DATA.targets[s][month]) return false;
-    if(curPerson !== '全店舗' && DATA.store_person && DATA.store_person[s] !== curPerson) return false;
-    if(curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[s] !== curStoreType) return false;
-    return true;
-  });
-  const nT = tstores.length;
-  if(nT === 0 && fstores.length === 0){ el.innerHTML = ''; return; }
-  const T = function(key){ return sumTargetKey(tstores, month, key); };
+  // ── 目標サマリ（目標スプシ「担当者サマリ」準拠）：実績／目標／着地見込／達成率を表示 ──
+  const isCur     = isCurrentYYYYMM(month);
+  const prevMonth = getPrevMonth(month);
+  const mdPrev    = DATA.data[prevMonth] || {};
+  const n         = fstores.length;
+  const isDir     = function(s){ return (DATA.store_type && DATA.store_type[s]) === '直営'; };
 
-  // ロイヤリティ（固定含）＝目標royalty合算（直営除外）
-  const royaltyFix = sumTargetRoyalty(tstores, month);
-  // ロイヤリティ（固定省）＝店舗別パターンで純%を算出し合算（直営除外）
-  let royaltyPureSum = 0;
-  tstores.forEach(function(s){
-    const st = DATA.store_type ? DATA.store_type[s] : '';
-    if(st === '直営') return;
-    const t = DATA.targets[s][month];
-    royaltyPureSum += royaltyPure(t.total_sales || 0, DATA.store_royalty_pattern ? DATA.store_royalty_pattern[s] : '');
-  });
+  // ---- 実績集計（fstores基準）----
+  const sumA = function(data, key){ let t=0; fstores.forEach(function(s){ if(data[s]) t+=(data[s][key]||0); }); return t; };
+  const royA = function(data){ let t=0; fstores.forEach(function(s){ if(!data[s]||isDir(s)) return; const r=(data[s].royalty!==undefined)?data[s].royalty:royalty(data[s].total_sales); t+=r; }); return t; };
+  const royPureA = function(data){ let t=0; fstores.forEach(function(s){ if(!data[s]||isDir(s)) return; t+=royaltyPure(data[s].total_sales||0, DATA.store_royalty_pattern?DATA.store_royalty_pattern[s]:''); }); return t; };
+  const hqA = function(data){ let t=0; fstores.forEach(function(s){ if(!data[s]) return; t+=_storeHqRevenue(s, data[s]); }); return t; };
 
-  // 本部収益内訳（目標）
-  const shozai        = T('shozai_sales');
-  const addFranchise  = T('add_franchise_sales');
-  const addMachine    = T('add_machine_sales');
-  const machineRental = T('machine_rental_sales');
-  const training      = T('training_sales');
-  const recruit       = T('recruit_sales');
-  const otherHq       = T('other_hq_sales');
-  // 売上合計＝本部収益合計（担当者サマリ「合計」＝ROY固定含+商材+追加加盟+追加機械+機械レンタル+研修+採用+その他）
-  const salesTotal = royaltyFix + shozai + addFranchise + addMachine + machineRental + training + recruit + otherHq;
+  // ---- 目標集計 ----
+  const tK   = function(key){ return sumTargetKey(fstores, month, key); };
+  const tRoy = sumTargetRoyalty(fstores, month);
+  let tRoyPure = 0;
+  fstores.forEach(function(s){ if(isDir(s)) return; const t=DATA.targets&&DATA.targets[s]&&DATA.targets[s][month]; if(t) tRoyPure+=royaltyPure(t.total_sales||0, DATA.store_royalty_pattern?DATA.store_royalty_pattern[s]:''); });
+  const tShozai=tK('shozai_sales'), tAddF=tK('add_franchise_sales'), tAddM=tK('add_machine_sales'),
+        tMr=tK('machine_rental_sales'), tTr=tK('training_sales'), tRe=tK('recruit_sales'), tOt=tK('other_hq_sales');
+  const tSalesTotal = tRoy+tShozai+tAddF+tAddM+tMr+tTr+tRe+tOt;
 
-  // 店舗KPI（目標）
-  const storeSalesTotal = T('total_sales');                                // 店舗末端売上目標 合計
-  const nrCount    = T('new_count')          + T('reappo_count');          // 新規+再アポ 数
-  const nrContract = T('new_contract_count') + T('reappo_contract_count'); // 新規+再アポ 契約数
-  const nrSales    = T('new_contract_sales') + T('reappo_contract_sales'); // 新規+再アポ 契約売上
-  const storeSalesAvg = nT > 0 ? storeSalesTotal / nT : 0;
-  const nrCountAvg    = nT > 0 ? nrCount / nT : 0;
-  const nrContractAvg = nT > 0 ? nrContract / nT : 0;
-  const nrRateAvg  = nrCount > 0 ? nrContract / nrCount * 100 : 0;
-  const nrPriceAvg = nrContract > 0 ? nrSales / nrContract : 0;
+  // 新規+再アポ（実績/前月/目標）
+  const aNR=sumA(md,'new_count')+sumA(md,'reappo_count'), aNRc=sumA(md,'new_contract_count')+sumA(md,'reappo_contract_count'), aNRs=sumA(md,'new_contract_sales')+sumA(md,'reappo_contract_sales');
+  const pNR=sumA(mdPrev,'new_count')+sumA(mdPrev,'reappo_count'), pNRc=sumA(mdPrev,'new_contract_count')+sumA(mdPrev,'reappo_contract_count'), pNRs=sumA(mdPrev,'new_contract_sales')+sumA(mdPrev,'reappo_contract_sales');
+  const tNR=tK('new_count')+tK('reappo_count'), tNRc=tK('new_contract_count')+tK('reappo_contract_count'), tNRs=tK('new_contract_sales')+tK('reappo_contract_sales');
 
-  // 表示ヘルパー
-  const fmtAvg1 = function(v){ return (Math.round((v||0)*10)/10).toFixed(1); };
-  const yenCard = function(label, v){ return { label: label, val: fmt(Math.round(v||0)) }; };
-  const numCard = function(label, v, unit){ return { label: label, val: fmtAvg1(v) + '<span class="mk-unit">' + unit + '</span>' }; };
-  const pctCard = function(label, v){ return { label: label, val: (Math.round((v||0)*10)/10) + '<span class="mk-unit">%</span>' }; };
+  // ---- 表示ヘルパー ----
+  const RING_SIZE=64, RING_STROKE=5;
+  const fmtA   = function(v){ return (Math.round((v||0)*10)/10).toFixed(1); };
+  const achvP  = function(c,t){ return (t>0 && c!=null) ? Math.round(c/t*1000)/10 : null; };
+  const ring   = function(p){ const lbl=(p==null)?'—':(p>=100?Math.round(p):p)+'%'; return '<div class="mk-ring-wrap" title="達成率 '+lbl+'">'+progressRing(p,RING_SIZE,{label:lbl,stroke:RING_STROKE})+'</div>'; };
+  const bar    = function(p){ const v=(p==null)?0:Math.max(0,Math.min(100,p)); const cls=achievementClass(p); const lbl=(p==null)?'—':(p>=100?Math.round(p):p)+'%'; return '<div class="mk-bar-wrap"><div class="mk-bar-track"><div class="mk-bar-fill '+cls+'" style="width:'+v+'%"></div></div><div class="mk-bar-meta"><span>達成率</span><span class="mk-bar-pct">'+lbl+'</span></div></div>'; };
+  const trendPctChip = function(diff){ if(diff==null) return '<span class="mk-trend-chip flat">—</span>'; const cls=diff>0.5?'up':diff<-0.5?'down':'flat'; const arr=diff>0.5?'▲':diff<-0.5?'▼':'＝'; const sign=diff>0?'+':''; return '<span class="mk-trend-chip '+cls+'">'+arr+' '+sign+diff.toFixed(1)+'%</span>'; };
+  const trendPtChip  = function(diff){ if(diff==null) return '<span class="mk-trend-chip flat">—</span>'; const cls=diff>0.1?'up':diff<-0.1?'down':'flat'; const arr=diff>0.1?'▲':diff<-0.1?'▼':'＝'; const sign=diff>0?'+':''; return '<span class="mk-trend-chip '+cls+'">'+arr+' '+sign+diff.toFixed(1)+'pt</span>'; };
+  const projChip = function(p){ if(p==null) return ''; return ' <span class="mk-proj '+achievementClass(p)+'">'+Math.round(p)+'%</span>'; };
 
-  const row1 = [
-    yenCard('売上合計', salesTotal),
-    yenCard('ロイヤリティ合計（固定含）', royaltyFix),
-    yenCard('ロイヤリティ合計（固定省）', royaltyPureSum),
-    yenCard('商材売上', shozai),
-    yenCard('追加加盟売上', addFranchise),
-    yenCard('追加機械売上', addMachine),
-    yenCard('機械レンタル', machineRental),
-  ];
-  const row2 = [
-    yenCard('店舗総合売上合計', storeSalesTotal),
-    yenCard('店舗売上平均', storeSalesAvg),
-    numCard('（新規＋再アポ）数平均', nrCountAvg, '人/店'),
-    pctCard('（新規＋再アポ）契約率平均', nrRateAvg),
-    numCard('（新規＋再アポ）契約数平均', nrContractAvg, '件/店'),
-    yenCard('（新規＋再アポ）契約単価平均', nrPriceAvg),
-  ];
-
-  const card2 = function(c, kpi){
-    return '<div class="mk-card2' + (kpi ? ' kpi' : '') + '">' +
-      '<div class="mk-c2-label">' + c.label + '</div>' +
-      '<div class="mk-c2-value">' + c.val + '</div>' +
+  const cardHtml = function(cls,label,valueHtml,tgtHtml,barP,trendHtml,projHtml){
+    return '<div class="mk-card '+cls+'">'+
+      '<div class="mk-head"><div class="mk-label">'+label+'</div>'+ring(barP)+'</div>'+
+      '<div class="mk-value-row">'+valueHtml+'</div>'+ tgtHtml + bar(barP)+
+      '<div class="mk-foot">'+
+        '<div class="mk-foot-item"><span class="mk-foot-label">前月比</span>'+trendHtml+'</div>'+
+        '<div class="mk-foot-item"><span class="mk-foot-label">着地見込</span><span class="mk-foot-val">'+projHtml+'</span></div>'+
+      '</div>'+
     '</div>';
   };
-  const ctxLabel = (typeof curPerson !== 'undefined' && curPerson && curPerson !== '全店舗') ? curPerson : '全店舗合計';
-  const nLabel   = nT + '店舗 / 目標値';
 
+  // 金額・件数・人数カード（実績あり）。avg=true で「/店」平均表示（達成率・着地は合計ベース）
+  const valCard = function(cls,label,curSum,tgtSum,prvSum,opt){
+    opt = opt || {};
+    const yen=opt.yen, avg=opt.avg, unit=opt.unit||'';
+    const proj   = isCur ? landingProjection(curSum, month) : curSum;
+    const barP   = achvP(curSum, tgtSum);
+    const projAc = achvP(proj, tgtSum);
+    const dc = avg ? (n>0?curSum/n:0) : curSum;
+    const dt = avg ? (n>0?tgtSum/n:0) : tgtSum;
+    const dp = avg ? (n>0?proj/n:0)  : proj;
+    const suffix = avg ? '/店' : '';
+    const valueHtml = yen
+      ? '<span class="mk-value">'+fmt(Math.round(dc))+'</span>'+(avg?'<span class="mk-unit">/店</span>':'')
+      : '<span class="mk-value">'+fmtA(dc)+'</span><span class="mk-unit">'+unit+suffix+'</span>';
+    const tgtHtml = (!dt||dt===0) ? '<div class="mk-target-line">目標 <b>—</b></div>'
+      : (yen ? '<div class="mk-target-line">目標 <b>'+fmt(Math.round(dt))+suffix+'</b></div>'
+             : '<div class="mk-target-line">目標 <b>'+fmtA(dt)+unit+suffix+'</b></div>');
+    const trendHtml = trendPctChip(prvSum>0 ? (proj-prvSum)/prvSum*100 : null);
+    const projHtml  = !isCur ? '—'
+      : (yen ? fmt(Math.round(dp))+suffix : fmtA(dp)+unit+suffix) + projChip(projAc);
+    return cardHtml(cls,label,valueHtml,tgtHtml,barP,trendHtml,projHtml);
+  };
+
+  // 率カード（契約率）。達成率＝実績率/目標率
+  const rateCard = function(cls,label,curRate,tgtRate,prvRate){
+    const barP=(tgtRate>0)?Math.round(curRate/tgtRate*1000)/10:null;
+    const valueHtml='<span class="mk-value">'+(Math.round(curRate*10)/10)+'</span><span class="mk-unit">%</span>';
+    const tgtHtml=(tgtRate>0)?'<div class="mk-target-line">目標 <b>'+(Math.round(tgtRate*10)/10)+'%</b></div>':'<div class="mk-target-line">目標 <b>—</b></div>';
+    const trendHtml=trendPtChip((prvRate!=null)?(curRate-prvRate):null);
+    const projHtml=(Math.round(curRate*10)/10)+'%'+projChip(barP);
+    return cardHtml(cls,label,valueHtml,tgtHtml,barP,trendHtml,projHtml);
+  };
+
+  // 単価カード（総額/総契約数）。平均ではなく加重単価
+  const priceCard = function(cls,label,curNum,curDen,tgtNum,tgtDen){
+    const proj=isCur?landingProjection(curNum,month):curNum;
+    const projDen=isCur?landingProjection(curDen,month):curDen;
+    const curV=curDen>0?curNum/curDen:0, tgtV=tgtDen>0?tgtNum/tgtDen:0, projV=projDen>0?proj/projDen:0;
+    const barP=(tgtV>0)?Math.round(curV/tgtV*1000)/10:null;
+    const valueHtml='<span class="mk-value">'+fmt(Math.round(curV))+'</span>';
+    const tgtHtml=(tgtV>0)?'<div class="mk-target-line">目標 <b>'+fmt(Math.round(tgtV))+'</b></div>':'<div class="mk-target-line">目標 <b>—</b></div>';
+    const projHtml=!isCur?'—':fmt(Math.round(projV))+projChip(achvP(projV,tgtV));
+    return cardHtml(cls,label,valueHtml,tgtHtml,barP,'<span class="mk-trend-chip flat">—</span>',projHtml);
+  };
+
+  // 目標のみカード（本部収益実績が未連携：実績・着地は —）
+  const tgtOnlyCard = function(cls,label,tgtSum){
+    const valueHtml='<span class="mk-value" style="color:#cbd5e1">—</span>';
+    const tgtHtml=(tgtSum>0)?'<div class="mk-target-line">目標 <b>'+fmt(Math.round(tgtSum))+'</b></div>':'<div class="mk-target-line">目標 <b>—</b></div>';
+    return cardHtml(cls,label,valueHtml,tgtHtml,null,'<span class="mk-trend-chip flat">—</span>','—');
+  };
+
+  // ===== セクション1：本部収益 =====
+  const row1 =
+      valCard('sales',  '売上合計', hqA(md), tSalesTotal, hqA(mdPrev), {yen:true})
+    + valCard('royalty','ロイヤリティ合計（固定含）', royA(md), tRoy, royA(mdPrev), {yen:true})
+    + valCard('royalty','ロイヤリティ合計（固定省）', royPureA(md), tRoyPure, royPureA(mdPrev), {yen:true})
+    + tgtOnlyCard('retention','商材売上', tShozai)
+    + tgtOnlyCard('new',      '追加加盟売上', tAddF)
+    + tgtOnlyCard('reappo',   '追加機械売上', tAddM)
+    + tgtOnlyCard('visit',    '機械レンタル', tMr);
+
+  // ===== セクション2：店舗KPI =====
+  const curRate=aNR>0?aNRc/aNR*100:0, tgtRate=tNR>0?tNRc/tNR*100:0, prvRate=pNR>0?pNRc/pNR*100:0;
+  const row2 =
+      valCard('sales','店舗総合売上合計', sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true})
+    + valCard('lime', '店舗売上平均',     sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true, avg:true})
+    + valCard('new',  '（新規＋再アポ）数平均', aNR, tNR, pNR, {avg:true, unit:'人'})
+    + rateCard('rate','（新規＋再アポ）契約率平均', curRate, tgtRate, prvRate)
+    + valCard('retention','（新規＋再アポ）契約数平均', aNRc, tNRc, pNRc, {avg:true, unit:'件'})
+    + priceCard('royalty','（新規＋再アポ）契約単価平均', aNRs, aNRc, tNRs, tNRc);
+
+  const ctxLabel = (typeof curPerson !== 'undefined' && curPerson && curPerson !== '全店舗') ? curPerson : '全店舗';
   el.innerHTML =
-    '<div class="mk-section">' +
-      '<div class="mk-section-title">本部収益（目標）<span class="mk-section-tag">' + ctxLabel + '</span></div>' +
-      '<div class="mk-grid">' + row1.map(function(c){ return card2(c, false); }).join('') + '</div>' +
-    '</div>' +
-    '<div class="mk-section">' +
-      '<div class="mk-section-title">店舗KPI（目標）<span class="mk-section-tag">' + nLabel + '</span></div>' +
-      '<div class="mk-grid">' + row2.map(function(c){ return card2(c, true); }).join('') + '</div>' +
+    '<div class="mk-section">'+
+      '<div class="mk-section-title">本部収益<span class="mk-section-tag">'+ctxLabel+' / 実績・目標・着地</span></div>'+
+      '<div class="main-kpi-row">'+row1+'</div>'+
+    '</div>'+
+    '<div class="mk-section">'+
+      '<div class="mk-section-title">店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span></div>'+
+      '<div class="main-kpi-row">'+row2+'</div>'+
     '</div>';
 }
 
