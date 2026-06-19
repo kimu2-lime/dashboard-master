@@ -2662,7 +2662,14 @@ function renderMainKpiRow(fstores, md, month){
     + valCard('new',  '（新規＋再アポ）数平均', aNR, tNR, pNR, {avg:true, unit:'人'})
     + rateCard('rate','（新規＋再アポ）契約率平均', curRate, tgtRate, prvRate)
     + valCard('retention','（新規＋再アポ）契約数平均', aNRc, tNRc, pNRc, {avg:true, unit:'件'})
-    + priceCard('royalty','（新規＋再アポ）契約単価平均', aNRs, aNRc, tNRs, tNRc);
+    + priceCard('royalty','（新規＋再アポ）契約単価平均', aNRs, aNRc, tNRs, tNRc)
+    // ── 新規/再アポ 個別（店舗平均）──
+    + valCard('new',   '新規数平均',   sumA(md,'new_count'),    tK('new_count'),    sumA(mdPrev,'new_count'),    {avg:true, unit:'人'})
+    + valCard('reappo','再アポ数平均', sumA(md,'reappo_count'), tK('reappo_count'), sumA(mdPrev,'reappo_count'), {avg:true, unit:'人'})
+    + valCard('retention','新規契約数平均',   sumA(md,'new_contract_count'),    tK('new_contract_count'),    sumA(mdPrev,'new_contract_count'),    {avg:true, unit:'件'})
+    + valCard('reappo',   '再アポ契約数平均', sumA(md,'reappo_contract_count'), tK('reappo_contract_count'), sumA(mdPrev,'reappo_contract_count'), {avg:true, unit:'件'})
+    + priceCard('royalty','新規契約単価平均',   sumA(md,'new_contract_sales'),    sumA(md,'new_contract_count'),    tK('new_contract_sales'),    tK('new_contract_count'))
+    + priceCard('royalty','再アポ契約単価平均', sumA(md,'reappo_contract_sales'), sumA(md,'reappo_contract_count'), tK('reappo_contract_sales'), tK('reappo_contract_count'));
 
   const ctxLabel = (typeof curPerson !== 'undefined' && curPerson && curPerson !== '全店舗') ? curPerson : '全店舗';
   el.innerHTML =
