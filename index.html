@@ -1647,6 +1647,7 @@ function getSinceMonth() {
 DATA.store_type = {};
 DATA.store_short = {};  // フル名→略称マップ
 DATA.store_royalty_pattern = {};  // フル名→ロイヤリティパターン文字列
+DATA.reservation_insights = null;  // 予約CSVインサイト（reservation_insights.json）
 
 // data.jsonのURLを動的に解決（GitHub Pages上で動く）
 function getDataJsonUrl() {
@@ -1702,6 +1703,16 @@ async function fetchData(){
       localStorage.setItem(LS_ACTUAL_KEY, JSON.stringify(json.actual_data));
     }
 
+    // 予約インサイト（別ファイル・任意。無くても本体は動く）
+    try {
+      const riUrl = url.replace('data.json', 'reservation_insights.json');
+      const riResp = await fetch(riUrl + '?t=' + Date.now());
+      if (riResp.ok) {
+        DATA.reservation_insights = await riResp.json();
+        localStorage.setItem('limefit_reservation_insights', JSON.stringify(DATA.reservation_insights));
+      }
+    } catch(e) { /* 任意なので失敗は無視 */ }
+
     const ts = json.updated_at ? new Date(json.updated_at).toLocaleString('ja-JP') : new Date().toLocaleString('ja-JP');
     localStorage.setItem(LS_TGT_KEY,      JSON.stringify(json.targets||{}));
     localStorage.setItem(LS_SP_KEY,       JSON.stringify(json.store_person||{}));
@@ -1749,6 +1760,8 @@ function loadSavedTargets(){
   if(ss){ try{ DATA.store_short=JSON.parse(ss); }catch(e){} }
   const ps=localStorage.getItem(LS_PERSONS_KEY);
   if(ps){ try{ DATA.persons=JSON.parse(ps); }catch(e){} }
+  const ri=localStorage.getItem('limefit_reservation_insights');
+  if(ri){ try{ DATA.reservation_insights=JSON.parse(ri); }catch(e){} }
   if(actual){
     try{
       const ad=JSON.parse(actual);
@@ -4877,6 +4890,15 @@ function renderAnalysis() {
       + '</div>';
     body.appendChild(kpiSec);
 
+    // 予約インサイト（予約CSV）
+    const riHtml = reservationInsightHtml(dispName(r.storeName));
+    if (riHtml) {
+      const riSec = document.createElement('div');
+      riSec.className = 'issue-section';
+      riSec.innerHTML = riHtml;
+      body.appendChild(riSec);
+    }
+
     // スタッフ課題
     const staffIss = r.issues.find(function(i){return i.type==='staff';});
     if (staffIss) {
@@ -4948,6 +4970,37 @@ function buildCompetitorContent(container, storeName, storeId) {
   btn.textContent = '🔍 競合を取得（要GAS設定）';
   btn.addEventListener('click', function(){ fetchCompetitors(storeId, storeName, btn); });
   container.appendChild(btn);
+}
+
+// ── 予約インサイト（予約CSV）描画 ──
+function riBox_(label, val, sub, color) {
+  return '<div style="background:#f7f8fc;border-radius:8px;padding:8px 10px;min-width:0">'
+    + '<div style="font-size:10px;color:#888">' + label + '</div>'
+    + '<div style="font-size:16px;font-weight:700;' + (color ? 'color:' + color : '') + '">' + val + '</div>'
+    + (sub ? '<div style="font-size:10px;color:#aaa">' + sub + '</div>' : '')
+    + '</div>';
+}
+function reservationInsightHtml(short) {
+  const RI = DATA.reservation_insights;
+  if (!RI || !RI.stores || !RI.stores[short]) return '';
+  const s = RI.stores[short];
+  const cc = s.cancel_rate >= 25 ? '#e11d48' : (s.cancel_rate >= 15 ? '#d97706' : '#16a34a');
+  let h = '<div class="issue-section-title">📅 予約インサイト（' + (RI.month || '') + '・予約CSV）</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px">';
+  h += riBox_('予約数', s.total_reservations, '来店 ' + s.visited);
+  h += riBox_('キャンセル率', s.cancel_rate + '%', '客' + s.cancel_customer + '/サロン' + s.cancel_salon + '/無断' + s.cancel_noshow, cc);
+  h += riBox_('HPB予約率', s.hpb_rate + '%', 'HPB CXL ' + s.hpb_cancel_rate + '%');
+  h += riBox_('指名率', s.shimei_rate + '%');
+  h += riBox_('女性比率', s.gender_female_pct + '%', '女' + s.gender_female + '/男' + s.gender_male);
+  h += riBox_('リスケ', s.reschedule + '件');
+  h += riBox_('初回契約率', s.first_contract_rate + '%', '初回 ' + s.first_visit_count + '人');
+  h += riBox_('新規契約', s.contract_count + '件');
+  h += '</div>';
+  if (RI.overall && RI.overall.keywords && RI.overall.keywords.length) {
+    const top = RI.overall.keywords.slice(0, 6).map(function(k){ return k.keyword + ' ' + k.rate + '%'; }).join(' / ');
+    h += '<div style="font-size:11px;color:#666;margin-top:8px;line-height:1.5">🔑 全店で契約に効くワード: ' + top + '</div>';
+  }
+  return h;
 }
 
 function toggleIssueCard(storeId) {
