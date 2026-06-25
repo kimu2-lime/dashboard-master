@@ -1221,7 +1221,7 @@ body.mobile .side-menu-overlay{display:block!important}
     <div class="main-nav-inner">
       <button class="nav-tab active" id="navStore" onclick="switchMainTab('store')">📊 店舗一覧</button>
       <button class="nav-tab" id="navRanking" onclick="switchMainTab('ranking')">👤 スタッフ</button>
-      <button class="nav-tab" id="navAnalysis" onclick="switchMainTab('analysis')">🔍 課題分析</button>
+      <button class="nav-tab" id="navAnalysis" onclick="switchMainTab('analysis')" style="display:none">🔍 課題分析</button>
     </div>
   </div>
 
@@ -1498,6 +1498,9 @@ body.mobile .side-menu-overlay{display:block!important}
         <div class="detail-section-label">👥 スタッフ別実績</div>
         <div id="staffCardsContainer"></div>
       </div>
+
+      <!-- 予約インサイト・効くワード・推奨アクション（予約CSV由来） -->
+      <div id="dReserveInsights"></div>
     </div><!-- /detailView -->
 
     <!-- スタッフランキングビュー -->
@@ -3844,6 +3847,10 @@ function showDetail(store,d,tgt){
   } else {
     staffSection.style.display = 'none';
   }
+
+  // 予約インサイト・効くワード・推奨アクション（予約CSV由来）
+  const riEl = document.getElementById('dReserveInsights');
+  if (riEl) riEl.innerHTML = detailExtraSectionsHtml(store);
 }
 
 function goList(){
@@ -5014,6 +5021,82 @@ function reservationInsightHtml(short) {
     const top = RI.overall.keywords.slice(0, 6).map(function(k){ return k.keyword + ' ' + k.rate + '%'; }).join(' / ');
     h += '<div style="font-size:11px;color:#666;margin-top:8px;line-height:1.5">🔑 全店で契約に効くワード: ' + top + '</div>';
   }
+  return h;
+}
+
+// ── 店舗詳細ページ用：予約インサイト（大きめ）＋効くワード＋推奨アクション＋クーポン名提案 ──
+function detailExtraSectionsHtml(store) {
+  const RI = DATA.reservation_insights;
+  const short = (typeof dispName === 'function') ? dispName(store) : store;
+  if (!RI || !RI.stores || !RI.stores[short]) {
+    return '<div class="detail-section-label" style="margin-top:18px">📅 予約インサイト</div>'
+      + '<div style="font-size:13px;color:#999;padding:8px 0">この店舗の予約データがありません（SS_RESERVEに当月データを貼って exportReservationInsights を実行すると表示されます）。</div>';
+  }
+  const s = RI.stores[short];
+  const cc = s.cancel_rate >= 25 ? '#e11d48' : (s.cancel_rate >= 15 ? '#d97706' : '#16a34a');
+  function big(label, val, sub, color) {
+    return '<div style="background:#fff;border:1.5px solid #eaeaf4;border-radius:12px;padding:12px 14px">'
+      + '<div style="font-size:11px;color:#888;margin-bottom:2px">' + label + '</div>'
+      + '<div style="font-size:24px;font-weight:800;line-height:1.1;' + (color ? 'color:' + color : '') + '">' + val + '</div>'
+      + (sub ? '<div style="font-size:11px;color:#aaa;margin-top:2px">' + sub + '</div>' : '')
+      + '</div>';
+  }
+  let h = '<div class="detail-section-label" style="margin-top:18px">📅 予約インサイト（' + (RI.month || '') + '）</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:6px">';
+  h += big('予約数', s.total_reservations, '来店 ' + s.visited);
+  h += big('キャンセル率', s.cancel_rate + '%', '客' + s.cancel_customer + '/サロン' + s.cancel_salon + '/無断' + s.cancel_noshow, cc);
+  h += big('HPB予約率', s.hpb_rate + '%', 'HPBキャンセル ' + s.hpb_cancel_rate + '%');
+  h += big('指名率', s.shimei_rate + '%');
+  h += big('女性比率', s.gender_female_pct + '%', '女' + s.gender_female + ' / 男' + s.gender_male);
+  h += big('リスケ', s.reschedule + '件');
+  h += big('初回契約率', s.first_contract_rate + '%', '初回来店 ' + s.first_visit_count + '人');
+  h += big('新規契約', s.contract_count + '件');
+  h += '</div>';
+
+  const kws = (RI.overall && RI.overall.keywords) ? RI.overall.keywords.slice(0, 8) : [];
+  if (kws.length) {
+    const maxRate = Math.max.apply(null, kws.map(function(k){ return k.rate; })) || 1;
+    h += '<div class="detail-section-label" style="margin-top:16px">🔑 全店で契約に効くキーワード（予約クーポン→契約率）</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px">';
+    kws.forEach(function(k){
+      const w = Math.round(k.rate / maxRate * 100);
+      h += '<div style="display:flex;align-items:center;gap:10px">'
+        + '<div style="width:96px;font-size:13px;font-weight:700;text-align:right">' + k.keyword + '</div>'
+        + '<div style="flex:1;background:#f0f0f7;border-radius:6px;height:18px">'
+        + '<div style="width:' + w + '%;background:linear-gradient(90deg,#667eea,#a78bfa);height:100%;border-radius:6px"></div>'
+        + '</div>'
+        + '<div style="width:54px;font-size:14px;font-weight:800;color:#667eea;text-align:right">' + k.rate + '%</div>'
+        + '<div style="width:54px;font-size:11px;color:#aaa">n=' + k.n + '</div>'
+        + '</div>';
+    });
+    h += '</div>';
+  }
+
+  h += '<div class="detail-section-label" style="margin-top:16px">✅ 推奨アクション</div>';
+  h += '<div style="display:flex;flex-direction:column;gap:8px">';
+  const acts = [];
+  if (s.hpb_cancel_rate >= 25) acts.push('HPBキャンセル率が' + s.hpb_cancel_rate + '%と高め。前日リマインドやキャンセル規定の明示で当日キャンセルを減らす。');
+  if (s.hpb_rate < 25) acts.push('HPB予約率が' + s.hpb_rate + '%と低め。HPB原稿・写真・クーポンを強化して新規流入を増やす。');
+  if (s.first_visit_count >= 5 && s.first_contract_rate < 20) acts.push('初回契約率が' + s.first_contract_rate + '%。カウンセリング／クロージングを見直す（高契約率店の型を共有）。');
+  if (s.shimei_rate < 5) acts.push('指名率が' + s.shimei_rate + '%と低い。次回予約・指名促進で固定客化を進める。');
+  if (!acts.length) acts.push('大きな課題は見当たりません。効くキーワードを使ったクーポン強化で新規をさらに伸ばしましょう。');
+  acts.forEach(function(a){
+    h += '<div style="font-size:13px;background:#f7f8fc;border-left:3px solid #667eea;border-radius:6px;padding:8px 12px;line-height:1.5">' + a + '</div>';
+  });
+
+  const nags = ['いちご鼻','ニキビ','毛穴','黒ずみ','水光肌','肌質改善','引き締め','毛穴洗浄'];
+  const picks = kws.filter(function(k){ return nags.indexOf(k.keyword) >= 0; }).slice(0, 3).map(function(k){ return k.keyword; });
+  if (picks.length) {
+    const ideas = [];
+    if (picks[0]) ideas.push('【' + picks[0] + 'に】韓国式ハーブピーリング体験｜口コミ★4.9');
+    if (picks[1]) ideas.push('毛穴ハーブピーリング｜' + picks[1] + '集中ケア 初回限定');
+    ideas.push('【' + (picks[2] || picks[0]) + '撃退】水光肌ハーブピーリング体験');
+    h += '<div style="font-size:13px;margin-top:6px;font-weight:700">💡 契約に効くワードを使ったクーポン名の例</div>';
+    ideas.forEach(function(t){
+      h += '<div style="font-size:13px;background:#fff7ed;border:1px dashed #fbbf24;border-radius:6px;padding:8px 12px">' + t + '</div>';
+    });
+  }
+  h += '</div>';
   return h;
 }
 
