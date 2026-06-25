@@ -1648,6 +1648,7 @@ DATA.store_type = {};
 DATA.store_short = {};  // フル名→略称マップ
 DATA.store_royalty_pattern = {};  // フル名→ロイヤリティパターン文字列
 DATA.reservation_insights = null;  // 予約CSVインサイト（reservation_insights.json）
+DATA.store_closed_month = {};  // 略称→撤退月(YYYYMM)。この月までは表示、翌月以降は非表示
 
 // data.jsonのURLを動的に解決（GitHub Pages上で動く）
 function getDataJsonUrl() {
@@ -1688,6 +1689,7 @@ async function fetchData(){
     DATA.targets               = json.targets||{};
     DATA.store_type            = json.store_type||{};
     DATA.store_short           = json.store_short||{};
+    DATA.store_closed_month    = json.store_closed_month||{};
     DATA.store_royalty_pattern = json.store_royalty_pattern||{};
     // storesをリセット（古いフル名データを完全除去）
     DATA.stores.length = 0;
@@ -1718,6 +1720,7 @@ async function fetchData(){
     localStorage.setItem(LS_SP_KEY,       JSON.stringify(json.store_person||{}));
     localStorage.setItem(LS_ST_KEY,       JSON.stringify(json.store_type||{}));
     localStorage.setItem(LS_SS_KEY,       JSON.stringify(json.store_short||{}));
+    localStorage.setItem('limefit_store_closed_month', JSON.stringify(json.store_closed_month||{}));
     localStorage.setItem(LS_TS_KEY,       ts);
     localStorage.setItem(LS_BOOTSTRAP_KEY,'1');
     if(json.persons) localStorage.setItem(LS_PERSONS_KEY, JSON.stringify(json.persons.filter(p=>p!=='雛形')));
@@ -1762,6 +1765,8 @@ function loadSavedTargets(){
   if(ps){ try{ DATA.persons=JSON.parse(ps); }catch(e){} }
   const ri=localStorage.getItem('limefit_reservation_insights');
   if(ri){ try{ DATA.reservation_insights=JSON.parse(ri); }catch(e){} }
+  const cm=localStorage.getItem('limefit_store_closed_month');
+  if(cm){ try{ DATA.store_closed_month=JSON.parse(cm); }catch(e){} }
   if(actual){
     try{
       const ad=JSON.parse(actual);
@@ -2538,6 +2543,8 @@ function filteredStores(){
   const md=DATA.data[curMonth]||{};
   return DATA.stores.filter(s=>{
     if(!md[s])return false;
+    const closed=DATA.store_closed_month&&DATA.store_closed_month[s];
+    if(closed&&String(curMonth)>String(closed))return false;
     if(curPerson!=='全店舗'&&DATA.store_person[s]!==curPerson)return false;
     if(curStoreType!=='全店舗'){
       const st=DATA.store_type[s];
@@ -3060,6 +3067,8 @@ function renderList(){
 
   // フィルタ適用済みの全店舗を売上降順でソート（データなしは末尾）
   const allStores=DATA.stores.filter(s=>{
+    const closed=DATA.store_closed_month&&DATA.store_closed_month[s];
+    if(closed&&String(curMonth)>String(closed))return false;
     if(curPerson!=='全店舗'&&DATA.store_person[s]!==curPerson)return false;
     if(curStoreType!=='全店舗'&&DATA.store_type[s]!==curStoreType)return false;
     return true;
@@ -4367,6 +4376,8 @@ function renderInsightTops(month) {
   // 既存と同じフィルター（担当者・直営/加盟）
   const stores = DATA.stores.filter(function(s) {
     if (!monthData[s]) return false;
+    const closed = DATA.store_closed_month && DATA.store_closed_month[s];
+    if (closed && String(month) > String(closed)) return false;
     if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[s] !== curPerson) return false;
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[s] !== curStoreType) return false;
     return true;
@@ -4787,6 +4798,9 @@ function renderAnalysis() {
   DATA.stores.forEach(function(store) {
     const actual = monthData[store];
     if (!actual) return;
+    // 撤退月フィルタ：選択月が撤退月より後なら非表示
+    const closed = DATA.store_closed_month && DATA.store_closed_month[store];
+    if (closed && String(month) > String(closed)) return;
     if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[store] !== curPerson) return;
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[store] !== curStoreType) return;
     const tgt = (targets[store] && targets[store][month]) ? targets[store][month] : null;

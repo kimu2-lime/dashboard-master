@@ -120,6 +120,7 @@ function buildData(since, targetsOnly) {
   const store_person    = {};
   const targets         = {};
   const store_hpb_url   = {};
+  const store_closed_month = {};   // 略称→撤退月(YYYYMM)。この月までは表示、翌月以降は非表示
   const personOrder     = [];   // 担当者の出現順（店舗一覧D列ベース・ダッシュボードのpersons用）
   const personSeen      = {};
 
@@ -129,6 +130,10 @@ function buildData(since, targetsOnly) {
   const listSheet  = ssMaster ? ssMaster.getSheetByName('店舗一覧') : null;
   if (listSheet) {
     const listData = listSheet.getDataRange().getValues();
+    // ヘッダーから「撤退月」列を探す（位置が変わってもよいように名前で特定）
+    const headerRow = listData[0] || [];
+    let tcol = -1;
+    headerRow.forEach(function(h, idx){ if (h && h.toString().indexOf('撤退月') >= 0) tcol = idx; });
     for (let i = 1; i < listData.length; i++) {
       const full   = listData[i][0] ? listData[i][0].toString().trim() : '';
       const short  = listData[i][1] ? listData[i][1].toString().trim() : '';
@@ -136,6 +141,21 @@ function buildData(since, targetsOnly) {
       const person = listData[i][3] ? listData[i][3].toString().trim() : '';
       const royPat = listData[i][4] ? listData[i][4].toString().trim() : '';
       const hpbUrl = listData[i][5] ? listData[i][5].toString().trim() : '';
+      // 撤退月（YYYYMMに正規化。日付/「2026/5」/「202605」いずれもOK）
+      if (tcol >= 0 && short) {
+        const cv = listData[i][tcol];
+        let closed = '';
+        if (cv !== '' && cv != null) {
+          if (Object.prototype.toString.call(cv) === '[object Date]') {
+            closed = Utilities.formatDate(cv, 'Asia/Tokyo', 'yyyyMM');
+          } else {
+            const p = cv.toString().trim().split(/[^\d]+/).filter(function(x){ return x; });
+            if (p.length >= 2) closed = p[0] + ('0' + p[1]).slice(-2);
+            else if (p.length === 1) closed = p[0].slice(0, 6);
+          }
+        }
+        if (closed) store_closed_month[short] = closed;
+      }
       if (full && short)  shortToFull[short]      = full;
       if (full && short)  store_short[full]        = short;
       if (full && type)   store_type[full]         = type;
@@ -352,6 +372,7 @@ function buildData(since, targetsOnly) {
     store_person:          sp_short,
     store_type:            st_short,
     store_short:           store_short,
+    store_closed_month:    store_closed_month,
     store_royalty_pattern: rp_short,
     store_hpb_url:         hu_short,
     store_hpb_data:        readHpbCache(),
