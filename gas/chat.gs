@@ -13,6 +13,8 @@ const CHAT_PRICE_IN = 3;     // 入力 $/1Mトークン
 const CHAT_PRICE_OUT= 15;    // 出力 $/1Mトークン
 const CHAT_USD_JPY  = 155;   // 概算レート（円換算用。多少のズレは安全側に倒すなら大きめに）
 const CHAT_INSIGHTS_URL = 'https://raw.githubusercontent.com/kimu2-lime/dashboard-master/main/data/reservation_insights.json';
+const CHAT_DATA_URL     = 'https://raw.githubusercontent.com/kimu2-lime/dashboard-master/main/data/data.json';
+const CHAT_KPI_MONTHS   = 2;   // チャット文脈に入れる会計KPIの直近月数（増やすとコスト増）
 
 // ── 予算管理（月ごと・円） ──
 function chatBudgetJpy_() {
@@ -38,6 +40,19 @@ function chatInsights_() {
     try {
       const r = UrlFetchApp.fetch(CHAT_INSIGHTS_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
       if (r.getResponseCode() === 200) { s = r.getContentText(); cache.put('chat_insights', s, 600); }
+    } catch (e) {}
+  }
+  try { return s ? JSON.parse(s) : null; } catch (e) { return null; }
+}
+
+// ── data.json（会計KPI＋目標）を読む（10分キャッシュ。大きいのでcache失敗は無視） ──
+function chatDashboardData_() {
+  const cache = CacheService.getScriptCache();
+  let s = cache.get('chat_datajson');
+  if (!s) {
+    try {
+      const r = UrlFetchApp.fetch(CHAT_DATA_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+      if (r.getResponseCode() === 200) { s = r.getContentText(); try { cache.put('chat_datajson', s, 600); } catch (e) {} }
     } catch (e) {}
   }
   try { return s ? JSON.parse(s) : null; } catch (e) { return null; }
@@ -71,6 +86,27 @@ function chatSystemPrompt_() {
   } else {
     c += '（予約インサイトデータを取得できませんでした）\n\n';
   }
+
+  // 会計KPI（売上/新規/契約/目標）直近CHAT_KPI_MONTHSヶ月
+  const DD = chatDashboardData_();
+  if (DD && DD.actual_data) {
+    const months = Object.keys(DD.actual_data).sort();
+    const recent = months.slice(-CHAT_KPI_MONTHS);
+    c += '【会計KPI（' + recent.join('・') + '／会計CSV由来・ダッシュボード公式数字）】略称[月]: 売上/新規数/新規契約数/契約率/契約単価（目標売上）\n';
+    recent.forEach(function(m){
+      const stores = DD.actual_data[m] || {};
+      Object.keys(stores).forEach(function(name){
+        const a = stores[name] || {};
+        const t = (DD.targets && DD.targets[name] && DD.targets[name][m]) ? DD.targets[name][m] : null;
+        c += name + '[' + m + ']: 売上' + Math.round(a.total_sales || 0)
+           + ' 新規' + (a.new_count || 0) + ' 契約' + (a.new_contract_count || 0)
+           + ' 率' + (a.new_contract_rate || 0) + '% 単価' + (a.new_contract_unit_price || 0)
+           + (t ? '（目標売上' + Math.round(t.total_sales || 0) + '）' : '') + '\n';
+      });
+    });
+    c += '\n';
+  }
+
   c += '【ナレッジ】悩み訴求ワード(ニキビ/毛穴/いちご鼻/黒ずみ/水光肌)は契約率が高い傾向。'
      + 'クーポン名を提案する時は「共感(悩み)＋手法(韓国式ハーブピーリング)＋信頼(口コミ★4.9等)」の型で、不自然でない自然な日本語で作る。\n\n'
      + '【回答フォーマット】チャットUIで表示されるので、マークダウンの表は使わず、短い文と箇条書き(・)で簡潔に。長くなりすぎない。';
