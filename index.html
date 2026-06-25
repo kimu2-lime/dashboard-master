@@ -5105,6 +5105,99 @@ function toggleIssueCard(storeId) {
   if (card) card.classList.toggle('open');
 }
 
+// ============================================================
+//  AIチャット（GAS Webアプリ経由でClaude）
+// ============================================================
+const CHAT_URL_KEY = 'limefit_chat_url';
+let chatHistory = [];
+let chatBusy = false;
+
+function getChatUrl(){ return (localStorage.getItem(CHAT_URL_KEY)||'').trim(); }
+function setChatUrl(){
+  const u = prompt('GAS WebアプリのURL（末尾が /exec のもの）を貼ってください', getChatUrl());
+  if (u && u.trim()){ localStorage.setItem(CHAT_URL_KEY, u.trim()); return true; }
+  return false;
+}
+function toggleChat(){
+  const p = document.getElementById('chatPanel');
+  const open = p.style.display === 'flex';
+  p.style.display = open ? 'none' : 'flex';
+  if (!open){
+    if (!getChatUrl()){ if(!setChatUrl()){ p.style.display='none'; return; } }
+    if (!document.getElementById('chatMessages').childElementCount){
+      chatAddMsg('ai','こんにちは。予約インサイトの実データから答えます。例：「戸塚 北千住のキャンセル率は？」「契約に効くワードでクーポン名を3つ作って」', false);
+    }
+    document.getElementById('chatInput').focus();
+  }
+}
+function chatMd(t){
+  return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^#{1,4}\s*(.+)$/gm,'<div style="font-weight:800;margin-top:6px">$1</div>')
+    .replace(/^[\-\*]\s+/gm,'・')
+    .replace(/\n/g,'<br>');
+}
+function chatAddMsg(role, content, raw){
+  const box = document.getElementById('chatMessages');
+  const d = document.createElement('div');
+  d.className = 'chat-msg chat-' + role;
+  d.innerHTML = raw ? content : chatMd(content);
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  return d;
+}
+async function sendChat(){
+  if (chatBusy) return;
+  const url = getChatUrl(); if(!url){ setChatUrl(); return; }
+  const inp = document.getElementById('chatInput');
+  const q = inp.value.trim(); if(!q) return;
+  inp.value = '';
+  chatAddMsg('user', q, false);
+  const wait = chatAddMsg('ai', '<span style="opacity:.6">…考え中…</span>', true);
+  chatBusy = true; document.getElementById('chatSend').disabled = true;
+  try{
+    const resp = await fetch(url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ question:q, history:chatHistory }) });
+    const data = await resp.json();
+    if (data.error){ wait.innerHTML = '⚠ ' + chatMd(data.error); }
+    else {
+      wait.innerHTML = chatMd(data.answer);
+      chatHistory.push({role:'user',content:q}); chatHistory.push({role:'assistant',content:data.answer});
+      if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
+      const b = document.getElementById('chatBudget');
+      if (b && data.spent !== undefined) b.textContent = '今月 ' + data.spent + '/' + data.budget + '円';
+    }
+  }catch(e){ wait.innerHTML = '⚠ 通信エラー（URLや共有設定を確認）: ' + e; }
+  chatBusy = false; document.getElementById('chatSend').disabled = false;
+  const box = document.getElementById('chatMessages'); box.scrollTop = box.scrollHeight;
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' && !e.shiftKey && document.activeElement && document.activeElement.id === 'chatInput'){
+    e.preventDefault(); sendChat();
+  }
+});
 
 </script>
+<style>
+#chatFab{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#667eea,#a78bfa);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(102,126,234,.45);z-index:9998}
+#chatPanel{position:fixed;right:20px;bottom:88px;width:380px;max-width:calc(100vw - 40px);height:520px;max-height:calc(100vh - 120px);background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:none;flex-direction:column;overflow:hidden;z-index:9999}
+#chatHeader{background:linear-gradient(135deg,#667eea,#a78bfa);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+#chatBudget{margin-left:auto;font-size:11px;font-weight:500;opacity:.9}
+#chatMessages{flex:1;overflow-y:auto;padding:14px;background:#f7f8fc;display:flex;flex-direction:column;gap:10px}
+.chat-msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;word-break:break-word}
+.chat-user{align-self:flex-end;background:#667eea;color:#fff;border-bottom-right-radius:4px}
+.chat-ai{align-self:flex-start;background:#fff;border:1px solid #eaeaf4;color:#222;border-bottom-left-radius:4px}
+#chatInputRow{display:flex;gap:8px;padding:10px;border-top:1px solid #eee;background:#fff}
+#chatInput{flex:1;resize:none;height:40px;border:1.5px solid #e0e0ee;border-radius:10px;padding:9px 11px;font-size:13px;font-family:inherit}
+#chatSend{background:#667eea;color:#fff;border:none;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer}
+#chatSend:disabled{opacity:.5;cursor:default}
+</style>
+<div id="chatFab" onclick="toggleChat()" title="AIアシスタント">💬</div>
+<div id="chatPanel">
+  <div id="chatHeader"><span>💬 AIアシスタント</span><span id="chatBudget"></span><span onclick="toggleChat()" style="cursor:pointer;font-size:16px">✕</span></div>
+  <div id="chatMessages"></div>
+  <div id="chatInputRow">
+    <textarea id="chatInput" placeholder="例：戸塚 北千住のキャンセル率は？"></textarea>
+    <button id="chatSend" onclick="sendChat()">送信</button>
+  </div>
+</div>
 </body></html>
