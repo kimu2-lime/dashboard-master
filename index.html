@@ -5052,6 +5052,7 @@ function detailExtraSectionsHtml(store) {
   h += big('初回契約率', s.first_contract_rate + '%', '初回来店 ' + s.first_visit_count + '人');
   h += big('新規契約', s.contract_count + '件');
   h += '</div>';
+  h += '<div style="font-size:11px;color:#999;margin:2px 0 4px">※契約系（新規契約・初回契約率）はサロンボード会計ベース。直営店は会計がBMのため0表示になります。正式な契約数は上の「KPI実績」を参照。</div>';
 
   const kws = (RI.overall && RI.overall.keywords) ? RI.overall.keywords.slice(0, 8) : [];
   if (kws.length) {
