@@ -14,6 +14,7 @@ const CHAT_PRICE_OUT= 15;    // 出力 $/1Mトークン
 const CHAT_USD_JPY  = 155;   // 概算レート（円換算用。多少のズレは安全側に倒すなら大きめに）
 const CHAT_INSIGHTS_URL = 'https://raw.githubusercontent.com/kimu2-lime/dashboard-master/main/data/reservation_insights.json';
 const CHAT_DATA_URL     = 'https://raw.githubusercontent.com/kimu2-lime/dashboard-master/main/data/data.json';
+const CHAT_KNOWLEDGE_URL= 'https://raw.githubusercontent.com/kimu2-lime/dashboard-master/main/knowledge/chat_knowledge.md';
 const CHAT_KPI_MONTHS   = 2;   // チャット文脈に入れる会計KPIの直近月数（増やすとコスト増）
 
 // ── 予算管理（月ごと・円） ──
@@ -56,6 +57,19 @@ function chatDashboardData_() {
     } catch (e) {}
   }
   try { return s ? JSON.parse(s) : null; } catch (e) { return null; }
+}
+
+// ── ナレッジ(knowledge/chat_knowledge.md)を読む（10分キャッシュ） ──
+function chatKnowledge_() {
+  const cache = CacheService.getScriptCache();
+  let s = cache.get('chat_knowledge');
+  if (!s) {
+    try {
+      const r = UrlFetchApp.fetch(CHAT_KNOWLEDGE_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+      if (r.getResponseCode() === 200) { s = r.getContentText(); try { cache.put('chat_knowledge', s, 600); } catch (e) {} }
+    } catch (e) {}
+  }
+  return s || '';
 }
 
 // ── システムプロンプト（実データを文脈に） ──
@@ -111,9 +125,9 @@ function chatSystemPrompt_() {
     c += '\n';
   }
 
-  c += '【ナレッジ】悩み訴求ワード(ニキビ/毛穴/いちご鼻/黒ずみ/水光肌)は契約率が高い傾向。'
-     + 'クーポン名を提案する時は「共感(悩み)＋手法(韓国式ハーブピーリング)＋信頼(口コミ★4.9等)」の型で、不自然でない自然な日本語で作る。\n\n'
-     + '【回答フォーマット】チャットUIで表示されるので、マークダウンの表は使わず、短い文と箇条書き(・)で簡潔に。長くなりすぎない。';
+  const kb = chatKnowledge_();
+  if (kb) c += '【ナレッジ（社内知見・施策の型・サロンレポート）】\n' + kb + '\n\n';
+  c += '【回答フォーマット】チャットUIで表示されるので、マークダウンの表は使わず、短い文と箇条書き(・)で簡潔に。長くなりすぎない。';
   return c;
 }
 
