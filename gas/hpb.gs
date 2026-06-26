@@ -1,10 +1,13 @@
 // ============================================================
 //  HPB集客レポート取り込み（PV / CVR / ACR ＋ 同プラン同エリア平均）
-//  ・SS_HPB スプシ、タブ「基本情報」に HPBレポート-基本情報CSV を貼る
-//    └ CSVに店舗識別が無いので、先頭に「略称」列を足して各行に略称を入れる
-//  ・各行 = 1店舗 × 1月。列はヘッダー名で特定（並び順が変わってもOK）
+//  ・自動DLスクリプトが SS_HPB スプシの「貼り付け」タブに
+//    [ファイル名, サロンID, 対象年月, ...] 形式で追記していく
+//  ・サロンID(H000...)→略称 は店舗一覧マスターのHPB_URL(F列)から自動解決
+//  ・ヘッダー行が途中に何度混ざってもOK（対象年月が数値の行だけ拾う）
 //  使い方：①SS_HPB設定 → ②testHpb()でログ確認 → ③exportHpbReport()でjson出力
 // ============================================================
+
+const HPB_TAB_CANDIDATES = ['貼り付け', '基本情報'];   // この順で最初に見つかったタブを使う
 
 function getHpbSS_() {
   const id = PropertiesService.getScriptProperties().getProperty('SS_HPB');
@@ -36,16 +39,29 @@ function buildSalonIdToShort_() {
   return map;
 }
 
-// 基本情報タブを読む → [{short, ym, cvr, cvrAvg, acr, acrAvg, yoyaku, ...}]
+// 貼り付けタブを読む → [{short, ym, cvr, cvrAvg, acr, ...}]
 function readHpbBasic_(ss) {
-  const sheet = ss.getSheetByName('基本情報');
-  if (!sheet) throw new Error('「基本情報」タブが見つかりません');
+  let sheet = null;
+  for (let k = 0; k < HPB_TAB_CANDIDATES.length; k++) {
+    const s = ss.getSheetByName(HPB_TAB_CANDIDATES[k]);
+    if (s) { sheet = s; break; }
+  }
+  if (!sheet) throw new Error('「貼り付け」または「基本情報」タブが見つかりません');
   const rows = sheet.getDataRange().getValues();
   if (rows.length < 2) return { rows: [], unlabeled: [] };
-  const H = {}; rows[0].forEach(function(h, i){ H[h.toString().trim()] = i; });
+
+  // ヘッダー行を探す（「対象年月」列を持つ最初の行）。途中に混ざっていてもOK
+  let H = null;
+  for (let r = 0; r < rows.length; r++) {
+    const map = {}; let hit = false;
+    rows[r].forEach(function(h, i){ const k = (h == null ? '' : h.toString().trim()); map[k] = i; if (k === '対象年月') hit = true; });
+    if (hit) { H = map; break; }
+  }
+  if (!H) throw new Error('ヘッダー（「対象年月」列）が見つかりません。貼り付け内容を確認してください');
+
   const ci = function(name){ return H[name] !== undefined ? H[name] : -1; };
-  const iSalon = ci('サロンID');                              // 自動DL出力にはサロンID列がある
-  const idMap = iSalon >= 0 ? buildSalonIdToShort_() : {};    // サロンID→略称
+  const iSalon = ci('サロンID');
+  const idMap = iSalon >= 0 ? buildSalonIdToShort_() : {};
   const i = {
     short: ci('略称'), ym: ci('対象年月'),
     cvr: ci('CVR(自店)'), cvrA: ci('CVR(同P同A平均)'),
@@ -57,18 +73,20 @@ function readHpbBasic_(ss) {
     cp: ci('クーポンメニューPV数(自店)'), cpA: ci('クーポンメニューPV数(同P同A平均)')
   };
   const g = function(row, idx){ return idx >= 0 ? hpbNum_(row[idx]) : null; };
+
   const out = []; const unlabeled = [];
-  for (let r = 1; r < rows.length; r++) {
+  for (let r = 0; r < rows.length; r++) {
     const row = rows[r];
+    const ym = i.ym >= 0 ? (row[i.ym] || '').toString().trim().replace(/[^\d]/g, '').slice(0, 6) : '';
+    if (ym.length < 6) continue;   // 対象年月が数値YYYYMMの行＝データ行のみ拾う（ヘッダー等はskip）
+
     let short = i.short >= 0 ? (row[i.short] || '').toString().trim() : '';
-    // 略称列が無ければ サロンID から解決
     if (!short && iSalon >= 0) {
       const sid = (row[iSalon] || '').toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
       short = idMap[sid] || '';
     }
-    const ym = i.ym >= 0 ? (row[i.ym] || '').toString().trim().replace(/[^\d]/g, '').slice(0, 6) : '';
-    if (!ym) continue;
     if (!short) { unlabeled.push(ym + (iSalon >= 0 ? ' /ID:' + (row[iSalon] || '') : '')); continue; }
+
     out.push({
       short: short, ym: ym,
       cvr: g(row, i.cvr), cvrAvg: g(row, i.cvrA),
@@ -101,10 +119,17 @@ function buildHpbReport_() {
 function testHpb() {
   const ss = getHpbSS_();
   const d = readHpbBasic_(ss);
-  Logger.log('基本情報 行数: ' + d.rows.length + ' / 略称なし行: ' + d.unlabeled.length);
-  d.rows.slice(0, 12).forEach(function(r){
-    Logger.log(r.short + ' [' + r.ym + '] CVR' + r.cvr + '%(平均' + r.cvrAvg + ') ACR' + r.acr
-      + '%(平均' + r.acrAvg + ') 総PV' + r.totalPv + '(平均' + r.totalPvAvg + ') 予約' + r.yoyaku + '(平均' + r.yoyakuAvg + ')');
+  Logger.log('HPB 読み取りデータ行数: ' + d.rows.length + ' / 略称マップできなかった行: ' + d.unlabeled.length);
+  if (d.unlabeled.length) {
+    Logger.log('▼略称マップ不可（マスターのHPB_URLに無いサロンID）: ' + d.unlabeled.slice(0, 15).join(' , '));
+  }
+  // 略称ごと最新月を表示
+  const rep = buildHpbReport_();
+  Logger.log('対象月(最頻): ' + rep.month + ' / 店舗数: ' + Object.keys(rep.stores).length);
+  Object.keys(rep.stores).slice(0, 15).forEach(function(s){
+    const x = rep.stores[s];
+    Logger.log(s + ' [' + x.ym + '] CVR' + x.cvr + '%(平均' + x.cvrAvg + ') ACR' + x.acr
+      + '%(平均' + x.acrAvg + ') 総PV' + x.totalPv + '(平均' + x.totalPvAvg + ') 予約' + x.yoyaku + '(平均' + x.yoyakuAvg + ')');
   });
 }
 
