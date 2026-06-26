@@ -19,6 +19,23 @@ function hpbNum_(v) {
   return isNaN(n) ? null : n;
 }
 
+// サロンID(H000...) → 略称 のマップを店舗一覧マスター(B列=略称, F列=HPB_URL)から作る
+function buildSalonIdToShort_() {
+  const map = {};
+  try {
+    const sheet = getSS('SS_MASTER').getSheetByName('店舗一覧');
+    if (!sheet) return map;
+    const rows = sheet.getDataRange().getValues();
+    for (let r = 1; r < rows.length; r++) {
+      const short = (rows[r][1] || '').toString().trim();      // B列 略称
+      const url   = (rows[r][5] || '').toString();             // F列 HPB_URL
+      const m = url.match(/sln(H\d+)/i);
+      if (short && m) map[m[1].toUpperCase()] = short;
+    }
+  } catch (e) {}
+  return map;
+}
+
 // 基本情報タブを読む → [{short, ym, cvr, cvrAvg, acr, acrAvg, yoyaku, ...}]
 function readHpbBasic_(ss) {
   const sheet = ss.getSheetByName('基本情報');
@@ -27,6 +44,8 @@ function readHpbBasic_(ss) {
   if (rows.length < 2) return { rows: [], unlabeled: [] };
   const H = {}; rows[0].forEach(function(h, i){ H[h.toString().trim()] = i; });
   const ci = function(name){ return H[name] !== undefined ? H[name] : -1; };
+  const iSalon = ci('サロンID');                              // 自動DL出力にはサロンID列がある
+  const idMap = iSalon >= 0 ? buildSalonIdToShort_() : {};    // サロンID→略称
   const i = {
     short: ci('略称'), ym: ci('対象年月'),
     cvr: ci('CVR(自店)'), cvrA: ci('CVR(同P同A平均)'),
@@ -41,10 +60,15 @@ function readHpbBasic_(ss) {
   const out = []; const unlabeled = [];
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
-    const short = i.short >= 0 ? (row[i.short] || '').toString().trim() : '';
+    let short = i.short >= 0 ? (row[i.short] || '').toString().trim() : '';
+    // 略称列が無ければ サロンID から解決
+    if (!short && iSalon >= 0) {
+      const sid = (row[iSalon] || '').toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      short = idMap[sid] || '';
+    }
     const ym = i.ym >= 0 ? (row[i.ym] || '').toString().trim().replace(/[^\d]/g, '').slice(0, 6) : '';
     if (!ym) continue;
-    if (!short) { unlabeled.push(ym); continue; }
+    if (!short) { unlabeled.push(ym + (iSalon >= 0 ? ' /ID:' + (row[iSalon] || '') : '')); continue; }
     out.push({
       short: short, ym: ym,
       cvr: g(row, i.cvr), cvrAvg: g(row, i.cvrA),

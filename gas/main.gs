@@ -270,12 +270,18 @@ function buildData(since, targetsOnly) {
     });
   }
 
-  // 直営店目標をマージ
+  // 直営店目標をマージ（店名のゆらぎ＝末尾「店」を略称に吸収）
+  const knownShorts = new Set(Object.values(store_short));
   const direct_targets = getDirectTargets(since);
   Object.keys(direct_targets).forEach(function(storeName) {
-    if (!targets[storeName]) targets[storeName] = {};
+    let key = storeName;
+    if (!knownShorts.has(key)) {
+      const stripped = key.replace(/店$/, '');     // 「直営 大宮店」→「直営 大宮」等
+      if (knownShorts.has(stripped)) key = stripped;
+    }
+    if (!targets[key]) targets[key] = {};
     Object.keys(direct_targets[storeName]).forEach(function(month) {
-      targets[storeName][month] = direct_targets[storeName][month];
+      targets[key][month] = direct_targets[storeName][month];
     });
   });
 
