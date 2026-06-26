@@ -10,3 +10,8 @@ dist/
 
 # Claude Code のローカル設定（PC個別の設定なので共有しない）
 .claude/settings.local.json
+
+# HPB自動DLスクリプト（サロンボードのログインPWを含むため公開リポジトリに上げない）
+hpb_download.py
+*-service-account*.json
+salon-board-*.json
