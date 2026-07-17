@@ -3539,9 +3539,9 @@ function showDetail(store,d,tgt){
   const roy=d.royalty!==undefined?d.royalty:royalty(d.total_sales);
   const royTgt=tgt?(tgt.royalty!==undefined?tgt.royalty:royalty(tgt.total_sales)):null;
 
-  // KGIバー 総売上
+  // KGIバー 総売上（合計売上の目標が実際に入っている時だけ表示。未入力なら NaN でなく「—」）
   setEl('dSales',fmt(d.total_sales));
-  if(tgt){
+  if(tgt && tgt.total_sales > 0){
     const sp=progBadge(d.total_sales,tgt.total_sales);
     setEl('dSalesSlash','/');setEl('dSalesTgt',fmt(tgt.total_sales));setEl('dSalesTgtUnit','円');
     setEl('dSalesLabel','目標比');
