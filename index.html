@@ -1320,7 +1320,7 @@ body.mobile .side-menu-overlay{display:block!important}
       <div class="mk-charts-row" id="dChartsRow"></div>
 
       <div class="phase-label acquisition">📊 獲得フェーズ<span class="phase-sub">新規来店 → 当日契約</span></div>
-      <div class="detail-kpis">
+      <div class="detail-kpis-5">
         <div class="dkpi new">
           <div class="dkpi-icon">👤</div><div class="dkpi-label">新規数</div>
           <div class="dkpi-row">
@@ -1357,10 +1357,6 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-vs" id="dPriceVs"></span>
             <span class="dkpi-target" id="dPriceTgt"></span>
           </div>
-          <div class="dkpi-proj-row" style="display:block">
-            <span class="dkpi-proj-label">着地見込</span>
-            <span class="dkpi-proj-label" style="color:#bbb;font-weight:400">当月実績値を使用</span>
-          </div>
         </div>
         <div class="dkpi rate">
           <div class="dkpi-icon">📈</div><div class="dkpi-label">新規契約率</div>
@@ -1369,24 +1365,6 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-vs" id="dRateVs"></span>
             <span class="dkpi-target" id="dRateTgt"></span><span class="dkpi-tunit" id="dRateTgtU"></span>
           </div>
-          <div class="dkpi-proj-row" style="display:block">
-            <span class="dkpi-proj-label">着地見込</span>
-            <span class="dkpi-proj-label" style="color:#bbb;font-weight:400">当月実績値を使用</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="detail-section-label">💰 売上内訳</div>
-      <div class="detail-kpis-2">
-        <div class="dkpi treat">
-          <div class="dkpi-icon">✂️</div><div class="dkpi-label">総施術数</div>
-          <div class="dkpi-sublabel">新規＋再来</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dTreat"></span><span class="dkpi-dunit">件</span></div>
-        </div>
-        <div class="dkpi cs-total">
-          <div class="dkpi-icon">💰</div><div class="dkpi-label">契約売上</div>
-          <div class="dkpi-sublabel">契約・消化・利用含む</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dCs"></span></div>
         </div>
         <div class="dkpi cs-new">
           <div class="dkpi-icon">🆕</div><div class="dkpi-label">新規契約売上</div>
@@ -1431,12 +1409,21 @@ body.mobile .side-menu-overlay{display:block!important}
         <div class="dkpi nurture-rate">
           <div class="dkpi-icon">📈</div><div class="dkpi-label">再アポ回収率</div>
           <div class="dkpi-sublabel">初回逃した中で再契約</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoRecovery"></span><span class="dkpi-dunit">%</span></div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dReappoRecovery"></span><span class="dkpi-dunit">%</span>
+            <span class="dkpi-vs" id="dReappoRecoveryVs"></span>
+            <span class="dkpi-target" id="dReappoRecoveryTgt"></span><span class="dkpi-tunit" id="dReappoRecoveryTgtU"></span>
+            <span class="dkpi-prog prog-none" id="dReappoRecoveryProg"></span>
+          </div>
         </div>
         <div class="dkpi nurture-price">
           <div class="dkpi-icon">💴</div><div class="dkpi-label">再アポ契約単価</div>
           <div class="dkpi-sublabel">売上 ÷ 件数</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoPrice"></span></div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dReappoPrice"></span>
+            <span class="dkpi-vs" id="dReappoPriceVs"></span>
+            <span class="dkpi-target" id="dReappoPriceTgt"></span>
+          </div>
         </div>
         <div class="dkpi" style="border-top:3px solid #c026d3"><span style="display:none"></span>
           <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#c026d3">再アポ契約売上</div>
@@ -1481,12 +1468,20 @@ body.mobile .side-menu-overlay{display:block!important}
         <div class="dkpi retention-rate">
           <div class="dkpi-icon">📈</div><div class="dkpi-label">継続率</div>
           <div class="dkpi-sublabel">成功 ÷ 対象</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuRate"></span><span class="dkpi-dunit">%</span></div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dKeizokuRate"></span><span class="dkpi-dunit">%</span>
+            <span class="dkpi-vs" id="dKeizokuRateVs"></span>
+            <span class="dkpi-target" id="dKeizokuRateTgt"></span><span class="dkpi-tunit" id="dKeizokuRateTgtU"></span>
+          </div>
         </div>
         <div class="dkpi" style="border-top:3px solid #0d9488">
           <div class="dkpi-icon">💴</div><div class="dkpi-label" style="color:#0d9488">継続契約単価</div>
           <div class="dkpi-sublabel">継続契約売上 ÷ 継続成功数</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuPrice" style="color:#0d9488"></span></div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dKeizokuPrice" style="color:#0d9488"></span>
+            <span class="dkpi-vs" id="dKeizokuPriceVs"></span>
+            <span class="dkpi-target" id="dKeizokuPriceTgt"></span>
+          </div>
         </div>
         <div class="dkpi" style="border-top:3px solid #047857">
           <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#047857">継続契約売上</div>
@@ -1517,17 +1512,32 @@ body.mobile .side-menu-overlay{display:block!important}
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
           <div class="dkpi-icon">👥</div><div class="dkpi-label">新規＋再アポ数</div>
           <div class="dkpi-sublabel">新規 + 再アポ</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dTotalVisits"></span><span class="dkpi-dunit">人</span></div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dTotalVisits"></span><span class="dkpi-dunit">人</span>
+            <span class="dkpi-vs" id="dTotalVisitsVs"></span>
+            <span class="dkpi-target" id="dTotalVisitsTgt"></span><span class="dkpi-tunit" id="dTotalVisitsTgtU"></span>
+            <span class="dkpi-prog prog-none" id="dTotalVisitsProg"></span>
+          </div>
         </div>
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
           <div class="dkpi-icon">📋</div><div class="dkpi-label">新規契約数＋再アポ契約数</div>
           <div class="dkpi-sublabel">新規契約 + 再アポ契約</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dTotalContract"></span><span class="dkpi-dunit">件</span></div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dTotalContract"></span><span class="dkpi-dunit">件</span>
+            <span class="dkpi-vs" id="dTotalContractVs"></span>
+            <span class="dkpi-target" id="dTotalContractTgt"></span><span class="dkpi-tunit" id="dTotalContractTgtU"></span>
+            <span class="dkpi-prog prog-none" id="dTotalContractProg"></span>
+          </div>
         </div>
         <div class="dkpi" style="border-top:3px solid #1a1a2e">
           <div class="dkpi-icon">📈</div><div class="dkpi-label">契約率</div>
           <div class="dkpi-sublabel">2回目までに決められたか</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dTotalRate"></span><span class="dkpi-dunit">%</span></div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dTotalRate"></span><span class="dkpi-dunit">%</span>
+            <span class="dkpi-vs" id="dTotalRateVs"></span>
+            <span class="dkpi-target" id="dTotalRateTgt"></span><span class="dkpi-tunit" id="dTotalRateTgtU"></span>
+            <span class="dkpi-prog prog-none" id="dTotalRateProg"></span>
+          </div>
         </div>
       </div>
 
@@ -3669,22 +3679,29 @@ function showDetail(store,d,tgt){
   setProjRow('dKeizokuEndProjRow',   'dKeizokuEndProjVal',   'dKeizokuEndProjRate',   d.keizoku_end_count,    tgt ? tgt.keizoku_end_count : null);
   setProjRow('dKeizokuContProjRow',  'dKeizokuContProjVal',  'dKeizokuContProjRate',  d.keizoku_continue_count, tgt ? tgt.keizoku_continue_count : null);
 
-  setEl('dTreat',d.total_treatments);
-  setEl('dCs',fmt(d.contract_sales));
   setEl('dCsNew',fmt(d.new_contract_sales));
 
   // ── 育成フェーズ（再アポ）──────────────────────────
   setVsTarget('dReappo','dReappoVs','dReappoTgt','dReappoTgtU','dReappoProg', d.reappo_count || 0, tgt?tgt.reappo_count:null, '人');
   setVsTarget('dReappoContract','dReappoContractVs','dReappoContractTgt','dReappoContractTgtU','dReappoContractProg', d.reappo_contract_count || 0, tgt?tgt.reappo_contract_count:null, '件');
-  setEl('dReappoRecovery', (d.reappo_recovery_rate || 0));
+  // 再アポ回収率の目標は「再アポ契約率」目標を使う
+  setVsTarget('dReappoRecovery','dReappoRecoveryVs','dReappoRecoveryTgt','dReappoRecoveryTgtU','dReappoRecoveryProg', d.reappo_recovery_rate || 0, tgt?tgt.reappo_contract_rate:null, '%');
+  // 再アポ契約単価（0は「—」／目標は再アポ契約単価）
   setEl('dReappoPrice', (d.reappo_contract_unit_price > 0) ? fmt(d.reappo_contract_unit_price) : '—');
+  if (tgt && tgt.reappo_contract_unit_price > 0) { setEl('dReappoPriceVs','/'); setEl('dReappoPriceTgt', fmt(tgt.reappo_contract_unit_price)); }
+  else { setEl('dReappoPriceVs',''); setEl('dReappoPriceTgt',''); }
   setEl('dReappoSales',   (d.reappo_contract_sales > 0)    ? fmt(d.reappo_contract_sales)    : '—');
 
   // ── 継続フェーズ ────────────────────────────────
   setVsTarget('dKeizokuEnd','dKeizokuEndVs','dKeizokuEndTgt','dKeizokuEndTgtU','dKeizokuEndProg', d.keizoku_end_count || 0, tgt?tgt.keizoku_end_count:null, '件');
   setVsTarget('dKeizokuCont','dKeizokuContVs','dKeizokuContTgt','dKeizokuContTgtU','dKeizokuContProg', d.keizoku_continue_count || 0, tgt?tgt.keizoku_continue_count:null, '件');
   setEl('dKeizokuRate', (d.keizoku_end_count > 0) ? (d.keizoku_rate || 0) : '—');
+  // 継続率の目標は「継続契約率」目標
+  if (tgt && tgt.keizoku_rate > 0) { setEl('dKeizokuRateVs','/'); setEl('dKeizokuRateTgt', tgt.keizoku_rate); setEl('dKeizokuRateTgtU','%'); }
+  else { setEl('dKeizokuRateVs',''); setEl('dKeizokuRateTgt',''); setEl('dKeizokuRateTgtU',''); }
   setEl('dKeizokuPrice', (d.keizoku_continue_unit_price > 0) ? fmt(d.keizoku_continue_unit_price) : '—');
+  if (tgt && tgt.keizoku_continue_unit_price > 0) { setEl('dKeizokuPriceVs','/'); setEl('dKeizokuPriceTgt', fmt(tgt.keizoku_continue_unit_price)); }
+  else { setEl('dKeizokuPriceVs',''); setEl('dKeizokuPriceTgt',''); }
   setEl('dKeizokuSales', (d.keizoku_continue_sales > 0)      ? fmt(d.keizoku_continue_sales)      : '—');
   // 終了数=0 のときは率の単位 % を消す
   (function(){
@@ -3713,11 +3730,13 @@ function showDetail(store,d,tgt){
     }
   }
 
-  // ── 初回契約サマリ ───────────────────────────
+  // ── 初回契約サマリ（新規＋再アポ）──────────────
   const totalVisits = (d.new_count || 0) + (d.reappo_count || 0);
-  setEl('dTotalVisits', totalVisits);
-  setEl('dTotalContract', d.total_contract_count || 0);
-  setEl('dTotalRate', (totalVisits > 0) ? (d.total_contract_rate || 0) : '—');
+  // 新規＋再アポ数の目標 = 新規数目標 ＋ 再アポ数目標（スプシに合算欄が無いため足し算）
+  const tTotalVisits = tgt ? ((tgt.new_count || 0) + (tgt.reappo_count || 0)) : 0;
+  setVsTarget('dTotalVisits','dTotalVisitsVs','dTotalVisitsTgt','dTotalVisitsTgtU','dTotalVisitsProg', totalVisits, tTotalVisits > 0 ? tTotalVisits : null, '人');
+  setVsTarget('dTotalContract','dTotalContractVs','dTotalContractTgt','dTotalContractTgtU','dTotalContractProg', d.total_contract_count || 0, tgt?tgt.total_contract_count:null, '件');
+  setVsTarget('dTotalRate','dTotalRateVs','dTotalRateTgt','dTotalRateTgtU','dTotalRateProg', (totalVisits > 0) ? (d.total_contract_rate || 0) : 0, tgt?tgt.total_contract_rate:null, '%');
 
   // ── メニュー別内訳（直営店のみ・onda/peelingデータがある場合）────
   const menuBreakSection = document.getElementById('dMenuBreakSection');

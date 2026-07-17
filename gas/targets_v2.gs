@@ -748,6 +748,16 @@ function getKamelTargetsV2_() {
       rec[c.tkey] = v;
       if (v !== 0) hasNonZero = true;
     });
+
+    // 合計売上（total_sales）が未入力の店舗対策：シートの「合計売上」数式が欠けていても、
+    // 構成要素（各契約売上＋クーポン＋オプション＋物販）から算出する。※シートの合計売上式と同じ
+    if (!rec.total_sales) {
+      const sumTotal = (rec.new_contract_sales || 0) + (rec.reappo_contract_sales || 0)
+                     + (rec.keizoku_continue_sales || 0) + (rec.coupon_sales || 0)
+                     + (rec.option_sales || 0) + (rec.buppan_sales || 0);
+      if (sumTotal > 0) { rec.total_sales = sumTotal; hasNonZero = true; }
+    }
+
     if (!hasNonZero) continue;   // 全項目0＝未入力店舗はスキップ（旧パーサ互換）
 
     if (!out[short]) out[short] = {};
