@@ -439,6 +439,11 @@ body.mobile .mk-foot-val{font-size:11px}
 #mainKpiRow{display:block}
 .mk-section{margin-bottom:16px}
 .mk-section-title{font-size:12px;font-weight:800;color:#475569;letter-spacing:.4px;margin:0 2px 8px;display:flex;align-items:center;gap:8px}
+.mk-collapse-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-size:12px;font-weight:800;color:#475569;letter-spacing:.4px;margin:0 2px 8px;padding:3px 2px;border-radius:6px}
+.mk-collapse-head:hover{color:#667eea;background:#f7f7ff}
+.mk-collapse-head .mk-caret{display:inline-block;transition:transform .18s ease;font-size:11px;color:#94a3b8}
+.mk-collapse-head.collapsed .mk-caret{transform:rotate(-90deg)}
+.mk-collapse-head:focus-visible{outline:2px solid #667eea;outline-offset:2px}
 .mk-section-tag{font-size:10px;font-weight:800;color:#667eea;background:#eef0ff;border-radius:6px;padding:2px 8px;letter-spacing:.3px}
 
 /* ===== サマリチャート行（売上構成比 + 施術構成比 + 売上推移6mo） ===== */
@@ -1195,7 +1200,7 @@ body.mobile .side-menu-overlay{display:block!important}
 
   <header class="header">
     <div class="header-inner">
-      <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSideMenu()" aria-label="フィルターを開く" title="フィルター">
+      <button class="hamburger-btn" id="hamburgerBtn" onclick="openSideMenu()" aria-label="フィルターを開く" title="フィルター">
         <span class="h-icon"><span></span><span></span><span></span></span>
       </button>
       <div class="brand">
@@ -1262,7 +1267,7 @@ body.mobile .side-menu-overlay{display:block!important}
   <div class="main">
     <div id="listView">
       <div class="main-kpi-row" id="mainKpiRow"></div>
-      <div class="mk-charts-row" id="mkChartsRow"></div>
+      <div class="mk-section" id="mkChartsRow"></div>
       <div class="list-header">
         <div>
           <div class="list-title" id="listTitle">店舗一覧</div>
@@ -2737,13 +2742,37 @@ function renderMainKpiRow(fstores, md, month){
   const ctxLabel = (typeof curPerson !== 'undefined' && curPerson && curPerson !== '全店舗') ? curPerson : '全店舗';
   el.innerHTML =
     '<div class="mk-section">'+
-      '<div class="mk-section-title">本部収益<span class="mk-section-tag">'+ctxLabel+' / 実績・目標・着地</span></div>'+
-      '<div class="main-kpi-row">'+row1+'</div>'+
+      mkCollapseHead('hq','本部収益<span class="mk-section-tag">'+ctxLabel+' / 実績・目標・着地</span>')+
+      '<div class="main-kpi-row mk-collapse-body"'+mkBodyAttr('hq')+'>'+row1+'</div>'+
     '</div>'+
     '<div class="mk-section">'+
-      '<div class="mk-section-title">店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span></div>'+
-      '<div class="main-kpi-row">'+row2+'</div>'+
+      mkCollapseHead('store','店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span>')+
+      '<div class="main-kpi-row mk-collapse-body"'+mkBodyAttr('store')+'>'+row2+'</div>'+
     '</div>';
+}
+
+/* ============================================================
+ *  KPI/チャートの折りたたみ（▾を押すと開閉。状態はlocalStorage保存で再描画後も維持）
+ * ============================================================ */
+const MK_COLLAPSE_KEY = 'limefit_mk_collapse';
+let mkCollapse = (function(){ try{ return JSON.parse(localStorage.getItem(MK_COLLAPSE_KEY)) || {}; }catch(e){ return {}; } })();
+function isMkCollapsed(key){ return !!mkCollapse[key]; }
+function mkCollapseHead(key, titleHtml){
+  const c = isMkCollapsed(key);
+  return '<div class="mk-collapse-head'+(c?' collapsed':'')+'" id="mkhead-'+key+'" role="button" tabindex="0" '+
+    'aria-expanded="'+(c?'false':'true')+'" '+
+    'onclick="toggleMkCollapse(\''+key+'\')" '+
+    'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleMkCollapse(\''+key+'\')}">'+
+    '<span class="mk-caret">▾</span>'+titleHtml+'</div>';
+}
+function mkBodyAttr(key){ return ' id="mkbody-'+key+'"'+(isMkCollapsed(key)?' style="display:none"':''); }
+function toggleMkCollapse(key){
+  mkCollapse[key] = !mkCollapse[key];
+  try{ localStorage.setItem(MK_COLLAPSE_KEY, JSON.stringify(mkCollapse)); }catch(e){}
+  const body = document.getElementById('mkbody-'+key);
+  const head = document.getElementById('mkhead-'+key);
+  if(body) body.style.display = mkCollapse[key] ? 'none' : '';
+  if(head){ head.classList.toggle('collapsed', mkCollapse[key]); head.setAttribute('aria-expanded', mkCollapse[key]?'false':'true'); }
 }
 
 /* ============================================================
@@ -2755,9 +2784,11 @@ function renderMkCharts(fstores, md, month){
   const wrap = document.getElementById('mkChartsRow');
   if(!wrap) return;
   if(!md || fstores.length === 0){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = renderSalesCompositionHtml(fstores, md)
-                 + renderTreatmentCompositionHtml(fstores, month)
-                 + renderSalesTrendBarChartHtml(fstores, month);
+  const charts = renderSalesCompositionHtml(fstores, md)
+               + renderTreatmentCompositionHtml(fstores, month)
+               + renderSalesTrendBarChartHtml(fstores, month);
+  wrap.innerHTML = mkCollapseHead('charts','売上・施術の構成／推移')+
+    '<div class="mk-charts-row mk-collapse-body"'+mkBodyAttr('charts')+'>'+charts+'</div>';
 }
 
 /* ============================================================

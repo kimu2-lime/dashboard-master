@@ -633,13 +633,18 @@ function getActualDataBM(ss, royalty_pattern, since) {
 
 // ============================================================
 //  サロンボード実績データ読み取り（会計IDベース・取り消し差し引き）
-//  各数値の計算ルール：
-//  ・売上         = 会計区分=会計 の金額合計 - 取り消し会計 の金額合計
-//  ・総施術数     = 会計区分=会計 のユニーク会計ID数 - 取り消し会計 のユニーク会計ID数
-//  ・新規数       = 新規+会計 のユニーク会計ID数 - 新規+取り消し のユニーク会計ID数
-//  ・新規契約数   = 新規+会計+カテゴリ=フェイシャル+メニューに「契約」含む ユニーク会計ID数 - 取り消し同条件
-//  ・契約売上     = カテゴリ=フェイシャル+メニューに「契約or消化or利用」含む行の金額合計 - 取り消し同条件
-//  ・新規契約売上 = 新規+会計+カテゴリ=フェイシャル+メニューに「契約」含む行の金額合計 - 取り消し同条件
+//  各数値の計算ルール（2026-07 契約判定を更新）：
+//  ・売上         = 会計区分=会計 の金額合計 - 取り消し会計 の金額合計（全行の金額合計）
+//  ・総施術数     = 会計 のユニーク会計ID数 - 取り消し のユニーク会計ID数
+//  ・新規数       = 新規 のユニーク会計ID数（取消は -1）
+//  ・契約シグナル = ①カテゴリ=サービス行のメニュー文言、または ②カテゴリ=F/B/その他 × メニュー「契約」
+//                   のどちらか（OR。現場でサービス行の選択忘れが多いためフォールバック併用）
+//  ・新規契約数   = 新規 かつ 契約シグナル（サービス「新規/初回/初めて契約/初めて購入」or 契約行）
+//  ・再アポ契約数 = 再来 かつ 未契約状態 かつ 契約シグナル（同上）
+//  ・継続対象数   = サービス行「終了/継続/追加」を含む会計ID
+//  ・継続成功数   = 継続対象 かつ「継続/追加」or 契約行フォールバック
+//  ・各契約売上   = カテゴリ=F/B/その他 × メニュー「契約」行の金額合計（会計/取消は売上と同様）
+//  ・スタッフ売上 = 行ごとにその行のスタッフへ加算（Σスタッフ=店舗）。取消はマイナスで差引
 // ============================================================
 function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
   const actual_data = {};
@@ -666,6 +671,17 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
       if (v === null || v === undefined || v === '') return 0;
       if (typeof v === 'number') return v;
       return parseFloat(v.toString().replace(/[¥円, ]/g, '')) || 0;
+    };
+
+    // 有効なスタッフ名か（メニュー断片・クーポン文言などの混入を弾く）
+    //   ※CSVのメニュー列にカンマが含まれる行で列がズレ、メニュー断片がスタッフ欄に入ることがある
+    const isValidStaffName_ = function(name) {
+      if (!name) return false;
+      const n = name.toString().trim();
+      if (n === '' || n === '-' || n === 'フリー' || n === '担当者不明') return false;
+      if (/[0-9０-９★☆【】｜|\/#％%]/.test(n)) return false;              // 数字・記号を含む＝メニュー断片
+      if (/肌|券|回数|コース|ピーリング|クーポン|消化|契約|パック|サブスク|option|オプション|スタッフ|ケア|洗浄|プラン|幹細胞|ハーブ|痩身|脱毛|リフト|エステ|美容|施術/.test(n)) return false; // メニュー系ワードを含む
+      return true;
     };
 
     // 会計IDごとに行をグループ化
@@ -726,40 +742,41 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         if (v === '新規' || v === '再来') shinki = v;
       }
 
-      // スタッフ名（金額>0の行を優先、会計のみ）
-      let staffName = '';
-      if (!isCancelled) {
+      // 代表スタッフ（件数・契約系の帰属先）：金額>0かつ有効名の最初の行、無ければ有効名の最初の行、それも無ければ担当者不明
+      //   ※取消会計も含めて必ず1名を決める（取消をスタッフから差し引くため）
+      let repStaff = '';
+      for (let i = 0; i < accRows.length; i++) {
+        const amt = parseAmt(g(accRows[i], '金額'));
+        const s = gs(accRows[i], 'スタッフ');
+        if (amt !== 0 && isValidStaffName_(s)) { repStaff = s; break; }
+      }
+      if (!repStaff) {
         for (let i = 0; i < accRows.length; i++) {
-          const amt = parseAmt(g(accRows[i], '金額'));
           const s = gs(accRows[i], 'スタッフ');
-          if (amt > 0 && s) { staffName = s; break; }
-        }
-        if (!staffName) {
-          for (let i = 0; i < accRows.length; i++) {
-            const s = gs(accRows[i], 'スタッフ');
-            if (s) { staffName = s; break; }
-          }
+          if (isValidStaffName_(s)) { repStaff = s; break; }
         }
       }
+      if (!repStaff) repStaff = '担当者不明';
 
-      // ▼ 会計ID単位フラグ（正式仕様）
-      //   hasFirst : 回数券（初回）  ← 育成フェーズで初契約
-      //   hasUse   : 回数券（消化）  ← 既に契約状態
-      //   hasEnd   : 回数券（終了）  ← 契約満了
-      //   hasAdd   : 回数券（追加）  ← 継続意思あり（追加購入）
-      //   hasCont  : 回数券（継続）  ← 継続意思あり（再購入）
-      let hasFirst = false;
-      let hasUse   = false;
-      let hasEnd   = false;
-      let hasAdd   = false;
-      let hasCont  = false;
+      // ▼ 会計ID単位フラグ（新ルール 2026-07）
+      //   本来：カテゴリ=サービス行のメニュー文言で回数券フェーズを判定（部分一致・表記ゆれ許容）
+      //     ・svcNew  : 新規/初回/初めて契約/初めて購入 → 新規契約・再アポ契約のシグナル
+      //     ・svcCont : 継続/再購入/追加               → 継続成功のシグナル
+      //     ・svcEnd  : 終了                           → 継続対象（母数）
+      //     ・svcUse  : 消化                           → 既に契約状態
+      //   現場対応：会計時に「サービス」行の選択を忘れるスタッフが多いため、
+      //     フォールバックとして「カテゴリ=フェイシャル/ボディ/その他 かつ メニューに"契約"」を
+      //     契約シグナルに併用する（OR判定）。※どちらか一致で契約とみなす
+      let svcNew  = false;
+      let svcCont = false;
+      let svcEnd  = false;
+      let svcUse  = false;
+      let facContract = false;   // フェイシャル/ボディ/その他 × 「契約」＝サービス行忘れ対策のフォールバック
 
       // ▼ 行ごとの集計
       let totalAmt         = 0;     // 会計ID全行の金額合計
-      let contractSalesAmt = 0;     // 契約売上（広義: 契約|消化|利用）
-      let allContractAmt   = 0;     // 厳密「契約」行の金額（カテゴリ=F/B/O & I「契約」）
-      let newContractAmt   = 0;     // 新規契約売上
-      let isNewContract    = false; // 新規契約フラグ
+      let contractSalesAmt = 0;     // 契約売上（広義: 契約|消化|利用|分割|都度）
+      let allContractAmt   = 0;     // 契約行の金額（カテゴリ=F/B/O × メニュー「契約」）＝各フェーズ契約売上の元金
 
       accRows.forEach(function(row) {
         const amt      = parseAmt(g(row, '金額'));
@@ -767,50 +784,40 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         const menu     = gs(row, 'メニュー・店販・ 割引・サービス・オプション');
         totalAmt += amt;
 
-        // ▼ 契約売上はカテゴリ=フェイシャル/ボディ/その他 から取得（H=サービスは¥0ラベル行のため除外）
+        // ▼ 契約売上はカテゴリ=フェイシャル/ボディ/その他 から取得（サービスは¥0ラベル行のため除外）
         const isContractCategory = category === 'フェイシャル' || category === 'ボディ' || category === 'その他';
+        if (isContractCategory && /契約|消化|利用|分割|都度/.test(menu)) contractSalesAmt += amt;
+        // 契約行（厳密「契約」）→ 契約売上の元金 ＆ サービス行忘れ対策のフォールバックシグナル
+        if (isContractCategory && /契約/.test(menu)) { allContractAmt += amt; facContract = true; }
 
-        // 契約売上（広義: 契約・消化・利用・分割・都度）
-        //   ・契約時の支払（新規/再アポ/継続契約売上）
-        //   ・回数券の消化中の支払（分割払い・都度払い等を含む）
-        if (isContractCategory && /契約|消化|利用|分割|都度/.test(menu)) {
-          contractSalesAmt += amt;
-        }
-        // 厳密「契約」行 → 再アポ・継続契約売上、新規契約売上の元金
-        if (isContractCategory && /契約/.test(menu)) {
-          allContractAmt += amt;
-          if (shinki === '新規') {
-            newContractAmt += amt;
-            isNewContract   = true;
-          }
-        }
-
-        // ▼ 会計ID単位フラグ（H=サービス行のラベルから抽出）
+        // ▼ サービス行ラベル（回数券フェーズ）
         if (category === 'サービス') {
-          if (/初回|初めて契約|初めて購入/.test(menu)) hasFirst = true;
-          if (/消化/.test(menu))                       hasUse   = true;
-          if (/終了/.test(menu))                       hasEnd   = true;
-          if (/追加/.test(menu))                       hasAdd   = true;
-          if (/継続|再購入/.test(menu))                hasCont  = true;
+          if (/新規|初回|初めて契約|初めて購入/.test(menu)) svcNew  = true;
+          if (/継続|再購入|追加/.test(menu))               svcCont = true;
+          if (/終了/.test(menu))                            svcEnd  = true;
+          if (/消化/.test(menu))                            svcUse  = true;
         }
       });
 
-      // ▼ 既存契約状態フラグ：既に回数券契約状態にある顧客
-      const hasExistingContract = hasUse || hasEnd || hasAdd || hasCont;
+      // 既存契約状態（すでに回数券契約中の客）＝ 消化 or 継続/追加 or 終了
+      const hasExistingContract = svcUse || svcCont || svcEnd;
 
-      // ▼ 再アポ判定（正式仕様）
-      //   再アポ数    = U=再来 AND NOT hasExistingContract（未契約状態の再来＝育成対象）
-      //   再アポ契約数 = 再アポ AND hasFirst（再来時にクーポン施術後 or その場で契約）
-      const isReappo         = (shinki === '再来') && !hasExistingContract;
-      const isReappoContract = isReappo && hasFirst;
+      // ▼ 契約シグナル：サービス行ラベル OR フェイシャル契約フォールバック（どちらか一致で契約）
+      const newReappoSignal      = svcNew  || facContract;   // 新規契約・再アポ契約
+      const keizokuSuccessSignal = svcCont || facContract;   // 継続成功
+
+      // ▼ 新規契約：新規 かつ 契約シグナル
+      const isNewContract  = (shinki === '新規') && newReappoSignal;
+      const newContractAmt = isNewContract ? allContractAmt : 0;
+
+      // ▼ 再アポ（育成）：再来 かつ 未契約状態。契約は再アポ かつ 契約シグナル
+      const isReappo          = (shinki === '再来') && !hasExistingContract;
+      const isReappoContract  = isReappo && newReappoSignal;
       const reappoContractAmt = isReappoContract ? allContractAmt : 0;
 
-      // ▼ 継続フェーズ判定（正式仕様・会計IDユニーク）
-      //   継続対象数 = hasEnd OR hasCont OR hasAdd（再来時の新規/再来を問わない）
-      //   継続成功数 = hasCont OR hasAdd（顧客が継続意思を示したか重視 → 継続+追加を成功扱い）
-      //   継続契約売上 = 上記成功会計ID × 契約行金額（F/B/O & I=契約）
-      const isKeizokuTarget  = hasEnd || hasCont || hasAdd;
-      const isKeizokuSuccess = hasCont || hasAdd;
+      // ▼ 継続：対象母数＝サービス行「終了/継続/追加」。成功＝対象 かつ 継続シグナル（継続/追加 or 契約フォールバック）
+      const isKeizokuTarget    = svcCont || svcEnd;
+      const isKeizokuSuccess   = isKeizokuTarget && keizokuSuccessSignal;
       const keizokuContinueAmt = isKeizokuSuccess ? allContractAmt : 0;
 
       if (!storeMap[storeName]) {
@@ -899,38 +906,51 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         sm.keizoku_continue_sales += keizokuContinueAmt;
       }
 
-      // スタッフ別集計（会計のみ）
-      if (staffName && !isCancelled) {
-        if (!sm.staff_data[staffName]) {
-          sm.staff_data[staffName] = {
+      // ▼ スタッフ別集計（新ルール 2026-07）
+      //   ・売上は「行ごとに、その行のスタッフ」へ加算（複数スタッフの会計IDを正しく按分）。
+      //     有効名でない行は代表スタッフへ寄せる → Σスタッフ売上 ＝ 店舗売上 が必ず成立。
+      //   ・取り消し会計は金額がマイナスなので加算するだけで自然に差し引かれる（件数も -1）。
+      //   ・契約・件数系は「代表スタッフ」に会計ID単位で帰属（1契約=1イベント）。
+      const ensureStaff = function(name) {
+        if (!sm.staff_data[name]) {
+          sm.staff_data[name] = {
             total_sales: 0, new_count: 0, new_contract_count: 0,
             new_contract_rate: 0, new_contract_sales: 0, new_contract_unit_price: 0,
-            // ▼ 再来系
             reappo_count: 0, reappo_contract_count: 0, reappo_contract_sales: 0,
             keizoku_end_count: 0, keizoku_continue_count: 0, keizoku_continue_sales: 0
           };
         }
-        const sd = sm.staff_data[staffName];
-        sd.total_sales += totalAmt;
-        if (shinki === '新規') {
-          sd.new_count += 1;
-          if (isNewContract) {
-            sd.new_contract_count += 1;
-            sd.new_contract_sales += newContractAmt;
-          }
+        return sm.staff_data[name];
+      };
+
+      // 売上：行ごとにその行のスタッフへ（有効名でなければ代表スタッフへ）
+      accRows.forEach(function(row) {
+        const amt = parseAmt(g(row, '金額'));
+        if (amt === 0) return;
+        const s = gs(row, 'スタッフ');
+        ensureStaff(isValidStaffName_(s) ? s : repStaff).total_sales += amt;
+      });
+
+      // 件数・契約系：代表スタッフに会計ID単位で帰属（取消は -1／マイナス金額）
+      const sdRep = ensureStaff(repStaff);
+      if (shinki === '新規') {
+        sdRep.new_count += isCancelled ? -1 : 1;
+        if (isNewContract) {
+          sdRep.new_contract_count += isCancelled ? -1 : 1;
+          sdRep.new_contract_sales += newContractAmt;
         }
-        if (isReappo) {
-          sd.reappo_count += 1;
-          if (isReappoContract) {
-            sd.reappo_contract_count += 1;
-            sd.reappo_contract_sales += reappoContractAmt;
-          }
+      }
+      if (isReappo) {
+        sdRep.reappo_count += isCancelled ? -1 : 1;
+        if (isReappoContract) {
+          sdRep.reappo_contract_count += isCancelled ? -1 : 1;
+          sdRep.reappo_contract_sales += reappoContractAmt;
         }
-        if (isKeizokuTarget)  sd.keizoku_end_count      += 1;
-        if (isKeizokuSuccess) {
-          sd.keizoku_continue_count += 1;
-          sd.keizoku_continue_sales += keizokuContinueAmt;
-        }
+      }
+      if (isKeizokuTarget)  sdRep.keizoku_end_count += isCancelled ? -1 : 1;
+      if (isKeizokuSuccess) {
+        sdRep.keizoku_continue_count += isCancelled ? -1 : 1;
+        sdRep.keizoku_continue_sales += keizokuContinueAmt;
       }
     });
 
@@ -1023,6 +1043,68 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
   });
 
   return actual_data;
+}
+
+// ============================================================
+//  ★診断：会計CSVの生データから、指定店舗の売上・契約を会計ID単位で検算
+//   使い方（GASエディタで関数を選んでRun）：
+//     debugStoreSalesV2('松本', '202607')   ← お店名に「松本」を含む行を対象
+//   出力：会計ID数・売上合計・契約内訳・スタッフ別売上（Σ＝店舗売上を確認できる）
+//   「ダッシュボードの店舗売上が実際と違う」ときの二重計上/計上漏れの切り分けに使う。
+// ============================================================
+function debugStoreSalesV2(storeKeyword, yyyymm) {
+  if (!storeKeyword) { Logger.log('店名キーワードを指定してください 例: debugStoreSalesV2("松本","202607")'); return; }
+  const ss = getSS('SS_SALON');
+  const sheet = ss.getSheetByName(yyyymm + '_実績');
+  if (!sheet) { Logger.log('シートが見つかりません: ' + yyyymm + '_実績'); return; }
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0].map(function(h){ return h.toString().trim(); });
+  const col = {}; headers.forEach(function(h, i){ col[h] = i; });
+  const g  = function(row, name){ return col[name] !== undefined ? row[col[name]] : ''; };
+  const gs = function(row, name){ const v = g(row, name); return v ? v.toString().trim() : ''; };
+  const parseAmt = function(v){ if (v==null||v==='') return 0; if (typeof v==='number') return v; return parseFloat(v.toString().replace(/[¥円, ]/g,''))||0; };
+
+  const byAcc = {};
+  const storeNamesSeen = {};
+  for (let r = 1; r < rows.length; r++) {
+    const sn = gs(rows[r], 'お店名');
+    if (!sn || sn.indexOf(storeKeyword) < 0) continue;
+    storeNamesSeen[sn] = (storeNamesSeen[sn] || 0) + 1;
+    const id = gs(rows[r], '会計ID'); if (!id) continue;
+    (byAcc[id] = byAcc[id] || []).push(rows[r]);
+  }
+  const ids = Object.keys(byAcc);
+  Logger.log('対象お店名: ' + JSON.stringify(storeNamesSeen));
+  Logger.log('会計ID数: ' + ids.length);
+
+  let total = 0, cancelTotal = 0, contractSales = 0, nNew = 0, nNewC = 0;
+  const staffSales = {};
+  ids.forEach(function(id){
+    const lines = byAcc[id];
+    const kubun = gs(lines[0], '会計区分');
+    if (kubun !== '会計' && kubun !== '取り消し会計') return;
+    let idTotal = 0;
+    lines.forEach(function(ln){
+      const amt = parseAmt(g(ln, '金額'));
+      idTotal += amt;
+      const cat = gs(ln, 'カテゴリ');
+      const menu = gs(ln, 'メニュー・店販・ 割引・サービス・オプション');
+      if ((cat==='フェイシャル'||cat==='ボディ'||cat==='その他') && /契約/.test(menu)) contractSales += amt;
+      const st = gs(ln, 'スタッフ');
+      if (amt !== 0) staffSales[st] = (staffSales[st] || 0) + amt;
+    });
+    total += idTotal;
+    if (kubun === '取り消し会計') cancelTotal += idTotal;
+    let shinki = ''; for (let i=0;i<lines.length&&!shinki;i++){ const v=gs(lines[i],'新規再来'); if(v==='新規'||v==='再来') shinki=v; }
+    if (shinki === '新規') nNew++;
+  });
+  Logger.log('売上合計(total_sales相当): ' + Math.round(total) + '  ※うち取消分: ' + Math.round(cancelTotal));
+  Logger.log('契約行の金額合計(契約売上): ' + Math.round(contractSales));
+  Logger.log('新規会計ID数: ' + nNew);
+  Logger.log('▼スタッフ別売上（Σ＝売上合計になるはず）:');
+  Object.keys(staffSales).sort(function(a,b){return staffSales[b]-staffSales[a];}).forEach(function(s){
+    Logger.log('   ' + Math.round(staffSales[s]) + '  「' + s + '」');
+  });
 }
 
 // ============================================================
