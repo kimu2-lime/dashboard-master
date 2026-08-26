@@ -330,7 +330,12 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .type-btn.active-all{background:#667eea;border-color:#667eea;color:#fff}
 .type-btn.active-direct{background:#e53e3e;border-color:#e53e3e;color:#fff}
 .type-btn.active-franchise{background:#2b6cb0;border-color:#2b6cb0;color:#fff}
-.type-btn:hover:not(.active-all):not(.active-direct):not(.active-franchise){border-color:#667eea;color:#667eea}
+.type-btn:hover:not(.active-all):not(.active-direct):not(.active-franchise):not(.active-brand){border-color:#667eea;color:#667eea}
+/* ブランドフィルター：色は BRAND_DEFS の color を JS でインライン指定（未指定時のフォールバック） */
+.type-btn.active-brand{background:#1a1a2e;border-color:#1a1a2e;color:#fff}
+.brand-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.type-btn.active-brand .brand-dot{background:#fff!important}
+.brand-count{font-size:10px;font-weight:700;opacity:.6;margin-left:5px}
 
 /* ===== STORE TYPE BADGE ===== */
 .store-type-badge{display:inline-block;font-size:9px;font-weight:800;border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:.5px}
@@ -1193,6 +1198,8 @@ body.mobile .side-menu-overlay{display:block!important}
       <div id="sideSlotPerson"></div>
       <div class="side-section-title" id="sideTitleType"   style="display:none">店舗タイプ</div>
       <div id="sideSlotType"></div>
+      <div class="side-section-title" id="sideTitleBrand"  style="display:none">ブランド</div>
+      <div id="sideSlotBrand"></div>
       <div class="side-section-title" id="sideTitleKpi"    style="display:none">KPI 並び替え</div>
       <div id="sideSlotKpi"></div>
     </div>
@@ -1238,6 +1245,11 @@ body.mobile .side-menu-overlay{display:block!important}
   <!-- 直営/加盟フィルター -->
   <div class="type-bar" id="typeBar" style="display:none">
     <div class="type-bar-inner" id="typeBarInner"></div>
+  </div>
+
+  <!-- ブランドフィルター（LIME / Belle / Lift / LABO / …） -->
+  <div class="type-bar" id="brandBar" style="display:none">
+    <div class="type-bar-inner" id="brandBarInner"></div>
   </div>
 
   <!-- KPIソートバー -->
@@ -1676,6 +1688,103 @@ let curYear   = (()=>{const yrs=[...new Set(DATA.months.map(m=>m.slice(0,4)))].s
 let curMonth  = (()=>{const m=[...DATA.months].sort();return m[m.length-1]||'202603';})();
 let curPerson = "全店舗";
 let curStoreType = "全店舗";
+
+/* ============================================================
+ *  ブランド定義（LIME / Belle / Lift / LABO / …）
+ *  ------------------------------------------------------------
+ *  ■ ブランドが増えたときの対応
+ *    1. 通常は「何もしなくてよい」。
+ *       店舗名が「Glow渋谷」のように英字ブランド名で始まっていれば、
+ *       refreshBrandRegistry() が自動でブランドを検出してボタンを追加する。
+ *    2. 表示名・色・並び順・絵文字を指定したい場合、または
+ *       店舗名が英字で始まらない（例：「ラボ仙台」）場合は、
+ *       下の BRAND_DEFS に1行足すだけでよい。
+ *         { key:'Glow', label:'Glow', emoji:'✨', color:'#38a169', aliases:['Glow','グロウ'] }
+ *       aliases は店舗名の判定に使う文字列（大文字小文字は無視）。
+ *    3. どのブランドにも一致しない店舗（直営店「直営 渋谷」など）は
+ *       すべて「その他」に入る。
+============================================================ */
+const BRAND_ALL   = '全ブランド';
+const BRAND_OTHER = 'その他';
+const BRAND_DEFS = [
+  { key:'LIME',  label:'LIME',  emoji:'🍋', color:'#7cb342', aliases:['LIME'] },
+  { key:'Belle', label:'Belle', emoji:'🌸', color:'#d53f8c', aliases:['Belle'] },
+  { key:'Lift',  label:'Lift',  emoji:'💫', color:'#3182ce', aliases:['Lift'] },
+  { key:'LABO',  label:'LABO',  emoji:'🧪', color:'#805ad5', aliases:['LABO'] },
+];
+// 自動検出ブランドに割り当てる色（BRAND_DEFS に無いブランド用）
+const BRAND_AUTO_COLORS = ['#38a169','#dd6b20','#00897b','#5a67d8','#b7791f','#c53030'];
+// 実際に使うブランド一覧（BRAND_DEFS + 自動検出分）。refreshBrandRegistry() で更新
+let BRAND_REGISTRY = BRAND_DEFS.slice();
+let curBrand = BRAND_ALL;
+let _brandCache = {};
+
+// 店舗名から先頭の装飾（【…】［…］(…) など）を取り除く
+function stripBrandDeco(name){
+  return String(name||'').replace(/^\s*[\[［【（(][^\]］】）)]*[\]］】）)]\s*/g, '').trim();
+}
+
+/* 店舗名 → ブランドkey（一致しなければ null） */
+function matchKnownBrand(store){
+  const raw  = String(store||'');
+  const norm = stripBrandDeco(raw).toLowerCase();
+  const low  = raw.toLowerCase();
+  // 1st pass: 先頭一致（「Belle新宿西口」など通常ケース）
+  for(let i=0;i<BRAND_REGISTRY.length;i++){
+    const b=BRAND_REGISTRY[i];
+    for(let j=0;j<b.aliases.length;j++){
+      if(norm.indexOf(b.aliases[j].toLowerCase())===0) return b.key;
+    }
+  }
+  // 2nd pass: 部分一致（「小顔専門店Lift(リフト)藤沢」など装飾付きケース）
+  for(let i=0;i<BRAND_REGISTRY.length;i++){
+    const b=BRAND_REGISTRY[i];
+    for(let j=0;j<b.aliases.length;j++){
+      if(low.indexOf(b.aliases[j].toLowerCase())>=0) return b.key;
+    }
+  }
+  return null;
+}
+
+/* 店舗名 → ブランドkey（未知は 'その他'） */
+function detectBrand(store){
+  if(Object.prototype.hasOwnProperty.call(_brandCache, store)) return _brandCache[store];
+  const hit = matchKnownBrand(store) || BRAND_OTHER;
+  _brandCache[store] = hit;
+  return hit;
+}
+
+/* DATA.stores を走査して、未知の英字プレフィックスを新ブランドとして自動登録 */
+function refreshBrandRegistry(){
+  BRAND_REGISTRY = BRAND_DEFS.slice();
+  _brandCache = {};
+  const found = [];
+  (DATA.stores||[]).forEach(function(s){
+    if(matchKnownBrand(s)) return;
+    // 「英字2文字以上 + 英数字以外」で始まる場合のみブランド名とみなす
+    const m = /^([A-Za-z][A-Za-z0-9]{1,15})(?=[^A-Za-z0-9]|$)/.exec(stripBrandDeco(s));
+    if(!m) return;
+    const key = m[1];
+    if(found.some(function(f){ return f.toLowerCase()===key.toLowerCase(); })) return;
+    found.push(key);
+  });
+  found.forEach(function(key, i){
+    BRAND_REGISTRY.push({
+      key: key, label: key, emoji: '🏷',
+      color: BRAND_AUTO_COLORS[i % BRAND_AUTO_COLORS.length],
+      aliases: [key], auto: true
+    });
+  });
+  _brandCache = {};
+  // 選択中ブランドが消えた場合は全ブランドに戻す
+  if(curBrand !== BRAND_ALL && curBrand !== BRAND_OTHER &&
+     !BRAND_REGISTRY.some(function(b){ return b.key===curBrand; })) curBrand = BRAND_ALL;
+}
+
+/* ブランドフィルター判定（全フィルター箇所から呼ぶ） */
+function matchBrand(store){
+  return curBrand === BRAND_ALL || detectBrand(store) === curBrand;
+}
 let curKpi = 'total_sales'; // KPIソートモード
 let kpiSortOrder = 'desc'; // KPIソート順（desc=降順, asc=昇順）
 let rankingSortOrder = 'desc'; // ランキングソート順
@@ -1791,6 +1900,7 @@ async function fetchData(){
     buildMonthTabs();
     buildPersonBar();
     buildTypeBar();
+    buildBrandBar();
     renderList();
     setTimeout(closeSettings, 1200);
   }catch(e){
@@ -1883,6 +1993,7 @@ function init(){
   buildMonthTabs();
   buildPersonBar();
   buildTypeBar();
+  buildBrandBar();
   document.getElementById('kpiBar').style.display = '';  // 初期表示
   movePanelsToSideMenu();
   syncSidePanelSections();
@@ -1898,11 +2009,14 @@ function movePanelsToSideMenu(){
   const slotPerson = document.getElementById('sideSlotPerson');
   const slotType   = document.getElementById('sideSlotType');
   const slotKpi    = document.getElementById('sideSlotKpi');
+  const slotBrand  = document.getElementById('sideSlotBrand');
   const personBar  = document.getElementById('personBarWrap');
   const typeBar    = document.getElementById('typeBar');
   const kpiBar     = document.getElementById('kpiBar');
+  const brandBar   = document.getElementById('brandBar');
   if(personBar && slotPerson && personBar.parentNode !== slotPerson) slotPerson.appendChild(personBar);
   if(typeBar   && slotType   && typeBar.parentNode   !== slotType)   slotType.appendChild(typeBar);
+  if(brandBar  && slotBrand  && brandBar.parentNode  !== slotBrand)  slotBrand.appendChild(brandBar);
   if(kpiBar    && slotKpi    && kpiBar.parentNode    !== slotKpi)    slotKpi.appendChild(kpiBar);
 }
 function syncSidePanelSections(){
@@ -1910,6 +2024,7 @@ function syncSidePanelSections(){
   const titles = {
     sideTitlePerson: document.getElementById('personBarWrap'),
     sideTitleType:   document.getElementById('typeBar'),
+    sideTitleBrand:  document.getElementById('brandBar'),
     sideTitleKpi:    document.getElementById('kpiBar'),
   };
   Object.keys(titles).forEach(function(id){
@@ -2000,6 +2115,67 @@ function buildTypeBar(){
   });
 }
 
+/* ブランドバー構築（BRAND_REGISTRY + その他。店舗数0のブランドは非表示） */
+function buildBrandBar(){
+  refreshBrandRegistry();
+  const bar   = document.getElementById('brandBar');
+  const inner = document.getElementById('brandBarInner');
+  if(!bar||!inner) return;
+
+  // ブランド別の店舗数を集計（撤退店は除外し、選択中の担当者・店舗タイプに連動）
+  const counts = {};
+  let total = 0;
+  (DATA.stores||[]).forEach(function(s){
+    const closed = DATA.store_closed_month && DATA.store_closed_month[s];
+    if(closed && String(curMonth) > String(closed)) return;
+    if(curPerson!=='全店舗' && DATA.store_person && DATA.store_person[s]!==curPerson) return;
+    if(curStoreType!=='全店舗' && DATA.store_type && DATA.store_type[s]!==curStoreType) return;
+    const k = detectBrand(s);
+    counts[k] = (counts[k]||0)+1;
+    total++;
+  });
+
+  const items = [{ key:BRAND_ALL, label:'全ブランド', emoji:'🏪', color:'#667eea', count:total }];
+  BRAND_REGISTRY.forEach(function(b){
+    if(!counts[b.key] && curBrand!==b.key) return;   // 該当0件は出さない（選択中は残す）
+    items.push({ key:b.key, label:b.label, emoji:b.emoji, color:b.color, count:counts[b.key]||0 });
+  });
+  if(counts[BRAND_OTHER] || curBrand===BRAND_OTHER){
+    items.push({ key:BRAND_OTHER, label:BRAND_OTHER, emoji:'🏷', color:'#718096', count:counts[BRAND_OTHER]||0 });
+  }
+
+  // ブランドが1つも判別できない場合はバーごと隠す
+  bar.style.display = (items.length > 2) ? '' : 'none';
+
+  inner.innerHTML='';
+  items.forEach(function(it){
+    const b=document.createElement('button');
+    const on = (curBrand===it.key);
+    b.className='type-btn'+(on?' active-brand':'');
+    b.dataset.brand=it.key;
+    b.title = (it.key===BRAND_OTHER)
+      ? 'ブランド名が店舗名から判別できない店舗（直営店など）'
+      : it.label+'（'+it.count+'店舗）';
+    if(on){ b.style.background=it.color; b.style.borderColor=it.color; b.style.color='#fff'; }
+    b.innerHTML = (it.key===BRAND_ALL
+        ? it.emoji+' '
+        : '<span class="brand-dot" style="background:'+it.color+'"></span>')
+      + escHtml(it.label)
+      + '<span class="brand-count">'+it.count+'</span>';
+    b.onclick=function(){ selectBrand(it.key); };
+    inner.appendChild(b);
+  });
+}
+
+function selectBrand(k){
+  curBrand = k;
+  buildBrandBar();
+  renderList(); goList();
+  if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
+  if(document.getElementById('rankingView').style.display !=='none') renderRanking();
+  if(typeof syncSidePanelSections==='function') syncSidePanelSections();
+}
+
 function selectYear(y){
   curYear=y;
   document.querySelectorAll('.year-tab').forEach(b=>b.classList.toggle('active',b.textContent===y+'年'));
@@ -2016,6 +2192,7 @@ function selectMonth(m){
 function selectPerson(p){
   curPerson=p;
   document.querySelectorAll('.person-btn').forEach(b=>b.classList.toggle('active',b.textContent===(p==='全店舗'?'🏪 全店舗':p)));
+  buildBrandBar();
   renderList(); goList();
   if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
   if(document.getElementById('rankingView').style.display !=='none') renderRanking();
@@ -2023,9 +2200,11 @@ function selectPerson(p){
 function selectStoreType(t){
   curStoreType=t;
   const clsMap={'\u5168\u5e97\u8217':'active-all','\u76f4\u55b6':'active-direct','\u52a0\u76df':'active-franchise'};
-  document.querySelectorAll('.type-btn').forEach(b=>{
+  // #typeBarInner \u306b\u9650\u5b9a\uff08KPI\u30d0\u30fc\u30fb\u30d6\u30e9\u30f3\u30c9\u30d0\u30fc\u3082 .type-btn \u3092\u4f7f\u3046\u305f\u3081\uff09
+  document.querySelectorAll('#typeBarInner .type-btn').forEach(b=>{
     b.className='type-btn'+(b.dataset.type===t?' '+clsMap[t]:'');
   });
+  buildBrandBar();
   renderList(); goList();
   if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
   if(document.getElementById('rankingView').style.display !=='none') renderRanking();
@@ -2608,6 +2787,7 @@ function filteredStores(){
       const st=DATA.store_type[s];
       if(st!==curStoreType)return false;
     }
+    if(!matchBrand(s))return false;
     return true;
   });
 }
@@ -3137,7 +3317,8 @@ function renderList(){
   });
 
   const personLabel=curPerson==='\u5168\u5e97\u8217'?'\u5168\u5e97\u8217':curPerson+'\u62c5\u5f53';
-  document.getElementById('listTitle').textContent=personLabel+' \u5e97\u8217\u4e00\u89a7';
+  const brandLabel=(curBrand===BRAND_ALL)?'':' / '+curBrand;
+  document.getElementById('listTitle').textContent=personLabel+brandLabel+' \u5e97\u8217\u4e00\u89a7';
 
   // 統計パネル
   renderStats(fstores,md);
@@ -3155,6 +3336,7 @@ function renderList(){
     if(closed&&String(curMonth)>String(closed))return false;
     if(curPerson!=='全店舗'&&DATA.store_person[s]!==curPerson)return false;
     if(curStoreType!=='全店舗'&&DATA.store_type[s]!==curStoreType)return false;
+    if(!matchBrand(s))return false;
     return true;
   });
   // Phase 1: インサイトの計算結果を1回の renderList 中でキャッシュ
@@ -3453,6 +3635,9 @@ function renderStatsBody(stores, md) {
   }
   if (curStoreType !== '全店舗') {
     targets = targets.filter(s => DATA.store_type && DATA.store_type[s] === curStoreType);
+  }
+  if (curBrand !== BRAND_ALL) {
+    targets = targets.filter(s => matchBrand(s));
   }
 
   if (targets.length === 0) {
@@ -4007,6 +4192,7 @@ function switchMainTab(tab) {
   document.getElementById('personBarWrap').style.display = '';
   const hasType = DATA.store_type && Object.keys(DATA.store_type).length > 0;
   document.getElementById('typeBar').style.display = hasType ? '' : 'none';
+  buildBrandBar();   // ブランドバーは全タブで表示（表示要否は buildBrandBar が判定）
   document.getElementById('breadcrumb').classList.remove('visible');
   document.getElementById('listView').style.display    = isStore    ? '' : 'none';
   document.getElementById('detailView').style.display  = 'none';
@@ -4401,6 +4587,8 @@ function renderRanking() {
     if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[store] !== curPerson) return;
     // 直営/加盟フィルター
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[store] !== curStoreType) return;
+    // ブランドフィルター
+    if (!matchBrand(store)) return;
 
     const storeData = monthData[store];
     if (!storeData || !storeData.staff_data) return;
@@ -4472,6 +4660,7 @@ function renderInsightTops(month) {
     if (closed && String(month) > String(closed)) return false;
     if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[s] !== curPerson) return false;
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[s] !== curStoreType) return false;
+    if (!matchBrand(s)) return false;
     return true;
   });
 
@@ -4704,6 +4893,7 @@ function aiMatchStoreType(storeName){
   if (!t) return true; // 不明はフィルターしない
   return t === curStoreType;
 }
+function aiMatchBrand(storeName){ return matchBrand(storeName); }
 function aiMatchAnalysisFilter(priority) {
   if (analysisFilter === 'all') return true;
   if (analysisFilter === 'critical') return priority === 'critical';
@@ -4769,6 +4959,7 @@ function renderAiPriorityStores() {
   const filtered = all.filter(function(s){
     return aiMatchOwner(s.owner) &&
            aiMatchStoreType(s.store) &&
+           aiMatchBrand(s.store) &&
            aiMatchAnalysisFilter(s.priority);
   });
   grid.innerHTML = '';
@@ -4895,6 +5086,7 @@ function renderAnalysis() {
     if (closed && String(month) > String(closed)) return;
     if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[store] !== curPerson) return;
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[store] !== curStoreType) return;
+    if (!matchBrand(store)) return;
     const tgt = (targets[store] && targets[store][month]) ? targets[store][month] : null;
     const r = analyzeStore(store, actual, tgt);
     allResults.push(r);
