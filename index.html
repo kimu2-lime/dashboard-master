@@ -1701,17 +1701,24 @@ let curStoreType = "全店舗";
  *       下の BRAND_DEFS に1行足すだけでよい。
  *         { key:'Glow', label:'Glow', emoji:'✨', color:'#38a169', aliases:['Glow','グロウ'] }
  *       aliases は店舗名の判定に使う文字列（大文字小文字は無視）。
- *    3. どのブランドにも一致しない店舗（直営店「直営 渋谷」など）は
- *       すべて「その他」に入る。
+ *    3. 直営店（店舗名が「直営 渋谷」のように "直営" で始まる、または
+ *       store_type が直営）はブランドではないが、独立した括りとして
+ *       「🏢 直営店」にまとめる。ただし「Lime中目黒」のように店舗名に
+ *       ブランド名が入っている直営店は、そのブランド側に入る。
+ *    4. 上記いずれにも当てはまらない店舗は「その他」に入る。
 ============================================================ */
-const BRAND_ALL   = '全ブランド';
-const BRAND_OTHER = 'その他';
+const BRAND_ALL    = '全ブランド';
+const BRAND_OTHER  = 'その他';
+const BRAND_DIRECT = '直営';
 const BRAND_DEFS = [
   { key:'LIME',  label:'LIME',  emoji:'🍋', color:'#7cb342', aliases:['LIME'] },
   { key:'Belle', label:'Belle', emoji:'🌸', color:'#d53f8c', aliases:['Belle'] },
   { key:'Lift',  label:'Lift',  emoji:'💫', color:'#3182ce', aliases:['Lift'] },
   { key:'LABO',  label:'LABO',  emoji:'🧪', color:'#805ad5', aliases:['LABO'] },
 ];
+// 直営店の括り（ブランドではないが、ブランドバー上で1グループとして扱う）
+// ブランド判定より後に評価されるので「Lime中目黒」などはブランド側が優先される
+const BRAND_DIRECT_DEF = { key:BRAND_DIRECT, label:'直営店', emoji:'🏢', color:'#e53e3e', aliases:['直営'], group:true };
 // 自動検出ブランドに割り当てる色（BRAND_DEFS に無いブランド用）
 const BRAND_AUTO_COLORS = ['#38a169','#dd6b20','#00897b','#5a67d8','#b7791f','#c53030'];
 // 実際に使うブランド一覧（BRAND_DEFS + 自動検出分）。refreshBrandRegistry() で更新
@@ -1746,12 +1753,25 @@ function matchKnownBrand(store){
   return null;
 }
 
-/* 店舗名 → ブランドkey（未知は 'その他'） */
+/* 店舗名 → ブランドkey（直営店は '直営'、未知は 'その他'） */
 function detectBrand(store){
   if(Object.prototype.hasOwnProperty.call(_brandCache, store)) return _brandCache[store];
-  const hit = matchKnownBrand(store) || BRAND_OTHER;
+  let hit = matchKnownBrand(store);
+  // ブランド名が付いていない直営店（「直営 渋谷」など）は直営店グループへ。
+  // 店舗名から判断できないケースに備えて store_type でも拾う
+  if(!hit && DATA.store_type && DATA.store_type[store] === '直営') hit = BRAND_DIRECT;
+  hit = hit || BRAND_OTHER;
   _brandCache[store] = hit;
   return hit;
+}
+
+/* ブランドkey → 表示ラベル（'直営' → '直営店' など） */
+function brandLabel(key){
+  if(key === BRAND_ALL) return BRAND_ALL;
+  for(let i=0;i<BRAND_REGISTRY.length;i++){
+    if(BRAND_REGISTRY[i].key === key) return BRAND_REGISTRY[i].label;
+  }
+  return key;
 }
 
 /* DATA.stores を走査して、未知の英字プレフィックスを新ブランドとして自動登録 */
@@ -1775,6 +1795,8 @@ function refreshBrandRegistry(){
       aliases: [key], auto: true
     });
   });
+  // 直営店グループはブランドの後ろに置く（ブランド判定を優先させるため）
+  BRAND_REGISTRY.push(BRAND_DIRECT_DEF);
   _brandCache = {};
   // 選択中ブランドが消えた場合は全ブランドに戻す
   if(curBrand !== BRAND_ALL && curBrand !== BRAND_OTHER &&
@@ -2154,8 +2176,10 @@ function buildBrandBar(){
     b.className='type-btn'+(on?' active-brand':'');
     b.dataset.brand=it.key;
     b.title = (it.key===BRAND_OTHER)
-      ? 'ブランド名が店舗名から判別できない店舗（直営店など）'
-      : it.label+'（'+it.count+'店舗）';
+      ? 'ブランド・直営店のどちらにも判別できない店舗'
+      : (it.key===BRAND_DIRECT)
+        ? '直営店（店舗名にブランド名が入る直営店は各ブランド側に入ります）'
+        : it.label+'（'+it.count+'店舗）';
     if(on){ b.style.background=it.color; b.style.borderColor=it.color; b.style.color='#fff'; }
     b.innerHTML = (it.key===BRAND_ALL
         ? it.emoji+' '
@@ -3317,8 +3341,8 @@ function renderList(){
   });
 
   const personLabel=curPerson==='\u5168\u5e97\u8217'?'\u5168\u5e97\u8217':curPerson+'\u62c5\u5f53';
-  const brandLabel=(curBrand===BRAND_ALL)?'':' / '+curBrand;
-  document.getElementById('listTitle').textContent=personLabel+brandLabel+' \u5e97\u8217\u4e00\u89a7';
+  const brandSuffix=(curBrand===BRAND_ALL)?'':' / '+brandLabel(curBrand);
+  document.getElementById('listTitle').textContent=personLabel+brandSuffix+' \u5e97\u8217\u4e00\u89a7';
 
   // 統計パネル
   renderStats(fstores,md);
