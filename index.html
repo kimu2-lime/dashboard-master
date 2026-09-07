@@ -1198,7 +1198,7 @@ body.mobile .side-menu-overlay{display:block!important}
       <div id="sideSlotPerson"></div>
       <div class="side-section-title" id="sideTitleType"   style="display:none">店舗タイプ</div>
       <div id="sideSlotType"></div>
-      <div class="side-section-title" id="sideTitleBrand"  style="display:none">ブランド</div>
+      <div class="side-section-title" id="sideTitleBrand"  style="display:none">ブランド<span style="font-weight:600;letter-spacing:0;text-transform:none;color:#bbb">（複数選択可）</span></div>
       <div id="sideSlotBrand"></div>
       <div class="side-section-title" id="sideTitleKpi"    style="display:none">KPI 並び替え</div>
       <div id="sideSlotKpi"></div>
@@ -1723,7 +1723,8 @@ const BRAND_DIRECT_DEF = { key:BRAND_DIRECT, label:'直営店', emoji:'🏢', co
 const BRAND_AUTO_COLORS = ['#38a169','#dd6b20','#00897b','#5a67d8','#b7791f','#c53030'];
 // 実際に使うブランド一覧（BRAND_DEFS + 自動検出分）。refreshBrandRegistry() で更新
 let BRAND_REGISTRY = BRAND_DEFS.slice();
-let curBrand = BRAND_ALL;
+// 選択中のブランドkey配列（複数選択可・空配列＝全ブランド）
+let curBrands = [];
 let _brandCache = {};
 
 // 店舗名から先頭の装飾（【…】［…］(…) など）を取り除く
@@ -1798,14 +1799,30 @@ function refreshBrandRegistry(){
   // 直営店グループはブランドの後ろに置く（ブランド判定を優先させるため）
   BRAND_REGISTRY.push(BRAND_DIRECT_DEF);
   _brandCache = {};
-  // 選択中ブランドが消えた場合は全ブランドに戻す
-  if(curBrand !== BRAND_ALL && curBrand !== BRAND_OTHER &&
-     !BRAND_REGISTRY.some(function(b){ return b.key===curBrand; })) curBrand = BRAND_ALL;
+  // 選択中ブランドが店舗ごと消えた場合は選択から外す（全部消えたら＝全ブランド）
+  curBrands = curBrands.filter(function(k){
+    return k === BRAND_OTHER || BRAND_REGISTRY.some(function(b){ return b.key===k; });
+  });
 }
 
-/* ブランドフィルター判定（全フィルター箇所から呼ぶ） */
+/* ブランドが選択中か */
+function isBrandSelected(key){ return curBrands.indexOf(key) >= 0; }
+
+/* ブランドフィルター判定（全フィルター箇所から呼ぶ）
+ *  複数選択時はOR条件（Belle と LIME を選べば両方を表示）。空＝絞り込みなし */
 function matchBrand(store){
-  return curBrand === BRAND_ALL || detectBrand(store) === curBrand;
+  if(curBrands.length === 0) return true;
+  return curBrands.indexOf(detectBrand(store)) >= 0;
+}
+
+/* 選択中ブランドの見出し用ラベル（'Belle・LIME' / '3ブランド'） */
+function brandFilterLabel(){
+  if(curBrands.length === 0) return '';
+  if(curBrands.length > 2)   return curBrands.length + 'ブランド';
+  // BRAND_REGISTRY の並び順に揃えて表示
+  const order = BRAND_REGISTRY.map(function(b){ return b.key; }).concat([BRAND_OTHER]);
+  return curBrands.slice().sort(function(a,b){ return order.indexOf(a) - order.indexOf(b); })
+                  .map(brandLabel).join('・');
 }
 let curKpi = 'total_sales'; // KPIソートモード
 let kpiSortOrder = 'desc'; // KPIソート順（desc=降順, asc=昇順）
@@ -2159,10 +2176,10 @@ function buildBrandBar(){
 
   const items = [{ key:BRAND_ALL, label:'全ブランド', emoji:'🏪', color:'#667eea', count:total }];
   BRAND_REGISTRY.forEach(function(b){
-    if(!counts[b.key] && curBrand!==b.key) return;   // 該当0件は出さない（選択中は残す）
+    if(!counts[b.key] && !isBrandSelected(b.key)) return;   // 該当0件は出さない（選択中は残す）
     items.push({ key:b.key, label:b.label, emoji:b.emoji, color:b.color, count:counts[b.key]||0 });
   });
-  if(counts[BRAND_OTHER] || curBrand===BRAND_OTHER){
+  if(counts[BRAND_OTHER] || isBrandSelected(BRAND_OTHER)){
     items.push({ key:BRAND_OTHER, label:BRAND_OTHER, emoji:'🏷', color:'#718096', count:counts[BRAND_OTHER]||0 });
   }
 
@@ -2172,18 +2189,22 @@ function buildBrandBar(){
   inner.innerHTML='';
   items.forEach(function(it){
     const b=document.createElement('button');
-    const on = (curBrand===it.key);
+    const isAll = (it.key===BRAND_ALL);
+    const on    = isAll ? (curBrands.length===0) : isBrandSelected(it.key);
     b.className='type-btn'+(on?' active-brand':'');
     b.dataset.brand=it.key;
-    b.title = (it.key===BRAND_OTHER)
-      ? 'ブランド・直営店のどちらにも判別できない店舗'
-      : (it.key===BRAND_DIRECT)
-        ? '直営店（店舗名にブランド名が入る直営店は各ブランド側に入ります）'
-        : it.label+'（'+it.count+'店舗）';
+    b.title = isAll
+      ? 'ブランドの絞り込みを解除（ブランドは複数選べます）'
+      : (it.key===BRAND_OTHER)
+        ? 'ブランド・直営店のどちらにも判別できない店舗'
+        : (it.key===BRAND_DIRECT)
+          ? '直営店（店舗名にブランド名が入る直営店は各ブランド側に入ります）'
+          : it.label+'（'+it.count+'店舗）※クリックで追加/解除';
     if(on){ b.style.background=it.color; b.style.borderColor=it.color; b.style.color='#fff'; }
-    b.innerHTML = (it.key===BRAND_ALL
+    b.innerHTML = (isAll
         ? it.emoji+' '
         : '<span class="brand-dot" style="background:'+it.color+'"></span>')
+      + (on && !isAll ? '✓ ' : '')
       + escHtml(it.label)
       + '<span class="brand-count">'+it.count+'</span>';
     b.onclick=function(){ selectBrand(it.key); };
@@ -2191,8 +2212,16 @@ function buildBrandBar(){
   });
 }
 
+/* ブランド選択（トグル式・複数選択可）
+ *  「全ブランド」＝絞り込み解除。ブランドは押すたびに追加/解除される */
 function selectBrand(k){
-  curBrand = k;
+  if(k === BRAND_ALL){
+    curBrands = [];
+  } else {
+    const i = curBrands.indexOf(k);
+    if(i >= 0) curBrands.splice(i, 1);
+    else       curBrands.push(k);
+  }
   buildBrandBar();
   renderList(); goList();
   if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
@@ -3341,7 +3370,7 @@ function renderList(){
   });
 
   const personLabel=curPerson==='\u5168\u5e97\u8217'?'\u5168\u5e97\u8217':curPerson+'\u62c5\u5f53';
-  const brandSuffix=(curBrand===BRAND_ALL)?'':' / '+brandLabel(curBrand);
+  const brandSuffix=curBrands.length?' / '+brandFilterLabel():'';
   document.getElementById('listTitle').textContent=personLabel+brandSuffix+' \u5e97\u8217\u4e00\u89a7';
 
   // 統計パネル
@@ -3660,7 +3689,7 @@ function renderStatsBody(stores, md) {
   if (curStoreType !== '全店舗') {
     targets = targets.filter(s => DATA.store_type && DATA.store_type[s] === curStoreType);
   }
-  if (curBrand !== BRAND_ALL) {
+  if (curBrands.length) {
     targets = targets.filter(s => matchBrand(s));
   }
 
