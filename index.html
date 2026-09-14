@@ -450,6 +450,17 @@ body.mobile .mk-foot-val{font-size:11px}
 .mk-collapse-head.collapsed .mk-caret{transform:rotate(-90deg)}
 .mk-collapse-head:focus-visible{outline:2px solid #667eea;outline-offset:2px}
 .mk-section-tag{font-size:10px;font-weight:800;color:#667eea;background:#eef0ff;border-radius:6px;padding:2px 8px;letter-spacing:.3px}
+/* ── 店舗KPIのサブグループ見出し（売上／新規＋再アポ／新規／再アポ／継続）── */
+.mk-subgroup{margin:0 0 10px}
+.mk-collapse-head.sub{font-size:11.5px;color:#64748b;margin:0 2px 6px;padding:3px 8px;border-left:3px solid #e2e8f0;border-radius:0 6px 6px 0;background:#fbfbfe}
+.mk-collapse-head.sub:hover{background:#f2f2ff;border-left-color:#667eea}
+.mk-collapse-head.sub .mk-caret{font-size:10px}
+.mk-collapse-head.sub .mk-count{font-size:10px;font-weight:700;color:#a0aec0;letter-spacing:0}
+.mk-collapse-head.sub.g-sales   {border-left-color:#667eea}
+.mk-collapse-head.sub.g-nr      {border-left-color:#1a1a2e}
+.mk-collapse-head.sub.g-new     {border-left-color:#4f87f7}
+.mk-collapse-head.sub.g-reappo  {border-left-color:#a855f7}
+.mk-collapse-head.sub.g-keizoku {border-left-color:#10b981}
 
 /* ===== サマリチャート行（売上構成比 + 施術構成比 + 売上推移6mo） ===== */
 .mk-charts-row{display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:12px;margin-bottom:16px}
@@ -2882,6 +2893,20 @@ function renderMainKpiRow(fstores, md, month){
   const pNR=sumA(mdPrev,'new_count')+sumA(mdPrev,'reappo_count'), pNRc=sumA(mdPrev,'new_contract_count')+sumA(mdPrev,'reappo_contract_count'), pNRs=sumA(mdPrev,'new_contract_sales')+sumA(mdPrev,'reappo_contract_sales');
   const tNR=tK('new_count')+tK('reappo_count'), tNRc=tK('new_contract_count')+tK('reappo_contract_count'), tNRs=tK('new_contract_sales')+tK('reappo_contract_sales');
 
+  /* 率の目標は「分子・分母の両方に目標が入っている店舗」だけで集計する。
+     （継続対象数の目標未入力店が多く、単純合計だと目標率が跳ね上がるため） */
+  const tKPair = function(numKey, denKey){
+    let num=0, den=0;
+    fstores.forEach(function(s){
+      const t = DATA.targets && DATA.targets[s] && DATA.targets[s][month];
+      if(!t) return;
+      const dv = +t[denKey]||0;
+      if(dv>0){ den += dv; num += (+t[numKey]||0); }
+    });
+    return den>0 ? num/den*100 : 0;
+  };
+  const rateOf = function(num, den){ return den>0 ? num/den*100 : 0; };
+
   // ---- 表示ヘルパー ----
   const RING_SIZE=64, RING_STROKE=5;
   const fmtA   = function(v){ return (Math.round((v||0)*10)/10).toFixed(1); };
@@ -2965,22 +2990,58 @@ function renderMainKpiRow(fstores, md, month){
     + tgtOnlyCard('reappo',   '追加機械売上', tAddM)
     + tgtOnlyCard('visit',    '機械レンタル', tMr);
 
-  // ===== セクション2：店舗KPI =====
-  const curRate=aNR>0?aNRc/aNR*100:0, tgtRate=tNR>0?tNRc/tNR*100:0, prvRate=pNR>0?pNRc/pNR*100:0;
-  const row2 =
+  // ===== セクション2：店舗KPI（売上／新規＋再アポ／新規／再アポ／継続の5グループ）=====
+
+  // ── ① 売上 ──
+  const gSales =
       valCard('sales','店舗総合売上合計', sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true})
-    + valCard('lime', '店舗売上平均',     sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true, avg:true})
-    + valCard('new',  '（新規＋再アポ）数平均', aNR, tNR, pNR, {avg:true, unit:'人'})
+    + valCard('lime', '店舗売上平均',     sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true, avg:true});
+
+  // ── ② 新規＋再アポ（初回契約＝店舗の決定力）──
+  const curRate=rateOf(aNRc,aNR), tgtRate=rateOf(tNRc,tNR), prvRate=rateOf(pNRc,pNR);
+  const gNR =
+      valCard('new',  '（新規＋再アポ）数平均', aNR, tNR, pNR, {avg:true, unit:'人'})
     + rateCard('rate','（新規＋再アポ）契約率平均', curRate, tgtRate, prvRate)
-    + valCard('retention','（新規＋再アポ）契約数平均', aNRc, tNRc, pNRc, {avg:true, unit:'件'})
-    + priceCard('royalty','（新規＋再アポ）契約単価平均', aNRs, aNRc, tNRs, tNRc)
-    // ── 新規/再アポ 個別（店舗平均）──
-    + valCard('new',   '新規数平均',   sumA(md,'new_count'),    tK('new_count'),    sumA(mdPrev,'new_count'),    {avg:true, unit:'人'})
-    + valCard('reappo','再アポ数平均', sumA(md,'reappo_count'), tK('reappo_count'), sumA(mdPrev,'reappo_count'), {avg:true, unit:'人'})
-    + valCard('retention','新規契約数平均',   sumA(md,'new_contract_count'),    tK('new_contract_count'),    sumA(mdPrev,'new_contract_count'),    {avg:true, unit:'件'})
-    + valCard('reappo',   '再アポ契約数平均', sumA(md,'reappo_contract_count'), tK('reappo_contract_count'), sumA(mdPrev,'reappo_contract_count'), {avg:true, unit:'件'})
-    + priceCard('royalty','新規契約単価平均',   sumA(md,'new_contract_sales'),    sumA(md,'new_contract_count'),    tK('new_contract_sales'),    tK('new_contract_count'))
+    + valCard('new',  '（新規＋再アポ）契約数平均', aNRc, tNRc, pNRc, {avg:true, unit:'件'})
+    + priceCard('royalty','（新規＋再アポ）契約単価平均', aNRs, aNRc, tNRs, tNRc);
+
+  // ── ③ 新規のみ ──
+  const gNew =
+      valCard('new','新規数平均', sumA(md,'new_count'), tK('new_count'), sumA(mdPrev,'new_count'), {avg:true, unit:'人'})
+    + rateCard('rate','新規契約率平均',
+        rateOf(sumA(md,'new_contract_count'), sumA(md,'new_count')),
+        tKPair('new_contract_count','new_count'),
+        rateOf(sumA(mdPrev,'new_contract_count'), sumA(mdPrev,'new_count')))
+    + valCard('new','新規契約数平均', sumA(md,'new_contract_count'), tK('new_contract_count'), sumA(mdPrev,'new_contract_count'), {avg:true, unit:'件'})
+    + priceCard('royalty','新規契約単価平均', sumA(md,'new_contract_sales'), sumA(md,'new_contract_count'), tK('new_contract_sales'), tK('new_contract_count'));
+
+  // ── ④ 再アポのみ ──
+  const gReappo =
+      valCard('reappo','再アポ数平均', sumA(md,'reappo_count'), tK('reappo_count'), sumA(mdPrev,'reappo_count'), {avg:true, unit:'人'})
+    + rateCard('rate','再アポ契約率平均',
+        rateOf(sumA(md,'reappo_contract_count'), sumA(md,'reappo_count')),
+        tKPair('reappo_contract_count','reappo_count'),
+        rateOf(sumA(mdPrev,'reappo_contract_count'), sumA(mdPrev,'reappo_count')))
+    + valCard('reappo','再アポ契約数平均', sumA(md,'reappo_contract_count'), tK('reappo_contract_count'), sumA(mdPrev,'reappo_contract_count'), {avg:true, unit:'件'})
     + priceCard('royalty','再アポ契約単価平均', sumA(md,'reappo_contract_sales'), sumA(md,'reappo_contract_count'), tK('reappo_contract_sales'), tK('reappo_contract_count'));
+
+  // ── ⑤ 継続のみ（継続率＝継続成功数 ÷ 継続対象数）──
+  const gKeizoku =
+      valCard('retention','継続対象数平均', sumA(md,'keizoku_end_count'), tK('keizoku_end_count'), sumA(mdPrev,'keizoku_end_count'), {avg:true, unit:'件'})
+    + rateCard('retention','継続契約率平均',
+        rateOf(sumA(md,'keizoku_continue_count'), sumA(md,'keizoku_end_count')),
+        tKPair('keizoku_continue_count','keizoku_end_count'),
+        rateOf(sumA(mdPrev,'keizoku_continue_count'), sumA(mdPrev,'keizoku_end_count')))
+    + valCard('retention','継続契約数平均', sumA(md,'keizoku_continue_count'), tK('keizoku_continue_count'), sumA(mdPrev,'keizoku_continue_count'), {avg:true, unit:'件'})
+    + priceCard('retention','継続契約単価平均', sumA(md,'keizoku_continue_sales'), sumA(md,'keizoku_continue_count'), tK('keizoku_continue_sales'), tK('keizoku_continue_count'));
+
+  // グループ（見出しクリックで個別に開閉。状態はlocalStorageに保存される）
+  const grp = function(key, cls, title, note, cards){
+    return '<div class="mk-subgroup">'+
+      mkCollapseHead(key, title+'<span class="mk-count">'+note+'</span>', cls)+
+      '<div class="main-kpi-row mk-collapse-body"'+mkBodyAttr(key)+'>'+cards+'</div>'+
+    '</div>';
+  };
 
   const ctxLabel = (typeof curPerson !== 'undefined' && curPerson && curPerson !== '全店舗') ? curPerson : '全店舗';
   el.innerHTML =
@@ -2990,7 +3051,13 @@ function renderMainKpiRow(fstores, md, month){
     '</div>'+
     '<div class="mk-section">'+
       mkCollapseHead('store','店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span>')+
-      '<div class="main-kpi-row mk-collapse-body"'+mkBodyAttr('store')+'>'+row2+'</div>'+
+      '<div class="mk-collapse-body"'+mkBodyAttr('store')+'>'+
+        grp('store-sales',  'g-sales',  '💰 売上',          '2指標', gSales)+
+        grp('store-nr',     'g-nr',     '🎯 新規＋再アポ',  '4指標', gNR)+
+        grp('store-new',    'g-new',    '🆕 新規のみ',      '4指標', gNew)+
+        grp('store-reappo', 'g-reappo', '🔁 再アポのみ',    '4指標', gReappo)+
+        grp('store-keizoku','g-keizoku','🔄 継続のみ',      '4指標', gKeizoku)+
+      '</div>'+
     '</div>';
 }
 
@@ -3000,9 +3067,10 @@ function renderMainKpiRow(fstores, md, month){
 const MK_COLLAPSE_KEY = 'limefit_mk_collapse';
 let mkCollapse = (function(){ try{ return JSON.parse(localStorage.getItem(MK_COLLAPSE_KEY)) || {}; }catch(e){ return {}; } })();
 function isMkCollapsed(key){ return !!mkCollapse[key]; }
-function mkCollapseHead(key, titleHtml){
+// subCls を渡すとサブグループ見出し（小さめ・左色帯付き）になる
+function mkCollapseHead(key, titleHtml, subCls){
   const c = isMkCollapsed(key);
-  return '<div class="mk-collapse-head'+(c?' collapsed':'')+'" id="mkhead-'+key+'" role="button" tabindex="0" '+
+  return '<div class="mk-collapse-head'+(subCls?' sub '+subCls:'')+(c?' collapsed':'')+'" id="mkhead-'+key+'" role="button" tabindex="0" '+
     'aria-expanded="'+(c?'false':'true')+'" '+
     'onclick="toggleMkCollapse(\''+key+'\')" '+
     'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleMkCollapse(\''+key+'\')}">'+
