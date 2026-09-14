@@ -450,6 +450,32 @@ body.mobile .mk-foot-val{font-size:11px}
 .mk-collapse-head.collapsed .mk-caret{transform:rotate(-90deg)}
 .mk-collapse-head:focus-visible{outline:2px solid #667eea;outline-offset:2px}
 .mk-section-tag{font-size:10px;font-weight:800;color:#667eea;background:#eef0ff;border-radius:6px;padding:2px 8px;letter-spacing:.3px}
+
+/* ===== 数値で絞り込み（サイドパネル内フォーム＋適用中チップ） ===== */
+.numf-box{padding:4px 12px 12px;border-bottom:1px solid #f5f5fa}
+.numf-row{display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.numf-sel{flex:1;min-width:0;padding:7px 8px;border:1.5px solid #e0e0ec;border-radius:8px;font-size:12px;font-weight:600;color:#444;background:#fff;cursor:pointer}
+.numf-sel.numf-op{flex:0 0 64px}
+.numf-sel:focus,.numf-num:focus{outline:none;border-color:#667eea}
+.numf-num{width:100%;min-width:0;flex:1;padding:7px 8px;border:1.5px solid #e0e0ec;border-radius:8px;font-size:12px;font-weight:700;color:#333;text-align:right}
+.numf-tilde{font-size:11px;color:#999;font-weight:700;flex-shrink:0}
+.numf-unit{font-size:11px;color:#999;font-weight:700;flex-shrink:0;min-width:16px}
+.numf-add{width:100%;padding:8px;border:none;border-radius:8px;background:#1a1a2e;color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.numf-add:hover{opacity:.85}
+.numf-chips{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.numf-chip{display:flex;align-items:center;gap:6px;background:#eef0ff;border:1px solid #dfe3ff;border-radius:8px;padding:6px 8px;font-size:11.5px;font-weight:700;color:#4a4a8a}
+.numf-chip-x{margin-left:auto;cursor:pointer;color:#8a8ab0;font-weight:800;padding:0 3px;border-radius:4px;flex-shrink:0}
+.numf-chip-x:hover{background:#dfe3ff;color:#333}
+.numf-clear{width:100%;padding:6px;border:1.5px solid #e0e0ec;border-radius:8px;background:#fff;color:#888;font-size:11.5px;font-weight:700;cursor:pointer;margin-top:2px}
+.numf-clear:hover{border-color:#ef4444;color:#ef4444}
+.numf-hit{font-size:11px;font-weight:700;color:#667eea;padding:2px 2px 0}
+/* 一覧ヘッダーの「適用中の条件」チップ */
+.active-filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:6px}
+.af-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1.5px solid #dfe3ff;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:700;color:#4a4a8a}
+.af-chip-x{cursor:pointer;color:#a0a0c0;font-weight:800}
+.af-chip-x:hover{color:#ef4444}
+.af-clear{background:none;border:none;color:#999;font-size:11px;font-weight:700;cursor:pointer;text-decoration:underline;padding:2px 4px}
+.af-clear:hover{color:#ef4444}
 /* ── 店舗KPIのサブグループ見出し（売上／新規＋再アポ／新規／再アポ／継続）── */
 .mk-subgroup{margin:0 0 10px}
 .mk-collapse-head.sub{font-size:11.5px;color:#64748b;margin:0 2px 6px;padding:3px 8px;border-left:3px solid #e2e8f0;border-radius:0 6px 6px 0;background:#fbfbfe}
@@ -1211,6 +1237,27 @@ body.mobile .side-menu-overlay{display:block!important}
       <div id="sideSlotType"></div>
       <div class="side-section-title" id="sideTitleBrand"  style="display:none">ブランド<span style="font-weight:600;letter-spacing:0;text-transform:none;color:#bbb">（複数選択可）</span></div>
       <div id="sideSlotBrand"></div>
+      <div class="side-section-title" id="sideTitleNum">数値で絞り込み<span style="font-weight:600;letter-spacing:0;text-transform:none;color:#bbb">（AND条件）</span></div>
+      <div id="sideSlotNum" class="numf-box">
+        <div class="numf-row">
+          <select class="numf-sel" id="nfKey"></select>
+        </div>
+        <div class="numf-row">
+          <select class="numf-sel numf-op" id="nfOp" onchange="onNfOpChange()">
+            <option value="gte">以上</option>
+            <option value="lte">以下</option>
+            <option value="between">範囲</option>
+          </select>
+          <input class="numf-num" id="nfV1" type="number" step="any" inputmode="decimal" placeholder="値" onkeydown="if(event.key==='Enter'){event.preventDefault();addKpiFilter()}">
+          <span class="numf-tilde" id="nfTilde" style="display:none">〜</span>
+          <input class="numf-num" id="nfV2" type="number" step="any" inputmode="decimal" placeholder="値" style="display:none" onkeydown="if(event.key==='Enter'){event.preventDefault();addKpiFilter()}">
+          <span class="numf-unit" id="nfUnit"></span>
+        </div>
+        <div class="numf-row">
+          <button class="numf-add" onclick="addKpiFilter()">＋ この条件を追加</button>
+        </div>
+        <div id="nfChips" class="numf-chips"></div>
+      </div>
       <div class="side-section-title" id="sideTitleKpi"    style="display:none">KPI 並び替え</div>
       <div id="sideSlotKpi"></div>
     </div>
@@ -1294,6 +1341,7 @@ body.mobile .side-menu-overlay{display:block!important}
       <div class="list-header">
         <div>
           <div class="list-title" id="listTitle">店舗一覧</div>
+          <div class="active-filter-row" id="activeFilterRow" style="display:none"></div>
         </div>
         <input type="text" class="search-box" id="searchBox" placeholder="店舗名で絞り込み..." oninput="filterCards()">
       </div>
@@ -1819,6 +1867,92 @@ function refreshBrandRegistry(){
 /* ブランドが選択中か */
 function isBrandSelected(key){ return curBrands.indexOf(key) >= 0; }
 
+/* ============================================================
+ *  数値で絞り込み（KPI別の範囲条件）
+ *  ------------------------------------------------------------
+ *  例）新規数が5〜10人 / 契約率30%以上 / 売上100万円以下
+ *  複数条件はAND。表示中の月（curMonth）の実績に対して判定する。
+ *  項目を増やしたいときは KPI_FILTER_DEFS に1行足すだけでよい。
+ *    key  : data.json の店舗実績フィールド名（calcで独自計算も可）
+ *    unit : 入力欄の右に出す単位
+ *    yen  : true なら万円単位で入力させる（内部では円に換算）
+ * ============================================================ */
+const KPI_FILTER_DEFS = [
+  { key:'total_sales',                label:'店舗売上',       unit:'万円', yen:true },
+  { key:'sales_achv',                 label:'売上達成率',     unit:'%',
+    calc:function(d,s,m){ const t=DATA.targets&&DATA.targets[s]&&DATA.targets[s][m]; const tv=t?(t.total_sales||0):0; return tv>0 ? (d.total_sales||0)/tv*100 : null; } },
+  { key:'royalty_achv',               label:'ロイヤリティ達成率', unit:'%',
+    calc:function(d,s,m){
+      const t=DATA.targets&&DATA.targets[s]&&DATA.targets[s][m]; const tv=t?(t.royalty||0):0;
+      if(tv<=0) return null;
+      const av=(d.royalty!==undefined)?d.royalty:royalty(d.total_sales||0);
+      return av/tv*100;
+    } },
+  { key:'new_count',                  label:'新規数',         unit:'人' },
+  { key:'new_contract_count',         label:'新規契約数',     unit:'件' },
+  { key:'new_contract_rate',          label:'新規契約率',     unit:'%' },
+  { key:'new_contract_unit_price',    label:'新規契約単価',   unit:'万円', yen:true },
+  { key:'reappo_count',               label:'再アポ数',       unit:'人' },
+  { key:'reappo_contract_count',      label:'再アポ契約数',   unit:'件' },
+  { key:'reappo_contract_rate',       label:'再アポ契約率',   unit:'%' },
+  { key:'reappo_contract_unit_price', label:'再アポ契約単価', unit:'万円', yen:true },
+  { key:'total_contract_count',       label:'初回契約数',     unit:'件' },
+  { key:'total_contract_rate',        label:'初回契約率',     unit:'%' },
+  { key:'keizoku_end_count',          label:'継続対象数',     unit:'件' },
+  { key:'keizoku_continue_count',     label:'継続契約数',     unit:'件' },
+  { key:'keizoku_rate',               label:'継続率',         unit:'%' },
+  { key:'keizoku_continue_unit_price',label:'継続契約単価',   unit:'万円', yen:true },
+  { key:'dropout_rate',               label:'離脱率',         unit:'%' },
+  { key:'total_treatments',           label:'施術数',         unit:'件' },
+  { key:'royalty',                    label:'ロイヤリティ',   unit:'万円', yen:true },
+];
+function kpiFilterDef(key){
+  for(let i=0;i<KPI_FILTER_DEFS.length;i++) if(KPI_FILTER_DEFS[i].key===key) return KPI_FILTER_DEFS[i];
+  return null;
+}
+// 適用中の条件 [{key, op:'gte'|'lte'|'between', v1, v2}]（内部値は円・%・件のまま保持）
+let kpiFilters = [];
+
+/* 店舗の指定KPI値を返す（データなし・計算不能は null） */
+function kpiFilterValue(store, def, month){
+  const md = DATA.data[month] || {};
+  const d  = md[store];
+  if(!d) return null;
+  if(def.calc) return def.calc(d, store, month);
+  const v = d[def.key];
+  return (v === undefined || v === null) ? null : v;
+}
+
+/* 数値条件の判定（全条件AND。値が取れない店舗は除外） */
+function matchKpiFilters(store){
+  if(kpiFilters.length === 0) return true;
+  for(let i=0;i<kpiFilters.length;i++){
+    const f   = kpiFilters[i];
+    const def = kpiFilterDef(f.key);
+    if(!def) continue;
+    const v = kpiFilterValue(store, def, curMonth);
+    if(v === null) return false;
+    if(f.op === 'gte'     && !(v >= f.v1)) return false;
+    if(f.op === 'lte'     && !(v <= f.v1)) return false;
+    if(f.op === 'between' && !(v >= f.v1 && v <= f.v2)) return false;
+  }
+  return true;
+}
+
+/* 条件の表示文（「新規数 5〜10人」など）。yen項目は万円で表示 */
+function kpiFilterText(f){
+  const def = kpiFilterDef(f.key);
+  if(!def) return '';
+  const disp = function(v){
+    const x = def.yen ? v/10000 : v;
+    return (Math.round(x*10)/10).toLocaleString('ja-JP');
+  };
+  const u = def.unit;
+  if(f.op === 'gte')     return def.label+' '+disp(f.v1)+u+'以上';
+  if(f.op === 'lte')     return def.label+' '+disp(f.v1)+u+'以下';
+  return def.label+' '+disp(f.v1)+'〜'+disp(f.v2)+u;
+}
+
 /* ブランドフィルター判定（全フィルター箇所から呼ぶ）
  *  複数選択時はOR条件（Belle と LIME を選べば両方を表示）。空＝絞り込みなし */
 function matchBrand(store){
@@ -2044,6 +2178,7 @@ function init(){
   buildPersonBar();
   buildTypeBar();
   buildBrandBar();
+  buildKpiFilterForm();
   document.getElementById('kpiBar').style.display = '';  // 初期表示
   movePanelsToSideMenu();
   syncSidePanelSections();
@@ -2221,6 +2356,104 @@ function buildBrandBar(){
     b.onclick=function(){ selectBrand(it.key); };
     inner.appendChild(b);
   });
+}
+
+/* ===== 数値で絞り込み：UI ===== */
+function buildKpiFilterForm(){
+  const sel = document.getElementById('nfKey');
+  if(sel && !sel.options.length){
+    KPI_FILTER_DEFS.forEach(function(d){
+      const o=document.createElement('option');
+      o.value=d.key; o.textContent=d.label;
+      sel.appendChild(o);
+    });
+    sel.onchange = onNfKeyChange;
+    onNfKeyChange();
+  }
+  renderKpiFilterChips();
+}
+function onNfKeyChange(){
+  const def = kpiFilterDef(document.getElementById('nfKey').value);
+  const u = document.getElementById('nfUnit');
+  if(u && def) u.textContent = def.unit;
+}
+function onNfOpChange(){
+  const isBetween = document.getElementById('nfOp').value === 'between';
+  document.getElementById('nfV2').style.display    = isBetween ? '' : 'none';
+  document.getElementById('nfTilde').style.display = isBetween ? '' : 'none';
+}
+/* 入力欄の値を内部値へ（万円→円） */
+function nfParse(id, def){
+  const el = document.getElementById(id);
+  if(!el || el.value === '') return null;
+  const n = parseFloat(el.value);
+  if(isNaN(n)) return null;
+  return def.yen ? n*10000 : n;
+}
+function addKpiFilter(){
+  const def = kpiFilterDef(document.getElementById('nfKey').value);
+  if(!def) return;
+  const op  = document.getElementById('nfOp').value;
+  let v1 = nfParse('nfV1', def);
+  let v2 = nfParse('nfV2', def);
+  if(v1 === null){ document.getElementById('nfV1').focus(); return; }
+  if(op === 'between'){
+    if(v2 === null){ document.getElementById('nfV2').focus(); return; }
+    if(v1 > v2){ const t=v1; v1=v2; v2=t; }   // 逆に入れても通るように入れ替える
+  }
+  // 同じ項目・同じ条件の重複は上書きする
+  kpiFilters = kpiFilters.filter(function(f){ return !(f.key===def.key && f.op===op); });
+  kpiFilters.push({ key:def.key, op:op, v1:v1, v2:v2 });
+  document.getElementById('nfV1').value='';
+  document.getElementById('nfV2').value='';
+  applyKpiFilterChange();
+}
+function removeKpiFilter(i){
+  kpiFilters.splice(i,1);
+  applyKpiFilterChange();
+}
+function clearKpiFilters(){
+  kpiFilters = [];
+  applyKpiFilterChange();
+}
+function applyKpiFilterChange(){
+  renderKpiFilterChips();
+  renderList(); goList();
+  if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
+  if(document.getElementById('rankingView').style.display !=='none') renderRanking();
+}
+/* サイドパネル内のチップ＋一覧ヘッダーの適用中チップを描画 */
+function renderKpiFilterChips(){
+  // 該当店舗数（DATA未ロード時は出さない）
+  let hit = '';
+  try{
+    if(DATA.stores && DATA.stores.length){
+      hit = '<div class="numf-hit">該当 '+filteredStores().length+' 店舗</div>';
+    }
+  }catch(e){}
+  const box = document.getElementById('nfChips');
+  if(box){
+    if(kpiFilters.length === 0){
+      box.innerHTML = '<div class="numf-hit" style="color:#bbb">条件なし（全店舗）</div>';
+    } else {
+      box.innerHTML = hit + kpiFilters.map(function(f,i){
+        return '<div class="numf-chip">'+escHtml(kpiFilterText(f))+
+               '<span class="numf-chip-x" onclick="removeKpiFilter('+i+')" title="この条件を外す">✕</span></div>';
+      }).join('') +
+      '<button class="numf-clear" onclick="clearKpiFilters()">すべての条件を解除</button>';
+    }
+  }
+  const row = document.getElementById('activeFilterRow');
+  if(row){
+    if(kpiFilters.length === 0){ row.style.display='none'; row.innerHTML=''; }
+    else {
+      row.style.display='';
+      row.innerHTML = kpiFilters.map(function(f,i){
+        return '<span class="af-chip">'+escHtml(kpiFilterText(f))+
+               '<span class="af-chip-x" onclick="removeKpiFilter('+i+')" title="この条件を外す">✕</span></span>';
+      }).join('') + '<button class="af-clear" onclick="clearKpiFilters()">条件をすべて解除</button>';
+    }
+  }
 }
 
 /* ブランド選択（トグル式・複数選択可）
@@ -2852,6 +3085,7 @@ function filteredStores(){
       if(st!==curStoreType)return false;
     }
     if(!matchBrand(s))return false;
+    if(!matchKpiFilters(s))return false;
     return true;
   });
 }
@@ -3411,6 +3645,7 @@ function renderList(){
   const ml=MONTH_MAP[curMonth]||curMonth;
   const md=DATA.data[curMonth]||{};
   const fstores=filteredStores();
+  renderKpiFilterChips();   // 月・担当者などを変えても該当店舗数を追随させる
   const hasTarget=DATA.targets&&Object.keys(DATA.targets).length>0;
   const hasType=DATA.store_type&&Object.keys(DATA.store_type).length>0;
 
@@ -3458,6 +3693,7 @@ function renderList(){
     if(curPerson!=='全店舗'&&DATA.store_person[s]!==curPerson)return false;
     if(curStoreType!=='全店舗'&&DATA.store_type[s]!==curStoreType)return false;
     if(!matchBrand(s))return false;
+    if(!matchKpiFilters(s))return false;
     return true;
   });
   // Phase 1: インサイトの計算結果を1回の renderList 中でキャッシュ
@@ -3497,6 +3733,18 @@ function renderList(){
     : getKpiVal(a) - getKpiVal(b));
 
   // データあり店舗が3件以上あればTOP3セクションを表示
+  // 絞り込み結果が0件のときは空状態を出す（数値条件で絞りすぎたケース）
+  if(allStores.length===0){
+    top3Section.style.display='none';
+    grid.innerHTML='<div class="empty-state"><div class="empty-state-icon">🔍</div>'+
+      '<div class="empty-state-text">条件に合う店舗がありません</div>'+
+      '<div class="empty-state-sub">'+
+        (kpiFilters.length ? '数値条件：'+escHtml(kpiFilters.map(kpiFilterText).join(' / ')) : 'フィルターを変更するか、別の月を選択してください')+
+      '</div>'+
+      (kpiFilters.length ? '<button class="af-clear" style="margin-top:10px" onclick="clearKpiFilters()">数値条件をすべて解除</button>' : '')+
+    '</div>';
+    return;
+  }
   const dataStores=allStores.filter(s=>md[s]&&getKpiVal(s)>0);
   if(dataStores.length>=3){
     top3Section.style.display='';
@@ -3759,6 +4007,9 @@ function renderStatsBody(stores, md) {
   }
   if (curBrands.length) {
     targets = targets.filter(s => matchBrand(s));
+  }
+  if (kpiFilters.length) {
+    targets = targets.filter(s => matchKpiFilters(s));
   }
 
   if (targets.length === 0) {
@@ -4710,6 +4961,8 @@ function renderRanking() {
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[store] !== curStoreType) return;
     // ブランドフィルター
     if (!matchBrand(store)) return;
+    // 数値条件フィルター
+    if (!matchKpiFilters(store)) return;
 
     const storeData = monthData[store];
     if (!storeData || !storeData.staff_data) return;
@@ -4782,6 +5035,7 @@ function renderInsightTops(month) {
     if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[s] !== curPerson) return false;
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[s] !== curStoreType) return false;
     if (!matchBrand(s)) return false;
+    if (!matchKpiFilters(s)) return false;
     return true;
   });
 
@@ -5081,6 +5335,7 @@ function renderAiPriorityStores() {
     return aiMatchOwner(s.owner) &&
            aiMatchStoreType(s.store) &&
            aiMatchBrand(s.store) &&
+           matchKpiFilters(s.store) &&
            aiMatchAnalysisFilter(s.priority);
   });
   grid.innerHTML = '';
@@ -5208,6 +5463,7 @@ function renderAnalysis() {
     if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[store] !== curPerson) return;
     if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[store] !== curStoreType) return;
     if (!matchBrand(store)) return;
+    if (!matchKpiFilters(store)) return;
     const tgt = (targets[store] && targets[store][month]) ? targets[store][month] : null;
     const r = analyzeStore(store, actual, tgt);
     allResults.push(r);
