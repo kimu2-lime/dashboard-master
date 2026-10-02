@@ -162,17 +162,26 @@ function buildData(since, targetsOnly) {
   const listSheet  = ssMaster ? ssMaster.getSheetByName('店舗一覧') : null;
   if (listSheet) {
     const listData = listSheet.getDataRange().getValues();
-    // ヘッダーから「撤退月」列を探す（位置が変わってもよいように名前で特定）
+    // ヘッダーから列位置を名前で特定する（列を挿入されても壊れないように）
+    //   2026-10-03 修正：HPB_URL を F列固定(index 5)で読んでいたが、
+    //   実際の並びは A:店舗名 B:略称 C:直営/加盟 D:担当者 E:ロイヤリティパターン
+    //   F:撤退月 G:HPB_URL になっており、撤退月の日付をURLとして読み込んでいた。
+    //   そのため store_hpb_url が壊れ、HPBのスクレイピングが動かなくなっていた。
     const headerRow = listData[0] || [];
-    let tcol = -1;
-    headerRow.forEach(function(h, idx){ if (h && h.toString().indexOf('撤退月') >= 0) tcol = idx; });
+    let tcol = -1, ucol = -1;
+    headerRow.forEach(function(h, idx){
+      const t = h ? h.toString() : '';
+      if (t.indexOf('撤退月') >= 0) tcol = idx;
+      if (t.toUpperCase().indexOf('HPB') >= 0 && t.toUpperCase().indexOf('URL') >= 0) ucol = idx;
+    });
+    if (ucol < 0) ucol = 6;   // 見つからなければ G列を既定にする
     for (let i = 1; i < listData.length; i++) {
       const full   = listData[i][0] ? listData[i][0].toString().trim() : '';
       const short  = listData[i][1] ? listData[i][1].toString().trim() : '';
       const type   = listData[i][2] ? listData[i][2].toString().trim() : '';
       const person = listData[i][3] ? listData[i][3].toString().trim() : '';
       const royPat = listData[i][4] ? listData[i][4].toString().trim() : '';
-      const hpbUrl = listData[i][5] ? listData[i][5].toString().trim() : '';
+      const hpbUrl = (ucol >= 0 && listData[i][ucol]) ? listData[i][ucol].toString().trim() : '';
       // 撤退月（YYYYMMに正規化。日付/「2026/5」/「202605」いずれもOK）
       if (tcol >= 0 && short) {
         const cv = listData[i][tcol];
