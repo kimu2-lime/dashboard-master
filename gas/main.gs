@@ -58,6 +58,38 @@ function getSS(propKey) {
 // ============================================================
 //  ロイヤリティパターン別計算
 // ============================================================
+// ============================================================
+//  店名のスペースのゆれを吸収する（2026-10-02 追加）
+//   店舗一覧スプシのA列と、サロンボード/BMが出すCSVの店名で
+//   全角スペース(U+3000)と半角スペース(U+0020)が食い違っていることがある。
+//   例）小顔/肌質改善/痩身専門店　LIME 松本   ← CSV（全角）
+//       小顔/肌質改善/痩身専門店 LIME 松本   ← 店舗一覧A列（半角）
+//   そのままだと略称に変換できず、実績がダッシュボードに出ない。
+//   ・normStoreName_()  … 全角/半角スペースと連続スペースをまとめ、前後を削る
+//   ・addNormAliases_() … 正規化したキーでも引けるよう別名を登録する
+//   ・pickByName_()     … まず完全一致、ダメなら正規化して引く
+//  完全一致を優先するので、既存の店舗の挙動は変わらない。
+// ============================================================
+function normStoreName_(s) {
+  return String(s == null ? '' : s).replace(/[　\s]+/g, ' ').trim();
+}
+
+function addNormAliases_(map) {
+  Object.keys(map).forEach(function(k) {
+    var n = normStoreName_(k);
+    if (n && n !== k && map[n] === undefined) map[n] = map[k];
+  });
+  return map;
+}
+
+function pickByName_(map, name) {
+  if (!map) return undefined;
+  if (map[name] !== undefined) return map[name];
+  var n = normStoreName_(name);
+  if (map[n] !== undefined) return map[n];
+  return undefined;
+}
+
 function calcRoyalty(sales, pattern) {
   const s = Math.round(sales || 0);
   if (!pattern || pattern === '') return Math.round(s * 0.10 + 44000);
@@ -167,6 +199,12 @@ function buildData(since, targetsOnly) {
         if (!personSeen[person]) { personSeen[person] = true; personOrder.push(person); }
       }
     }
+    // 店名のスペースのゆれを吸収するため、正規化したキーも登録しておく
+    addNormAliases_(store_short);
+    addNormAliases_(store_type);
+    addNormAliases_(royalty_pattern);
+    addNormAliases_(store_person);
+    addNormAliases_(store_hpb_url);
   }
 
   // ── 加盟店目標：新「目標」スプシ（V2縦持ち1タブ）から読む ──
@@ -206,7 +244,7 @@ function buildData(since, targetsOnly) {
           const sb = actual_data[month][store];
           const bm = bm_data[month][store];
           const total_sales = (sb.total_sales||0) + (bm.total_sales||0);
-          const royPat = royalty_pattern[store] || '';
+          const royPat = pickByName_(royalty_pattern, store) || '';
           sb.total_sales             = total_sales;
           sb.royalty                 = calcRoyalty(total_sales, royPat);
           sb.new_count               = (sb.new_count||0)               + (bm.new_count||0);
@@ -340,7 +378,7 @@ function buildData(since, targetsOnly) {
     normalized_actual[month] = {};
     Object.keys(actual_data[month]).forEach(function(fullOrShort) {
       // store_shortで略称に変換、なければそのまま
-      const short = store_short[fullOrShort] || fullOrShort;
+      const short = pickByName_(store_short, fullOrShort) || fullOrShort;
       if (!normalized_actual[month][short]) {
         normalized_actual[month][short] = actual_data[month][fullOrShort];
       } else {
@@ -564,7 +602,7 @@ function getActualDataBM(ss, royalty_pattern, since) {
         sd.new_contract_rate       = sd.new_count > 0 ? Math.round((sd.new_contract_count / sd.new_count) * 1000) / 10 : 0;
         sd.new_contract_unit_price = sd.new_contract_count > 0 ? Math.round(sd.new_contract_sales / sd.new_contract_count) : 0;
       });
-      const royPat = royalty_pattern[storeName] || '';
+      const royPat = pickByName_(royalty_pattern, storeName) || '';
       const lastDateBMObj = storeLastDateBM[storeName];
       const lastDateBMStr = lastDateBMObj ? Utilities.formatDate(lastDateBMObj, 'Asia/Tokyo', 'yyyy-MM-dd') : null;
 
@@ -972,7 +1010,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
         sd.dropout_count               = Math.max(0, sd.keizoku_end_count - sd.keizoku_continue_count);
         sd.dropout_rate                = sd.keizoku_end_count > 0 ? Math.round((sd.dropout_count / sd.keizoku_end_count) * 1000) / 10 : 0;
       });
-      const royPat = royalty_pattern[storeName] || '';
+      const royPat = pickByName_(royalty_pattern, storeName) || '';
       const lastDateObj = storeLastDate[storeName];
       const lastDateStr = lastDateObj ? Utilities.formatDate(lastDateObj, 'Asia/Tokyo', 'yyyy-MM-dd') : null;
 
