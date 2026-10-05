@@ -1955,7 +1955,8 @@ function debugKamelTargets() {
 
 // ============================================================
 //  HPB（ホットペッパービューティー）スクレイピング
-//  店舗一覧F列 HPB_URL を起点にサロンTOP + クーポンページを取得し、
+//  店舗一覧の HPB_URL 列（G列。ヘッダー名で特定）を起点に
+//  サロンTOP + クーポンページを取得し、
 //  SS_MASTER の HPB_Cache タブにキャッシュする
 // ============================================================
 function ensureHpbCacheSheet() {
@@ -2008,6 +2009,19 @@ function refreshHpbCache() {
   const cacheSheet = ensureHpbCacheSheet();
   const listData   = listSheet.getDataRange().getValues();
   const cacheData  = cacheSheet.getDataRange().getValues();
+
+  // HPB_URL の列をヘッダーの文字列から特定する。
+  //   2026-10-05 修正：buildData() 側は 596c47d で直したが、ここは
+  //   listData[i][5]（F列＝撤退月）のまま残っていた。
+  //   そのため撤退月の日付をURLとして渡し、HPB_Cache が
+  //   2026-06-23 から更新されない状態になっていた。
+  const hdr = listData[0] || [];
+  let urlCol = -1;
+  hdr.forEach(function(h, idx){
+    const t = h ? h.toString().toUpperCase() : '';
+    if (t.indexOf('HPB') >= 0 && t.indexOf('URL') >= 0) urlCol = idx;
+  });
+  if (urlCol < 0) urlCol = 6;   // 見つからなければ G列を既定にする
   const rowByShort = {};
   for (let i = 1; i < cacheData.length; i++) {
     const short = cacheData[i][0] ? cacheData[i][0].toString().trim() : '';
@@ -2023,7 +2037,7 @@ function refreshHpbCache() {
       break;
     }
     const short  = listData[i][1] ? listData[i][1].toString().trim() : '';
-    const hpbUrl = listData[i][5] ? listData[i][5].toString().trim() : '';
+    const hpbUrl = listData[i][urlCol] ? listData[i][urlCol].toString().trim() : '';
     if (!short || !hpbUrl) { skipped++; continue; }
 
     const parsed = scrapeHpbStore(hpbUrl);
