@@ -430,8 +430,246 @@ function buildData(since, targetsOnly) {
     store_hpb_url:         hu_short,
     store_hpb_data:        readHpbCache(),
     targets:               targets,
-    actual_data:           normalized_actual
+    actual_data:           normalized_actual,
+    // ブランド別の内訳。既存の店舗単位の数字は変えず、別の枝として足している
+    brand_breakdown:       buildBrandBreakdown_(since)
   };
+}
+
+
+// ============================================================
+//  ブランド別内訳（brand_breakdown）
+//
+//  キム兄さんの要望：
+//    「お店の合計を出して、その中でブランドごとの数値も全部見られるのが一番いい」
+//
+//  出せるもの・出せないもの（2026-10-06 調査結果）：
+//    ・予約・来店・契約（予約CSV由来）… 全店できる。お店名がHPB掲載ページ単位
+//    ・PV / CVR / ACR（HPBレポート） … 全店できる。サロンID単位
+//    ・売上 … サロンボード会計の店舗だけ。複数ブランド店舗24件のうち22件はBM会計で、
+//             BMは店舗単位の明細しか無いため分けられない → sales を null にする
+//
+//  既存の店舗単位の数字（actual_data / targets）には一切手を入れない。
+// ============================================================
+
+// ページ名からブランドを判定する。
+//   LABO・LINO・Areum を Lift より先に見る。
+//   「チタニウムリフト」のような施術名に引っかからないようにするため。
+const BRAND_PATTERNS = [
+  { key: 'LABO',  re: /LABO|毛穴ラボ/i },
+  { key: 'LINO',  re: /LINO/i },
+  { key: 'Areum', re: /Areum|アルム/i },
+  { key: 'Belle', re: /Belle/i },
+  { key: 'LIME',  re: /LIME/i },
+  { key: 'Lift',  re: /Lift/i }
+];
+
+function brandFromPageName_(name) {
+  const s = (name || '').toString();
+  for (let i = 0; i < BRAND_PATTERNS.length; i++) {
+    if (BRAND_PATTERNS[i].re.test(s)) return BRAND_PATTERNS[i].key;
+  }
+  return 'その他';
+}
+
+// 空予約（サロンコネクトの枠押さえ）かどうか。
+//   お名前・電話番号・予約時メニューがすべて空で、予約経路が「電話(自社)」のもの。
+//   2026年9月は10,114件あり、93.2%が複数ブランド店舗に集中していた。
+//   これを数えるとブランド別の予約数が全ページほぼ同数になってしまうので除く。
+function isBlankHoldRow_(name, tel, menu, route) {
+  return !name && !tel && !menu && route === '電話(自社)';
+}
+
+function buildBrandBreakdown_(since) {
+  const out = {};   // out[YYYYMM][略称][ブランド] = {...}
+
+  // ── ① 店舗一覧：ページ名 → 略称 / サロンID ──
+  const ssMaster = getSS('SS_MASTER');
+  const listSheet = ssMaster ? ssMaster.getSheetByName('店舗一覧') : null;
+  if (!listSheet) { Logger.log('⚠️ 店舗一覧なし → brand_breakdown をスキップ'); return out; }
+  const listData = listSheet.getDataRange().getValues();
+  const hdr = listData[0] || [];
+  let ucol = -1;
+  hdr.forEach(function (h, i) {
+    const t = h ? h.toString().toUpperCase() : '';
+    if (t.indexOf('HPB') >= 0 && t.indexOf('URL') >= 0) ucol = i;
+  });
+  if (ucol < 0) ucol = 6;
+
+  const pageInfo = {};        // ページ名(正規化) → {short, salonId, brand, page}
+  const pagesByShort = {};    // 略称 → [ページ名(正規化)]
+  for (let i = 1; i < listData.length; i++) {
+    const full = listData[i][0] ? listData[i][0].toString().trim() : '';
+    const short = listData[i][1] ? listData[i][1].toString().trim() : '';
+    if (!full || !short) continue;
+    const url = listData[i][ucol] ? listData[i][ucol].toString() : '';
+    const m = url.match(/sln(H\d+)/i);
+    const key = normStoreName_(full);
+    pageInfo[key] = {
+      short: short,
+      salonId: m ? m[1] : '',
+      brand: brandFromPageName_(full),
+      page: full
+    };
+    if (!pagesByShort[short]) pagesByShort[short] = [];
+    pagesByShort[short].push(key);
+  }
+
+  // ── ② HPBレポート（貼り付けタブ）：サロンID|年月 → PV / CVR / ACR ──
+  const hpbMetrics = {};
+  const num_ = function (v) {
+    if (v === '' || v === null || v === undefined) return null;
+    const n = parseFloat(v.toString().replace(/,/g, ''));
+    return isNaN(n) ? null : n;
+  };
+  try {
+    const ssHpb = getSS('SS_HPB');
+    const hs = ssHpb ? ssHpb.getSheetByName('貼り付け') : null;
+    if (hs) {
+      const hv = hs.getDataRange().getValues();
+      for (let i = 1; i < hv.length; i++) {
+        const sid = hv[i][1] ? hv[i][1].toString().trim() : '';
+        const ym = hv[i][2] ? hv[i][2].toString().trim().replace(/[^\d]/g, '').slice(0, 6) : '';
+        if (!sid || !ym) continue;
+        hpbMetrics[sid + '|' + ym] = {
+          pv: num_(hv[i][3]),
+          cvr: num_(hv[i][5]),
+          acr: num_(hv[i][7])
+        };
+      }
+    }
+  } catch (e) {
+    Logger.log('⚠️ SS_HPB を読めません: ' + e);
+  }
+
+  // ── ③ 予約データ：ページ|年月 → 予約 / HPB経由 / 来店 / 契約 ──
+  const resv = {};
+  const bump_ = function (k) {
+    if (!resv[k]) resv[k] = { reserve: 0, hpb_reserve: 0, visit: 0, contract: 0, blank: 0 };
+    return resv[k];
+  };
+  try {
+    const ssR = getReserveSS_();
+    const months = listReserveMonthSheets_(ssR);   // ['2026/09', ...]
+    months.forEach(function (tab) {
+      const ym = tab.replace(/[^\d]/g, '');        // 202609
+      if (ym.length !== 6) return;
+      if (since && ym < since) return;
+      const sheet = ssR.getSheetByName(tab);
+      if (!sheet) return;
+      const v = sheet.getDataRange().getValues();
+      const g = function (row, i) {
+        return i < row.length && row[i] != null ? row[i].toString().trim() : '';
+      };
+      for (let i = 1; i < v.length; i++) {
+        const page = normStoreName_(g(v[i], RESV_COL.STORE));
+        if (!page) continue;
+        const status = g(v[i], RESV_COL.STATUS);
+        const route = g(v[i], RESV_COL.ROUTE);
+        const menu = g(v[i], RESV_COL.RSV_MENU);
+        const name = g(v[i], 25) || g(v[i], RESV_COL.NAME_KANJI);
+        const tel = g(v[i], 26) || g(v[i], 30);
+        const k = page + '|' + ym;
+        if (isBlankHoldRow_(name, tel, menu, route)) {
+          bump_(k).blank++;
+          continue;
+        }
+        const b = bump_(k);
+        b.reserve++;
+        if (/HOT\s*PEPPER/i.test(route)) b.hpb_reserve++;
+        if (resvIsVisited_(status)) {
+          b.visit++;
+          if (resvIsContract_(g(v[i], RESV_COL.ACT_MENU))) b.contract++;
+        }
+      }
+    });
+  } catch (e) {
+    Logger.log('⚠️ 予約データを読めません: ' + e);
+  }
+
+  // ── ④ サロンボード売上：ページ|年月 → 売上（BM会計の店舗は出てこない） ──
+  const sbSales = {};
+  try {
+    const ssSalon = getSS('SS_SALON');
+    TARGET_MONTHS.forEach(function (month) {
+      if (since && month < since) return;
+      const sheet = ssSalon ? ssSalon.getSheetByName(month + '_実績') : null;
+      if (!sheet) return;
+      const rows = sheet.getDataRange().getValues();
+      if (rows.length < 2) return;
+      const col = {};
+      rows[0].forEach(function (h, i) { col[h.toString().trim()] = i; });
+      if (col['お店名'] === undefined || col['金額'] === undefined) return;
+      for (let r = 1; r < rows.length; r++) {
+        const kubun = col['会計区分'] !== undefined
+          ? (rows[r][col['会計区分']] || '').toString().trim() : '会計';
+        if (kubun !== '会計' && kubun !== '取り消し会計') continue;
+        const page = normStoreName_((rows[r][col['お店名']] || '').toString());
+        if (!page) continue;
+        let amt = rows[r][col['金額']];
+        amt = (amt === '' || amt === null || amt === undefined) ? 0
+          : (typeof amt === 'number' ? amt
+            : parseFloat(amt.toString().replace(/[¥円, ]/g, '')) || 0);
+        const k = page + '|' + month;
+        sbSales[k] = (sbSales[k] || 0) + amt;   // 取り消し会計の金額はCSV上すでにマイナス
+      }
+    });
+  } catch (e) {
+    Logger.log('⚠️ SS_SALON を読めません: ' + e);
+  }
+
+  // ── ⑤ 組み立て ──
+  Object.keys(pagesByShort).forEach(function (short) {
+    const pages = pagesByShort[short];
+    TARGET_MONTHS.forEach(function (month) {
+      if (since && month < since) return;
+      let any = false;
+      const perBrand = {};
+      const seenSalon = {};   // サロンIDの重複カウントを防ぐ
+      pages.forEach(function (pk) {
+        const info = pageInfo[pk];
+        const brand = info.brand;
+        const r = resv[pk + '|' + month];
+        const hm = info.salonId ? hpbMetrics[info.salonId + '|' + month] : null;
+        const sales = sbSales[pk + '|' + month];
+        if (!r && !hm && sales === undefined) return;
+        any = true;
+        if (!perBrand[brand]) {
+          perBrand[brand] = {
+            pages: [], salon_ids: [],
+            reserve: 0, hpb_reserve: 0, visit: 0, contract: 0, blank_hold: 0,
+            pv: null, cvr: null, acr: null, sales: null
+          };
+        }
+        const b = perBrand[brand];
+        if (b.pages.indexOf(info.page) < 0) b.pages.push(info.page);
+        if (info.salonId && b.salon_ids.indexOf(info.salonId) < 0) b.salon_ids.push(info.salonId);
+        if (r) {
+          b.reserve += r.reserve;
+          b.hpb_reserve += r.hpb_reserve;
+          b.visit += r.visit;
+          b.contract += r.contract;
+          b.blank_hold += r.blank;
+        }
+        if (hm && !seenSalon[info.salonId]) {
+          // 同じサロンIDを指すページ（旧名と新名）が複数あることがあるので、
+          // PVはサロンIDごとに1回だけ足す。
+          // （2026-10-06：Belle柏は「Belle 柏」と「Belle 柏店」の2行が同じ
+          //   サロンIDを指しており、二重に足してCVRが109.5%になっていた）
+          seenSalon[info.salonId] = true;
+          if (hm.pv !== null) b.pv = (b.pv === null ? 0 : b.pv) + hm.pv;
+          if (hm.cvr !== null && (b.cvr === null || hm.cvr > b.cvr)) b.cvr = hm.cvr;
+          if (hm.acr !== null && (b.acr === null || hm.acr > b.acr)) b.acr = hm.acr;
+        }
+        if (sales !== undefined) b.sales = (b.sales === null ? 0 : b.sales) + sales;
+      });
+      if (!any) return;
+      if (!out[month]) out[month] = {};
+      out[month][short] = perBrand;
+    });
+  });
+
+  return out;
 }
 
 // ============================================================

@@ -331,6 +331,28 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .type-btn.active-direct{background:#e53e3e;border-color:#e53e3e;color:#fff}
 .type-btn.active-franchise{background:#2b6cb0;border-color:#2b6cb0;color:#fff}
 .type-btn:hover:not(.active-all):not(.active-direct):not(.active-franchise):not(.active-brand){border-color:#667eea;color:#667eea}
+/* ブランド別内訳テーブル（店舗詳細） */
+.bb-wrap{background:#fff;border-radius:14px;padding:18px 20px;margin-top:18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.bb-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.bb-title{font-size:16px;font-weight:700;color:#1a202c}
+.bb-note{font-size:12px;color:#718096;margin-bottom:12px;line-height:1.6}
+.bb-table{width:100%;border-collapse:collapse;font-size:13px}
+.bb-table th{text-align:right;padding:8px 10px;color:#4a5568;font-weight:600;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+.bb-table th:first-child{text-align:left}
+.bb-table td{text-align:right;padding:9px 10px;border-bottom:1px solid #edf2f7;white-space:nowrap}
+.bb-table td:first-child{text-align:left;font-weight:600}
+.bb-table tr.bb-total td{border-top:2px solid #cbd5e0;border-bottom:none;font-weight:700;background:#f7fafc}
+.bb-brand{display:inline-flex;align-items:center;gap:6px}
+.bb-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.bb-na{color:#a0aec0}
+.bb-why{font-size:11px;color:#a0aec0;margin-left:4px}
+.bb-pages{font-size:11px;color:#a0aec0;font-weight:400;display:block;margin-top:2px;white-space:normal}
+@media(max-width:700px){
+  .bb-wrap{padding:14px 12px}
+  .bb-table{font-size:12px}
+  .bb-table th,.bb-table td{padding:7px 5px}
+}
+
 /* ブランドフィルター：色は BRAND_DEFS の color を JS でインライン指定（未指定時のフォールバック） */
 .type-btn.active-brand{background:#1a1a2e;border-color:#1a1a2e;color:#fff}
 .brand-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
@@ -1389,6 +1411,9 @@ body.mobile .side-menu-overlay{display:block!important}
 
       <!-- 推移・構成分析チャート（メイン KPI 下と同じ3カード） -->
       <div class="mk-charts-row" id="dChartsRow"></div>
+
+      <!-- ブランド別の内訳。1店舗に複数ブランドのHPB掲載がある店舗だけ出す -->
+      <div id="dBrandBreakdown" style="display:none"></div>
 
       <div class="phase-label acquisition">📊 獲得フェーズ<span class="phase-sub">新規来店 → 当日契約</span></div>
       <div class="detail-kpis-5">
@@ -4075,6 +4100,120 @@ function setVsTarget(actualId,vsId,tgtId,tgtUId,progId,actual,tgt,unit){
   }
 }
 
+
+/* ============================================================
+ *  ブランド別の内訳（店舗詳細）
+ *
+ *  1つの店舗（会計単位）に複数ブランドのHPB掲載がある場合、
+ *  「店舗の合計」の下にブランドごとの数字を並べる。
+ *
+ *  出せる／出せないの区別（2026-10-06 調査）：
+ *    ・予約・来店・契約・PV・CVR・ACR … 全店出せる（HPB掲載ページ単位のため）
+ *    ・売上 … サロンボード会計の店舗だけ。BM会計は店舗単位の明細しか無いので
+ *             「—」と理由を出す。数字が無いのかゼロなのか分からない状態を避ける
+ *
+ *  予約数は「空予約」（サロンコネクトの枠押さえ。名前・電話・メニューが空）を
+ *  除いた数。除いた件数も小さく出しておく。
+ * ============================================================ */
+
+/* ブランドの色。BRAND_DEFS にあるものはその色、無いものは自動色 */
+function bbBrandColor(key){
+  for(let i=0;i<BRAND_REGISTRY.length;i++){
+    if(BRAND_REGISTRY[i].key===key) return BRAND_REGISTRY[i].color;
+  }
+  const defs = (typeof BRAND_DEFS!=='undefined') ? BRAND_DEFS : [];
+  for(let i=0;i<defs.length;i++){ if(defs[i].key===key) return defs[i].color; }
+  let h=0; for(let i=0;i<key.length;i++) h=(h*31+key.charCodeAt(i))|0;
+  return BRAND_AUTO_COLORS[Math.abs(h)%BRAND_AUTO_COLORS.length];
+}
+
+function bbNum(v){
+  return (v===null||v===undefined) ? null : v;
+}
+
+/* 数字 or 「—」 */
+function bbCell(v, suffix, why){
+  if(v===null||v===undefined){
+    return '<span class="bb-na">—</span>' + (why?('<span class="bb-why">'+why+'</span>'):'');
+  }
+  return fmt(v) + (suffix||'');
+}
+
+function renderBrandBreakdown(store){
+  const el = document.getElementById('dBrandBreakdown');
+  if(!el) return;
+  const all = (typeof DATA!=='undefined' && DATA.brand_breakdown) ? DATA.brand_breakdown : null;
+  const perMonth = all ? (all[curMonth]||null) : null;
+  const per = perMonth ? perMonth[store] : null;
+  const brands = per ? Object.keys(per) : [];
+
+  // ブランドが1つしか無い店舗では出さない（合計と同じ表になってしまう）
+  if(!per || brands.length < 2){ el.style.display='none'; el.innerHTML=''; return; }
+
+  // HPB経由の予約が多い順
+  brands.sort(function(a,b){ return (per[b].hpb_reserve||0)-(per[a].hpb_reserve||0); });
+
+  let anySales = false, blankTotal = 0;
+  const tot = {reserve:0,hpb_reserve:0,visit:0,contract:0,sales:0};
+  brands.forEach(function(k){
+    const b = per[k];
+    if(b.sales!==null && b.sales!==undefined){ anySales=true; tot.sales += b.sales; }
+    blankTotal += (b.blank_hold||0);
+    tot.reserve += (b.reserve||0); tot.hpb_reserve += (b.hpb_reserve||0);
+    tot.visit += (b.visit||0); tot.contract += (b.contract||0);
+  });
+
+  let h = '<div class="bb-wrap">';
+  h += '<div class="bb-head"><div class="bb-title">🏷️ ブランド別の内訳</div></div>';
+  h += '<div class="bb-note">この店舗には ' + brands.length + ' ブランドのHPB掲載があります。'
+     + '予約は<strong>空予約（枠押さえ）を除いた数</strong>です'
+     + (blankTotal ? ('（この月は ' + fmt(blankTotal) + ' 件を除外）') : '')
+     + '。' + (anySales ? '' : '売上・契約金額は<strong>BM会計のため店舗合計のみ</strong>で、ブランド別には出せません。')
+     + '</div>';
+
+  h += '<table class="bb-table"><thead><tr>'
+     + '<th>ブランド</th><th>予約</th><th>HPB経由</th><th>来店</th><th>契約</th>'
+     + '<th>PV</th><th>CVR</th><th>ACR</th><th>売上</th>'
+     + '</tr></thead><tbody>';
+
+  brands.forEach(function(k){
+    const b = per[k];
+    const pages = (b.pages||[]).join(' / ');
+    h += '<tr>'
+      + '<td><span class="bb-brand"><span class="bb-dot" style="background:'+bbBrandColor(k)+'"></span>'+k+'</span>'
+      + (pages ? '<span class="bb-pages">'+pages+'</span>' : '') + '</td>'
+      + '<td>'+fmt(b.reserve||0)+'</td>'
+      + '<td>'+fmt(b.hpb_reserve||0)+'</td>'
+      + '<td>'+fmt(b.visit||0)+'</td>'
+      + '<td>'+fmt(b.contract||0)+'</td>'
+      + '<td>'+bbCell(bbNum(b.pv))+'</td>'
+      + '<td>'+(b.cvr===null||b.cvr===undefined?'<span class="bb-na">—</span>':(b.cvr+'%'))+'</td>'
+      + '<td>'+(b.acr===null||b.acr===undefined?'<span class="bb-na">—</span>':(b.acr+'%'))+'</td>'
+      + '<td>'+bbCell(bbNum(b.sales), '円', (b.sales===null||b.sales===undefined)?'BM会計':'')+'</td>'
+      + '</tr>';
+  });
+
+  h += '<tr class="bb-total">'
+     + '<td>合計</td>'
+     + '<td>'+fmt(tot.reserve)+'</td>'
+     + '<td>'+fmt(tot.hpb_reserve)+'</td>'
+     + '<td>'+fmt(tot.visit)+'</td>'
+     + '<td>'+fmt(tot.contract)+'</td>'
+     + '<td class="bb-na">—</td><td class="bb-na">—</td><td class="bb-na">—</td>'
+     + '<td>'+(anySales?(fmt(tot.sales)+'円'):'<span class="bb-na">—</span>')+'</td>'
+     + '</tr>';
+  h += '</tbody></table>';
+  h += '<div class="bb-note" style="margin-top:10px;margin-bottom:0">'
+     + 'PV・CVR・ACR はHPBレポートの値をそのまま出しています（HPBのCVRは100%を超えることがあります）。'
+     + '来店・契約はサロンボードの予約ステータス由来のため、'
+     + 'BM会計の店舗では受付待ちのまま残る分が来店に数えられません。'
+     + '</div>';
+  h += '</div>';
+
+  el.innerHTML = h;
+  el.style.display = '';
+}
+
 function showDetail(store,d,tgt){
   document.getElementById('listView').style.display='none';
   document.getElementById('detailView').style.display='block';
@@ -4092,6 +4231,10 @@ function showDetail(store,d,tgt){
       renderTreatmentCompositionHtml([store], curMonth) +
       renderSalesTrendBarChartHtml([store], curMonth, {useRawTotal: true});
   }
+
+  // ブランド別の内訳（複数ブランドの掲載がある店舗だけ出る）
+  try { renderBrandBreakdown(store); }
+  catch(e){ console.warn('ブランド別内訳を出せません', e); }
 
   const roy=d.royalty!==undefined?d.royalty:royalty(d.total_sales);
   const royTgt=tgt?(tgt.royalty!==undefined?tgt.royalty:royalty(tgt.total_sales)):null;
