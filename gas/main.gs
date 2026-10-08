@@ -521,6 +521,18 @@ function buildBrandBreakdown_(since) {
     const url = listData[i][ucol] ? listData[i][ucol].toString() : '';
     const m = url.match(/sln(H\d+)/i);
     const key = normStoreName_(full);
+    // 店舗一覧に同じ店舗名の行が複数あることがある
+    //   （中身は同じで、片方だけ HPB_URL が空、という形が多い）。
+    //   そのまま扱うと、同じページの予約を2回数えてしまい、
+    //   さらに後の行で salonId が空に上書きされて PV/CVR/ACR が取れなくなる。
+    //   そこで「1ページ1回」にし、サロンIDは分かるほうを採る。
+    //   （2026-10-08 実機：Belle那覇おもろまち・LIME松本・Belle新大阪・
+    //     Belle後楽園・春日 の4店舗で発生）
+    const prev = pageInfo[key];
+    if (prev) {
+      if (!prev.salonId && m) prev.salonId = m[1];
+      continue;
+    }
     pageInfo[key] = {
       short: short,
       salonId: m ? m[1] : '',
