@@ -464,6 +464,22 @@ const BRAND_PATTERNS = [
   { key: 'Lift',  re: /Lift/i }
 ];
 
+// HPBレポートのスプシを開く。
+//   getSS() はスクリプトプロパティが無いと「このスプレッドシート」を返すので、
+//   SS_HPB が未設定だと黙って別のスプシを見てしまい、PV/CVR/ACR が全部空になる。
+//   （2026-10-08 実機で発生）プロパティが無ければ既知のIDで開き、ログで知らせる。
+const SS_HPB_FALLBACK_ID = '1SfweHfjedNVK81Q6bAqLC6HozPQj2ESeGLa6v-f6Yzk';
+function getHpbSS_() {
+  const id = PropertiesService.getScriptProperties().getProperty('SS_HPB');
+  if (!id) {
+    Logger.log('⚠️ スクリプトプロパティ SS_HPB が未設定です。'
+             + '既定のID（' + SS_HPB_FALLBACK_ID + '）で開きます。'
+             + 'プロパティに設定しておくと安全です。');
+    return SpreadsheetApp.openById(SS_HPB_FALLBACK_ID);
+  }
+  return SpreadsheetApp.openById(id);
+}
+
 function brandFromPageName_(name) {
   const s = (name || '').toString();
   for (let i = 0; i < BRAND_PATTERNS.length; i++) {
@@ -523,8 +539,9 @@ function buildBrandBreakdown_(since) {
     return isNaN(n) ? null : n;
   };
   try {
-    const ssHpb = getSS('SS_HPB');
+    const ssHpb = getHpbSS_();
     const hs = ssHpb ? ssHpb.getSheetByName('貼り付け') : null;
+    if (!hs) Logger.log('⚠️ HPBスプシに「貼り付け」タブがありません');
     if (hs) {
       const hv = hs.getDataRange().getValues();
       for (let i = 1; i < hv.length; i++) {
@@ -550,7 +567,14 @@ function buildBrandBreakdown_(since) {
   };
   try {
     const ssR = getReserveSS_();
-    const months = listReserveMonthSheets_(ssR);   // ['2026/09', ...]
+    // 「2026/09」の形ちょうどのタブだけを見る。
+    //   listReserveMonthSheets_() はA1が「お店名」なら何でも返すので、
+    //   「TEST_2026/09」のような検証用タブも混ざる。これを数えると
+    //   その月の予約・来店・空予約がまるごと二重に計上される。
+    //   （2026-10-08 実機：9月の件数がちょうど2倍になっていた）
+    const months = listReserveMonthSheets_(ssR).filter(function (t) {
+      return /^\d{4}\/\d{2}$/.test(t);
+    });
     months.forEach(function (tab) {
       const ym = tab.replace(/[^\d]/g, '');        // 202609
       if (ym.length !== 6) return;
