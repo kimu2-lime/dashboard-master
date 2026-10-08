@@ -331,6 +331,26 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .type-btn.active-direct{background:#e53e3e;border-color:#e53e3e;color:#fff}
 .type-btn.active-franchise{background:#2b6cb0;border-color:#2b6cb0;color:#fff}
 .type-btn:hover:not(.active-all):not(.active-direct):not(.active-franchise):not(.active-brand){border-color:#667eea;color:#667eea}
+/* 入力待ちの新店のお知らせ */
+.ni-wrap{background:#fffaf0;border:1px solid #f6ad55;border-left:5px solid #dd6b20;border-radius:10px;padding:14px 16px;margin:0 0 16px}
+.ni-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ni-badge{font-size:15px;font-weight:700;color:#9c4221}
+.ni-count{font-size:12px;color:#9c4221;background:#feebc8;border-radius:999px;padding:2px 10px;font-weight:700}
+.ni-close{margin-left:auto;background:none;border:none;font-size:20px;line-height:1;color:#9c4221;cursor:pointer;padding:0 4px}
+.ni-close:hover{color:#742a2a}
+.ni-note{font-size:12px;color:#7b341e;margin-top:6px;line-height:1.7}
+.ni-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ni-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#fff;border-radius:8px;padding:8px 12px}
+.ni-store{font-weight:700;color:#1a202c}
+.ni-page{font-size:11px;color:#a0aec0;flex:1 1 260px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ni-missing{font-size:12px;color:#c05621;font-weight:600;white-space:nowrap}
+.ni-link{font-size:12px;color:#3182ce;text-decoration:none;white-space:nowrap}
+.ni-link:hover{text-decoration:underline}
+@media(max-width:700px){
+  .ni-page{flex-basis:100%}
+  .ni-wrap{padding:12px}
+}
+
 /* ブランド別内訳テーブル（店舗詳細） */
 .bb-wrap{background:#fff;border-radius:14px;padding:18px 20px;margin-top:18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .bb-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
@@ -1226,6 +1246,9 @@ body.mobile .side-menu-overlay{display:block!important}
 
 <div id="app">
 
+<!-- 入力待ちの新店のお知らせ（一番上） -->
+<div id="needsInputBar" style="display:none"></div>
+
 <!-- 設定モーダル -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-card">
@@ -2067,6 +2090,10 @@ async function fetchData(){
     DATA.store_short           = json.store_short||{};
     DATA.store_closed_month    = json.store_closed_month||{};
     DATA.store_royalty_pattern = json.store_royalty_pattern||{};
+    DATA.brand_breakdown       = json.brand_breakdown||{};
+    DATA.needs_input           = json.needs_input||[];
+    // 入力待ちの新店を一番上に出す
+    try { renderNeedsInput(); } catch(e){ console.warn('新店のお知らせを出せません', e); }
     // storesをリセット（古いフル名データを完全除去）
     DATA.stores.length = 0;
     if(json.persons && json.persons.length > 0) DATA.persons = json.persons.filter(p => p !== '雛形');
@@ -4212,6 +4239,60 @@ function renderBrandBreakdown(store){
 
   el.innerHTML = h;
   el.style.display = '';
+}
+
+
+/* ============================================================
+ *  入力待ちの新店のお知らせ（画面の一番上）
+ *
+ *  新しい店舗は、HPB掲載名・略称・HPBのリンクまでは自動で店舗一覧に入る。
+ *  直営/加盟・担当者・ロイヤリティはキム兄さんが入れるため、
+ *  入っていない店舗がある間は一番上で知らせる。
+ *  （C列＝直営/加盟 が空のものを「入力待ち」とみなす）
+ * ============================================================ */
+function renderNeedsInput(){
+  const el = document.getElementById('needsInputBar');
+  if(!el) return;
+  const list = (typeof DATA!=='undefined' && DATA.needs_input) ? DATA.needs_input : [];
+  if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
+
+  // 「この店はもう見た」と閉じた分は出さない（店舗の顔ぶれが変わったらまた出る）
+  const sig = list.map(function(x){ return x.store; }).sort().join('|');
+  let hidden = '';
+  try { hidden = localStorage.getItem('needsInputDismissed') || ''; } catch(e){}
+  if(hidden === sig){ el.style.display='none'; return; }
+
+  const items = list.map(function(x){
+    const miss = (x.missing && x.missing.length) ? x.missing.join('・') : '直営/加盟';
+    const link = x.hpb_url
+      ? '<a class="ni-link" href="'+x.hpb_url+'" target="_blank" rel="noopener">HPBを開く</a>' : '';
+    return '<li class="ni-item">'
+         + '<span class="ni-store">'+x.store+'</span>'
+         + '<span class="ni-page">'+(x.page||'')+'</span>'
+         + '<span class="ni-missing">未入力：'+miss+'</span>'
+         + link + '</li>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="ni-wrap">'
+    + '<div class="ni-head">'
+      + '<span class="ni-badge">⚠️ 入力が必要な新店があります</span>'
+      + '<span class="ni-count">'+list.length+'店舗</span>'
+      + '<button class="ni-close" onclick="dismissNeedsInput()" title="閉じる">×</button>'
+    + '</div>'
+    + '<div class="ni-note">店舗一覧スプレッドシートの <strong>直営/加盟・担当者・ロイヤリティパターン</strong> を入れてください。'
+      + '入るまで、この店舗は目標やロイヤリティの計算に乗りません。</div>'
+    + '<ul class="ni-list">'+items+'</ul>'
+    + '</div>';
+  el.style.display='';
+}
+
+function dismissNeedsInput(){
+  const list = (typeof DATA!=='undefined' && DATA.needs_input) ? DATA.needs_input : [];
+  const sig = list.map(function(x){ return x.store; }).sort().join('|');
+  try { localStorage.setItem('needsInputDismissed', sig); } catch(e){}
+  const el = document.getElementById('needsInputBar');
+  if(el) el.style.display='none';
 }
 
 function showDetail(store,d,tgt){

@@ -152,6 +152,9 @@ function buildData(since, targetsOnly) {
   const store_person    = {};
   const targets         = {};
   const store_hpb_url   = {};
+  // C列（直営/加盟）が空のまま残っている店舗＝キム兄さんの入力待ち。
+  // ダッシュボードの一番上に知らせる。
+  const needs_input     = [];
   const store_closed_month = {};   // 略称→撤退月(YYYYMM)。この月までは表示、翌月以降は非表示
   const personOrder     = [];   // 担当者の出現順（店舗一覧D列ベース・ダッシュボードのpersons用）
   const personSeen      = {};
@@ -202,6 +205,19 @@ function buildData(since, targetsOnly) {
       if (full && type)   store_type[full]         = type;
       if (full && royPat) royalty_pattern[full]    = royPat;
       if (full && hpbUrl) store_hpb_url[full]      = hpbUrl;
+      // 直営/加盟が空＝まだ人が入れていない新店。画面で知らせる。
+      //   撤退月が入っている店舗（＝もう見ない店）は対象から外す。
+      //   入れても直しようがなく、お知らせが消えないだけになるため。
+      if (full && short && !type && !store_closed_month[short]) {
+        needs_input.push({
+          store: short,
+          page: full,
+          hpb_url: hpbUrl || '',
+          missing: [!type ? '直営/加盟' : null,
+                    !person ? '担当者' : null,
+                    !royPat ? 'ロイヤリティ' : null].filter(function(x){ return x; })
+        });
+      }
       // 担当者情報もここから読む（personsの並び順も店舗一覧D列の出現順で確定）
       if (full && person && person !== '担当なし') {
         store_person[full] = person;
@@ -431,6 +447,8 @@ function buildData(since, targetsOnly) {
     store_hpb_data:        readHpbCache(),
     targets:               targets,
     actual_data:           normalized_actual,
+    // 直営/加盟などが未入力の新店。ダッシュボードの一番上に出す
+    needs_input:           needs_input,
     // ブランド別の内訳。既存の店舗単位の数字は変えず、別の枝として足している
     brand_breakdown:       buildBrandBreakdown_(since)
   };
@@ -1654,10 +1672,15 @@ function syncNewStoresToMaster() {
   if (!masterSheet) { Logger.log('⚠️ 店舗一覧タブが見つかりません'); return; }
 
   const masterData = masterSheet.getDataRange().getValues();
+  // 既にある店舗名は「スペースのゆれを吸収した形」で覚える。
+  //   そのまま比べると、CSV側が全角スペース・店舗一覧が半角スペースのときに
+  //   「新店だ」と判断して同じ店をもう1行足してしまう。
+  //   （2026-10-08：Belle那覇おもろまち・LIME松本・Belle新大阪・
+  //     Belle後楽園・春日 の4組がこれで重複していた）
   const existingNames = new Set();
   for (let i = 1; i < masterData.length; i++) {
     const name = masterData[i][0] ? masterData[i][0].toString().trim() : '';
-    if (name) existingNames.add(name);
+    if (name) existingNames.add(normStoreName_(name));
   }
 
   const newStores = [];
@@ -1676,9 +1699,10 @@ function syncNewStoresToMaster() {
         if (storeCol === -1) return;
         for (let i = 1; i < rows.length; i++) {
           const storeName = rows[i][storeCol] ? rows[i][storeCol].toString().trim() : '';
-          if (storeName && !existingNames.has(storeName) && !newStores.find(function(s) { return s.name === storeName; })) {
+          const key = normStoreName_(storeName);
+          if (storeName && !existingNames.has(key)) {
             newStores.push({ name: storeName });
-            existingNames.add(storeName);
+            existingNames.add(key);
           }
         }
       });
