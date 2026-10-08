@@ -15,3 +15,6 @@ dist/
 hpb_download.py
 *-service-account*.json
 salon-board-*.json
+
+# clasp のログイン情報（個人の認証トークン。絶対に共有しない）
+.clasprc.json

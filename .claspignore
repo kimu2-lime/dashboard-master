@@ -1,0 +1,4 @@
+# clasp が Apps Script に送らないもの（gas/ 以外は全部無視する）
+**/**
+!gas/**/*.gs
+!gas/appsscript.json
