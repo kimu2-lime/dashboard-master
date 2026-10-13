@@ -339,6 +339,9 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .ni-close{margin-left:auto;background:none;border:none;font-size:20px;line-height:1;color:#9c4221;cursor:pointer;padding:0 4px}
 .ni-close:hover{color:#742a2a}
 .ni-note{font-size:12px;color:#7b341e;margin-top:6px;line-height:1.7}
+.ni-open{display:inline-block;margin-top:10px;background:#dd6b20;color:#fff;font-size:13px;font-weight:700;
+  text-decoration:none;border-radius:8px;padding:8px 16px;transition:background .15s}
+.ni-open:hover{background:#c05621}
 .ni-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ni-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#fff;border-radius:8px;padding:8px 12px}
 .ni-store{font-weight:700;color:#1a202c}
@@ -2092,6 +2095,7 @@ async function fetchData(){
     DATA.store_royalty_pattern = json.store_royalty_pattern||{};
     DATA.brand_breakdown       = json.brand_breakdown||{};
     DATA.needs_input           = json.needs_input||[];
+    DATA.master_url            = json.master_url||'';
     // 入力待ちの新店を一番上に出す
     try { renderNeedsInput(); } catch(e){ console.warn('新店のお知らせを出せません', e); }
     // storesをリセット（古いフル名データを完全除去）
@@ -4254,6 +4258,8 @@ function renderNeedsInput(){
   const el = document.getElementById('needsInputBar');
   if(!el) return;
   const list = (typeof DATA!=='undefined' && DATA.needs_input) ? DATA.needs_input : [];
+  // 店舗一覧スプシへのリンク。GASが入れていなければボタンを出さない
+  const masterUrl = (typeof DATA!=='undefined' && DATA.master_url) ? DATA.master_url : '';
   if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
 
   // 「この店はもう見た」と閉じた分は出さない（店舗の顔ぶれが変わったらまた出る）
@@ -4282,6 +4288,9 @@ function renderNeedsInput(){
     + '</div>'
     + '<div class="ni-note">店舗一覧スプレッドシートの <strong>直営/加盟・担当者・ロイヤリティパターン</strong> を入れてください。'
       + '入るまで、この店舗は目標やロイヤリティの計算に乗りません。</div>'
+    + (masterUrl
+        ? '<a class="ni-open" href="'+masterUrl+'" target="_blank" rel="noopener">📋 店舗一覧スプレッドシートを開く</a>'
+        : '')
     + '<ul class="ni-list">'+items+'</ul>'
     + '</div>';
   el.style.display='';

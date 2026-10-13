@@ -163,6 +163,17 @@ function buildData(since, targetsOnly) {
   // A=フル名 B=略称 C=直営加盟 D=担当者 E=ロイヤリティパターン F=HPB_URL
   const ssMaster   = getSS('SS_MASTER');
   const listSheet  = ssMaster ? ssMaster.getSheetByName('店舗一覧') : null;
+  // 「入力が必要な新店」のお知らせから、店舗一覧タブへ直接飛べるようにする。
+  //   #gid を付けておくと、開いたときに店舗一覧タブが選ばれた状態になる。
+  let master_url = '';
+  try {
+    if (ssMaster) {
+      master_url = ssMaster.getUrl();
+      if (listSheet) master_url += '#gid=' + listSheet.getSheetId();
+    }
+  } catch (e) {
+    Logger.log('⚠️ 店舗一覧のURLを取れません: ' + e);
+  }
   if (listSheet) {
     const listData = listSheet.getDataRange().getValues();
     // ヘッダーから列位置を名前で特定する（列を挿入されても壊れないように）
@@ -448,6 +459,8 @@ function buildData(since, targetsOnly) {
     targets:               targets,
     actual_data:           normalized_actual,
     // 直営/加盟などが未入力の新店。ダッシュボードの一番上に出す
+    // 店舗一覧スプシ（店舗一覧タブ）へのリンク。お知らせのボタンから開く
+    master_url:            master_url,
     needs_input:           needs_input,
     // ブランド別の内訳。既存の店舗単位の数字は変えず、別の枝として足している
     brand_breakdown:       buildBrandBreakdown_(since)
