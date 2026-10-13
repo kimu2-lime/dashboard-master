@@ -1,4 +1,4 @@
-# clasp が Apps Script に送らないもの（gas/ 以外は全部無視する）
-**/**
-!gas/**/*.gs
-!gas/appsscript.json
+# clasp は rootDir（gas/）の中だけを見るので、ここのパスも gas/ からの相対で書く。
+# gas/ の外（index.html・data/ など）は、そもそも対象外。
+README_clasp.md
+**/*.md

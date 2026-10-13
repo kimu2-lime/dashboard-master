@@ -482,12 +482,16 @@ const BRAND_PATTERNS = [
   { key: 'Lift',  re: /Lift/i }
 ];
 
-// HPBレポートのスプシを開く。
+// HPBレポートのスプシを開く（ブランド別内訳用）。
+//   hpb.gs にも同名の getHpbSS_() があり、Apps Script は全ファイルが
+//   同じスコープなので、同じ名前だと後から読まれたほうに上書きされる。
+//   あちらは SS_HPB が未設定だと例外を投げるため、名前を分けておく。
+//   （2026-10-13 clasp導入時に衝突に気づいた）
 //   getSS() はスクリプトプロパティが無いと「このスプレッドシート」を返すので、
 //   SS_HPB が未設定だと黙って別のスプシを見てしまい、PV/CVR/ACR が全部空になる。
 //   （2026-10-08 実機で発生）プロパティが無ければ既知のIDで開き、ログで知らせる。
 const SS_HPB_FALLBACK_ID = '1SfweHfjedNVK81Q6bAqLC6HozPQj2ESeGLa6v-f6Yzk';
-function getHpbSS_() {
+function getHpbSSForBrand_() {
   const id = PropertiesService.getScriptProperties().getProperty('SS_HPB');
   if (!id) {
     Logger.log('⚠️ スクリプトプロパティ SS_HPB が未設定です。'
@@ -569,7 +573,7 @@ function buildBrandBreakdown_(since) {
     return isNaN(n) ? null : n;
   };
   try {
-    const ssHpb = getHpbSS_();
+    const ssHpb = getHpbSSForBrand_();
     const hs = ssHpb ? ssHpb.getSheetByName('貼り付け') : null;
     if (!hs) Logger.log('⚠️ HPBスプシに「貼り付け」タブがありません');
     if (hs) {
