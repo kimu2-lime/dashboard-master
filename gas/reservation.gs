@@ -515,6 +515,10 @@ function exportReservationInsights() {
   const data = buildReservationInsights_(null);
   const now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm');
   commitJsonToGitHub_('data/reservation_insights.json', data, '📈 予約インサイト更新 ' + now);
+  // Google版（社内ログイン制）用に、ドライブにも同じものを置く
+  try { webappSaveFile_('reservation_insights.json', JSON.stringify(data)); } catch (e) {
+    Logger.log('⚠️ reservation_insights.json をドライブに置けません: ' + e);
+  }
 }
 
 // ★検証用：集計結果をログで確認（commitしない）

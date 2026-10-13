@@ -64,6 +64,15 @@ function chatKnowledge_() {
   const cache = CacheService.getScriptCache();
   let s = cache.get('chat_knowledge');
   if (!s) {
+    // まずドライブの非公開ファイルを見る。
+    //   ナレッジは公開リポジトリに置かない約束なので、こちらが本命。
+    //   （2026-10-13 変更。移行中は公開リポジトリ側もフォールバックとして残す）
+    try {
+      s = webappReadFile_('chat_knowledge.md');
+      if (s) { try { cache.put('chat_knowledge', s, 600); } catch (e) {} }
+    } catch (e) {}
+  }
+  if (!s) {
     try {
       const r = UrlFetchApp.fetch(CHAT_KNOWLEDGE_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
       if (r.getResponseCode() === 200) { s = r.getContentText(); try { cache.put('chat_knowledge', s, 600); } catch (e) {} }

@@ -2,3 +2,5 @@
 # gas/ の外（index.html・data/ など）は、そもそも対象外。
 README_clasp.md
 **/*.md
+# ビルド用のスクリプトは Apps Script に送らない
+build.py

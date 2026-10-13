@@ -462,6 +462,8 @@ function buildData(since, targetsOnly) {
     // 店舗一覧スプシ（店舗一覧タブ）へのリンク。お知らせのボタンから開く
     master_url:            master_url,
     needs_input:           needs_input,
+    // 会計の入れ方がおかしそうな店舗（契約メニューが使われていない可能性）
+    accounting_alerts:     buildAccountingAlerts_(normalized_actual, store_closed_month),
     // ブランド別の内訳。既存の店舗単位の数字は変えず、別の枝として足している
     brand_breakdown:       buildBrandBreakdown_(since)
   };
@@ -513,6 +515,39 @@ function getHpbSSForBrand_() {
     return SpreadsheetApp.openById(SS_HPB_FALLBACK_ID);
   }
   return SpreadsheetApp.openById(id);
+}
+
+// 会計の入れ方がおかしそうな店舗を拾う。
+//   「新規が月10人以上いるのに、2か月続けて新規契約0件」＝
+//   契約メニューが使われていない可能性が高い。
+//   （例：LIME下北沢。BMでの会計の入れ方が原因とキム兄さん確認済み）
+//   当月は途中なので見ない。直近の「終わった」2か月で判断する。
+const ACCOUNTING_MIN_NEW = 10;
+
+function buildAccountingAlerts_(actual, store_closed_month) {
+  const out = [];
+  const months = Object.keys(actual || {}).sort();
+  if (months.length < 3) return out;          // 当月を除いて2か月ぶん要る
+  const m1 = months[months.length - 3];
+  const m2 = months[months.length - 2];
+  const a1 = actual[m1] || {}, a2 = actual[m2] || {};
+  const seen = {};
+  Object.keys(a1).concat(Object.keys(a2)).forEach(function (st) {
+    if (seen[st]) return;
+    seen[st] = true;
+    if (store_closed_month && store_closed_month[st] && store_closed_month[st] < m2) return;
+    const r1 = a1[st], r2 = a2[st];
+    if (!r1 || !r2) return;
+    const n1 = r1.new_count || 0, n2 = r2.new_count || 0;
+    const c1 = r1.new_contract_count || 0, c2 = r2.new_contract_count || 0;
+    if (n1 >= ACCOUNTING_MIN_NEW && n2 >= ACCOUNTING_MIN_NEW && c1 === 0 && c2 === 0) {
+      out.push({ store: st, months: [m1, m2], new_counts: [n1, n2] });
+    }
+  });
+  out.sort(function (a, b) {
+    return (b.new_counts[0] + b.new_counts[1]) - (a.new_counts[0] + a.new_counts[1]);
+  });
+  return out;
 }
 
 function brandFromPageName_(name) {
@@ -1624,6 +1659,12 @@ function exportToGitHub() {
 
   const result  = buildData(null, false);
   const jsonStr = JSON.stringify(result);
+
+  // Google版（社内ログイン制）はドライブから読むので、同じ中身をそちらにも置く。
+  // GitHubへの出力は当面そのまま（移行中は両方が動く）。
+  try { webappSaveFile_('data.json', jsonStr); } catch (e) {
+    Logger.log('⚠️ data.json をドライブに置けません: ' + e);
+  }
   const encoded = Utilities.base64Encode(jsonStr, Utilities.Charset.UTF_8);
 
   const apiBase = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path;

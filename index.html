@@ -342,6 +342,19 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .ni-open{display:inline-block;margin-top:10px;background:#dd6b20;color:#fff;font-size:13px;font-weight:700;
   text-decoration:none;border-radius:8px;padding:8px 16px;transition:background .15s}
 .ni-open:hover{background:#c05621}
+/* 会計の入れ方のお知らせ（青系。新店のお知らせと見分けがつくように） */
+.aa-wrap{background:#ebf8ff;border:1px solid #63b3ed;border-left:5px solid #3182ce;border-radius:10px;padding:14px 16px;margin:0 0 16px}
+.aa-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.aa-badge{font-size:15px;font-weight:700;color:#2c5282}
+.aa-count{font-size:12px;color:#2c5282;background:#bee3f8;border-radius:999px;padding:2px 10px;font-weight:700}
+.aa-close{margin-left:auto;background:none;border:none;font-size:20px;line-height:1;color:#2c5282;cursor:pointer;padding:0 4px}
+.aa-close:hover{color:#1a365d}
+.aa-note{font-size:12px;color:#2a4365;margin-top:6px;line-height:1.7}
+.aa-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.aa-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#fff;border-radius:8px;padding:8px 12px}
+.aa-store{font-weight:700;color:#1a202c}
+.aa-detail{font-size:12px;color:#4a5568}
+@media(max-width:700px){ .aa-wrap{padding:12px} }
 .ni-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ni-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#fff;border-radius:8px;padding:8px 12px}
 .ni-store{font-weight:700;color:#1a202c}
@@ -1252,6 +1265,9 @@ body.mobile .side-menu-overlay{display:block!important}
 <!-- 入力待ちの新店のお知らせ（一番上） -->
 <div id="needsInputBar" style="display:none"></div>
 
+<!-- 会計の入れ方がおかしそうな店舗のお知らせ -->
+<div id="accountingAlertBar" style="display:none"></div>
+
 <!-- 設定モーダル -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-card">
@@ -2052,6 +2068,66 @@ DATA.store_royalty_pattern = {};  // フル名→ロイヤリティパターン�
 DATA.reservation_insights = null;  // 予約CSVインサイト（reservation_insights.json）
 DATA.store_closed_month = {};  // 略称→撤退月(YYYYMM)。この月までは表示、翌月以降は非表示
 
+
+/* ============================================================
+ *  GitHub Pages 版と Google版（社内ログイン制）の両対応
+ *
+ *  google.script.run があれば Google版。
+ *    ・データは google.script.run でドライブの非公開フォルダから読む
+ *    ・パスワード画面は出さない（Googleログインで絞っているため）
+ *  なければ今までどおり data/data.json を取りに行く。
+ *
+ *  どちらでも同じ1ファイルで動く。移行中は両方が生きている。
+ * ============================================================ */
+const IS_GAS_WEBAPP = (typeof google !== 'undefined'
+                       && google.script && typeof google.script.run === 'object');
+
+/* ドライブ or GitHub Pages から JSON を読む。
+   name: 'data' / 'reservation_insights' / 'ai-analysis' */
+function loadDashboardJson(name){
+  if(IS_GAS_WEBAPP){
+    return new Promise(function(resolve, reject){
+      google.script.run
+        .withSuccessHandler(function(text){
+          if(!text){ resolve(null); return; }
+          try { resolve(JSON.parse(text)); }
+          catch(e){ reject(new Error(name + ' を読めません: ' + e.message)); }
+        })
+        .withFailureHandler(function(err){
+          reject(new Error(err && err.message ? err.message : String(err)));
+        })
+        .getDashboardJson(name);
+    });
+  }
+  const base = location.origin + location.pathname.replace(/\/[^\/]*$/, '');
+  const file = (name === 'data') ? 'data.json' : (name + '.json');
+  return fetch(base + '/data/' + file + '?t=' + Date.now()).then(function(r){
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+}
+
+/* チャットの送信。Google版は公開の doPost を通さない。 */
+function askChat(question, history){
+  if(IS_GAS_WEBAPP){
+    return new Promise(function(resolve, reject){
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(function(err){
+          reject(new Error(err && err.message ? err.message : String(err)));
+        })
+        .chatAsk(question, history || []);
+    });
+  }
+  const url = getChatUrl();
+  if(!url) return Promise.reject(new Error('チャットのURLが設定されていません'));
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ question: question, history: history || [] })
+  }).then(function(r){ return r.json(); });
+}
+
 // data.jsonのURLを動的に解決（GitHub Pages上で動く）
 function getDataJsonUrl() {
   const base = location.origin + location.pathname.replace(/\/[^\/]*$/, '');
@@ -2081,9 +2157,8 @@ async function fetchData(){
   document.getElementById('fetchStatus').textContent='データを取得しています...';
   document.getElementById('fetchStatus').className='fetch-status fetch-ing';
   try{
-    const resp = await fetch(url + '?t=' + Date.now()); // キャッシュ回避
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const json = await resp.json();
+    const json = await loadDashboardJson('data');
+    if(!json) throw new Error('データが見つかりません');
     if(json.error) throw new Error(json.error);
 
     // DATAに反映（store_shortを先に更新してからstoresをリセット）
@@ -2096,8 +2171,10 @@ async function fetchData(){
     DATA.brand_breakdown       = json.brand_breakdown||{};
     DATA.needs_input           = json.needs_input||[];
     DATA.master_url            = json.master_url||'';
+    DATA.accounting_alerts     = json.accounting_alerts||[];
     // 入力待ちの新店を一番上に出す
     try { renderNeedsInput(); } catch(e){ console.warn('新店のお知らせを出せません', e); }
+    try { renderAccountingAlerts(); } catch(e){ console.warn('会計のお知らせを出せません', e); }
     // storesをリセット（古いフル名データを完全除去）
     DATA.stores.length = 0;
     if(json.persons && json.persons.length > 0) DATA.persons = json.persons.filter(p => p !== '雛形');
@@ -2114,11 +2191,10 @@ async function fetchData(){
 
     // 予約インサイト（別ファイル・任意。無くても本体は動く）
     try {
-      const riUrl = url.replace('data.json', 'reservation_insights.json');
-      const riResp = await fetch(riUrl + '?t=' + Date.now());
-      if (riResp.ok) {
-        DATA.reservation_insights = await riResp.json();
-        localStorage.setItem('limefit_reservation_insights', JSON.stringify(DATA.reservation_insights));
+      const ri = await loadDashboardJson('reservation_insights');
+      if (ri) {
+        DATA.reservation_insights = ri;
+        localStorage.setItem('limefit_reservation_insights', JSON.stringify(ri));
       }
     } catch(e) { /* 任意なので失敗は無視 */ }
 
@@ -2226,6 +2302,22 @@ window.addEventListener('resize', _scheduleResponsiveUpdate);
 window.addEventListener('orientationchange', updateResponsiveMode);
 // DOMContentLoaded が既に発火済みのケース（スクリプトが後ろに置かれている等）にも対応
 if(document.readyState !== 'loading') updateResponsiveMode();
+
+/* Google版はログイン済みの社内アカウントしか開けないので、パスワード画面は出さない。
+   GitHub Pages 版はこれまでどおりパスワード画面から入る。 */
+function startIfGasWebapp(){
+  if(!IS_GAS_WEBAPP) return;
+  const pw  = document.getElementById('pwScreen');
+  const app = document.getElementById('app');
+  if(pw)  pw.style.display  = 'none';
+  if(app) app.style.display = 'block';
+  init();
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', startIfGasWebapp);
+}else{
+  startIfGasWebapp();
+}
 
 function init(){
   loadSavedTargets();
@@ -4254,6 +4346,56 @@ function renderBrandBreakdown(store){
  *  入っていない店舗がある間は一番上で知らせる。
  *  （C列＝直営/加盟 が空のものを「入力待ち」とみなす）
  * ============================================================ */
+/* ============================================================
+ *  会計の入れ方がおかしそうな店舗のお知らせ
+ *
+ *  新規が月10人以上いるのに、2か月続けて新規契約が0件の店舗。
+ *  契約メニューが使われていない可能性が高い（例：LIME下北沢）。
+ *  当月は途中なので見ず、直近の「終わった」2か月で判断している。
+ * ============================================================ */
+function renderAccountingAlerts(){
+  const el = document.getElementById('accountingAlertBar');
+  if(!el) return;
+  const list = (typeof DATA!=='undefined' && DATA.accounting_alerts) ? DATA.accounting_alerts : [];
+  if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
+
+  const sig = list.map(function(x){ return x.store; }).sort().join('|');
+  let hidden = '';
+  try { hidden = localStorage.getItem('accountingAlertDismissed') || ''; } catch(e){}
+  if(hidden === sig){ el.style.display='none'; return; }
+
+  const items = list.map(function(x){
+    const ms = x.months || [];
+    const ns = x.new_counts || [];
+    const detail = ms.map(function(m, i){
+      return (MONTH_MAP[m] || m) + ' 新規' + fmt(ns[i]||0) + '人・契約0件';
+    }).join(' ／ ');
+    return '<li class="aa-item"><span class="aa-store">'+x.store+'</span>'
+         + '<span class="aa-detail">'+detail+'</span></li>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="aa-wrap">'
+    + '<div class="aa-head">'
+      + '<span class="aa-badge">🧾 会計の入れ方を確認してください</span>'
+      + '<span class="aa-count">'+list.length+'店舗</span>'
+      + '<button class="aa-close" onclick="dismissAccountingAlerts()" title="閉じる">×</button>'
+    + '</div>'
+    + '<div class="aa-note">新規のお客様は来ているのに、<strong>2か月続けて新規契約が0件</strong>です。'
+      + '契約メニューが使われていない可能性があります（契約が売上に紐づかず、契約率が0%に見えます）。</div>'
+    + '<ul class="aa-list">'+items+'</ul>'
+    + '</div>';
+  el.style.display='';
+}
+
+function dismissAccountingAlerts(){
+  const list = (typeof DATA!=='undefined' && DATA.accounting_alerts) ? DATA.accounting_alerts : [];
+  const sig = list.map(function(x){ return x.store; }).sort().join('|');
+  try { localStorage.setItem('accountingAlertDismissed', sig); } catch(e){}
+  const el = document.getElementById('accountingAlertBar');
+  if(el) el.style.display='none';
+}
+
 function renderNeedsInput(){
   const el = document.getElementById('needsInputBar');
   if(!el) return;
@@ -5461,11 +5603,8 @@ let AI_ANALYSIS = null;
 
 async function loadAiAnalysis() {
   try {
-    const base = location.origin + location.pathname.replace(/\/[^\/]*$/, '');
-    const url = base + '/data/ai-analysis.json';
-    const resp = await fetch(url + '?t=' + Date.now());
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    AI_ANALYSIS = await resp.json();
+    AI_ANALYSIS = await loadDashboardJson('ai-analysis');
+    if (!AI_ANALYSIS) throw new Error('AI分析データがありません');
     const badge = document.getElementById('aiBadge');
     if (badge) {
       badge.style.display = 'inline-flex';
@@ -6011,7 +6150,7 @@ function toggleChat(){
   const open = p.style.display === 'flex';
   p.style.display = open ? 'none' : 'flex';
   if (!open){
-    if (!getChatUrl()){ if(!setChatUrl()){ p.style.display='none'; return; } }
+    if (!IS_GAS_WEBAPP && !getChatUrl()){ if(!setChatUrl()){ p.style.display='none'; return; } }
     if (!document.getElementById('chatMessages').childElementCount){
       chatAddMsg('ai','こんにちは。予約インサイトの実データから答えます。例：「戸塚 北千住のキャンセル率は？」「契約に効くワードでクーポン名を3つ作って」', false);
     }
@@ -6036,7 +6175,8 @@ function chatAddMsg(role, content, raw){
 }
 async function sendChat(){
   if (chatBusy) return;
-  const url = getChatUrl(); if(!url){ setChatUrl(); return; }
+  // Google版は google.script.run で直接呼ぶのでURLは要らない
+  if (!IS_GAS_WEBAPP && !getChatUrl()){ setChatUrl(); return; }
   const inp = document.getElementById('chatInput');
   const q = inp.value.trim(); if(!q) return;
   inp.value = '';
@@ -6044,8 +6184,7 @@ async function sendChat(){
   const wait = chatAddMsg('ai', '<span style="opacity:.6">…考え中…</span>', true);
   chatBusy = true; document.getElementById('chatSend').disabled = true;
   try{
-    const resp = await fetch(url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ question:q, history:chatHistory }) });
-    const data = await resp.json();
+    const data = await askChat(q, chatHistory);
     if (data.error){ wait.innerHTML = '⚠ ' + chatMd(data.error); }
     else {
       wait.innerHTML = chatMd(data.answer);
