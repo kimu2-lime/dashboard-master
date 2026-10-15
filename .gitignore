@@ -18,3 +18,5 @@ salon-board-*.json
 
 # clasp のログイン情報（個人の認証トークン。絶対に共有しない）
 .clasprc.json
+# 旧GASプロジェクトの設定（引っ越し中の控え。ローカルだけ）
+.clasp.old.json
