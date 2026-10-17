@@ -1668,8 +1668,11 @@ function exportToGitHub() {
   const encoded = Utilities.base64Encode(jsonStr, Utilities.Charset.UTF_8);
 
   const apiBase = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path;
+  // Fine-grained トークン（github_pat_…）は Bearer 形式で送る必要がある。
+  // 従来の classic トークンも Bearer で通るので、こちらに統一しておく。
+  // （2026-10-17：会社アカウント版で Fine-grained を使うため）
   const headers = {
-    'Authorization': 'token ' + token,
+    'Authorization': 'Bearer ' + token,
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'GAS-LIME-FIT'
   };

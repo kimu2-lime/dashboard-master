@@ -496,7 +496,7 @@ function commitJsonToGitHub_(path, obj, message) {
   const repo  = props.getProperty('GITHUB_REPO')  || 'dashboard-master';
   if (!token) { Logger.log('❌ GITHUB_TOKEN が未設定'); return false; }
   const apiBase = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path;
-  const headers = { 'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json', 'User-Agent':'GAS-LIME-FIT' };
+  const headers = { 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github.v3+json', 'User-Agent':'GAS-LIME-FIT' };
   let sha = null;
   try {
     const r = UrlFetchApp.fetch(apiBase, { headers: headers, muteHttpExceptions: true });
