@@ -131,14 +131,34 @@ function getPersons() {
 // ============================================================
 //  略称を自動生成
 // ============================================================
+// 掲載名から飾りを落として、店名の芯だけにする。
+//   「【小顔・痩身・医療提携】小顔専門店Lift(リフト) 立川」→「小顔専門店Lift 立川」
+//   HPBの掲載名は頭の【…】やブランドの読み（リフト）がよく変わるので、
+//   既存店かどうかを見るときはこの形で突き合わせる。
+function stripStoreDeco_(name) {
+  return normStoreName_(String(name || '')
+    .replace(/[【\[［][^】\]］]*[】\]］]/g, '')   // 【…】［…］を落とす
+    .replace(/[（(][ァ-ヶー]+[）)]/g, '')          // (リフト) などの読みを落とす
+    .replace(/[|｜/／]/g, ' '));
+}
+
+// 略称を自動で作る。
+//   以前は、ブランド判定が外れると「先頭10文字で切る」作りだったため、
+//   「小顔専門店Lift(」のような途中で切れた略称ができていた。
+//   （2026-10-19：Liftの掲載名が変わり、既存店10店舗が新店扱いになった）
+//   切らずに、拾えたものをそのまま返す。
 function generateAbbr(fullName) {
-  const m = fullName.match(/(LIME|Belle|Lift)\s*(plus\s*)?([一-龯぀-ゟ゠-ヿー\w]{1,10})/i);
-  if (m) {
-    const brand = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
-    const loc   = m[3].slice(0, 6);
-    return brand + loc;
+  const core = stripStoreDeco_(fullName);
+  const m = core.match(/(LIME|Belle|Lift|LABO|LINO|Areum)\s*(plus\s*)?([^\s]{1,12})/i);
+  if (m && m[3]) {
+    const b = m[1];
+    const brand = (b.toUpperCase() === 'LIME' || b.toUpperCase() === 'LABO'
+                   || b.toUpperCase() === 'LINO')
+      ? b.toUpperCase()
+      : b.charAt(0).toUpperCase() + b.slice(1).toLowerCase();
+    return brand + m[3];
   }
-  return fullName.replace(/【[^】]*】/g, '').replace(/\[[^\]]*\]/g, '').trim().slice(0, 10);
+  return core;
 }
 
 // ============================================================
@@ -1739,9 +1759,23 @@ function syncNewStoresToMaster() {
   //   （2026-10-08：Belle那覇おもろまち・LIME松本・Belle新大阪・
   //     Belle後楽園・春日 の4組がこれで重複していた）
   const existingNames = new Set();
+  // 飾りを落とした形 → その行の [略称, 直営/加盟, 担当者, ロイヤリティ]
+  //   HPBの掲載名は頭の【…】やブランドの読みがよく変わる。
+  //   名前がそのまま一致しなくても、芯が同じなら「同じ店の名前が変わっただけ」。
+  //   （2026-10-19：Liftの掲載名が変わり、既存店10店舗が新店として足されていた）
+  const byCore = {};
   for (let i = 1; i < masterData.length; i++) {
     const name = masterData[i][0] ? masterData[i][0].toString().trim() : '';
-    if (name) existingNames.add(normStoreName_(name));
+    if (!name) continue;
+    existingNames.add(normStoreName_(name));
+    const core = stripStoreDeco_(name);
+    const short = masterData[i][1] ? masterData[i][1].toString().trim() : '';
+    if (core && short && !byCore[core]) {
+      byCore[core] = [short,
+                      masterData[i][2] ? masterData[i][2].toString().trim() : '',
+                      masterData[i][3] ? masterData[i][3].toString().trim() : '',
+                      masterData[i][4] ? masterData[i][4].toString().trim() : ''];
+    }
   }
 
   const newStores = [];
@@ -1762,7 +1796,11 @@ function syncNewStoresToMaster() {
           const storeName = rows[i][storeCol] ? rows[i][storeCol].toString().trim() : '';
           const key = normStoreName_(storeName);
           if (storeName && !existingNames.has(key)) {
-            newStores.push({ name: storeName });
+            const hit = byCore[stripStoreDeco_(storeName)];
+            newStores.push(hit
+              ? { name: storeName, short: hit[0], type: hit[1],
+                  person: hit[2], roy: hit[3], renamed: true }
+              : { name: storeName });
             existingNames.add(key);
           }
         }
@@ -1775,9 +1813,23 @@ function syncNewStoresToMaster() {
     newStores.forEach(function(store, idx) {
       const row = lastRow + 1 + idx;
       masterSheet.getRange(row, 1).setValue(store.name);
-      masterSheet.getRange(row, 2).setValue(generateAbbr(store.name));
+      if (store.renamed) {
+        // 既存店の掲載名が変わっただけ。同じ略称に寄せ、設定もそのまま引き継ぐ
+        masterSheet.getRange(row, 2, 1, 4)
+          .setValues([[store.short, store.type, store.person, store.roy]]);
+      } else {
+        masterSheet.getRange(row, 2).setValue(generateAbbr(store.name));
+      }
     });
-    Logger.log('✅ 新店舗追記: ' + newStores.map(function(s) { return s.name; }).join(', '));
+    const renamed = newStores.filter(function(s) { return s.renamed; });
+    const fresh   = newStores.filter(function(s) { return !s.renamed; });
+    if (renamed.length) {
+      Logger.log('🔁 掲載名が変わった既存店 ' + renamed.length + '件（略称はそのまま）: '
+                 + renamed.map(function(s) { return s.name + '→' + s.short; }).join(', '));
+    }
+    if (fresh.length) {
+      Logger.log('✅ 新店舗追記: ' + fresh.map(function(s) { return s.name; }).join(', '));
+    }
   } else {
     Logger.log('✅ 新規店舗なし');
   }
