@@ -1131,3 +1131,207 @@ function dumpNewTargetSheet() {
   }
   Logger.log('=== ダンプ終了（' + lastRow + '行 × ' + lastCol + '列まで） ===');
 }
+
+
+// ============================================================
+//  加盟店の売上目標を「売上目標【〇月】」タブから読む（2026-10-19 依頼29）
+//
+//  これまでは「目標」タブの「合計売上」を使っていたが、担当者によって
+//  数式だったり手入力だったりで、10月は目標が入っている店が60店舗しか無かった。
+//  同じスプシ（SS_KAMEL_V2）の「売上目標【〇月】」タブの「店舗売上目標」列を
+//  読むと105店舗まで埋まる。こちらを売上目標の正とする。
+//
+//  見出しの行も列も月によって違う（10月はB/C/F列の46行目、6月はC/D/G列の32行目）。
+//  なので行・列を決め打ちせず、「店舗売上目標」と書かれたセルを探して
+//  その行を見出し行とし、見出し名で列を決める。
+//
+//  売上目標だけを上書きする。新規数・契約率などの他のKPIは「目標」タブのまま。
+// ============================================================
+
+// タブ名の「〇月」が今月より何ヶ月も先なら、前年のものとみなす
+const SALES_TARGET_FUTURE_MONTHS = 3;
+
+// 読まない行（ブランド＋店舗名）。キム兄さん確認済みの誤入力
+const SALES_TARGET_SKIP = ['BelleLift布施'];
+
+// スペース（全角・半角）を全部落とす。目標表と店舗一覧で入れ方が違うため
+function stTight_(s) {
+  return String(s == null ? '' : s).replace(/[\u3000\s]+/g, '').trim();
+}
+
+// 「¥1,234,567」「1234567円」なども数字として読む
+function stNum_(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  if (typeof v === 'number') return v;
+  const t = String(v).replace(/[¥￥,，\s\u3000円]/g, '');
+  return /^-?\d+(\.\d+)?$/.test(t) ? parseFloat(t) : null;
+}
+
+// 古い月に残っている表記ゆれ「b小倉」「b調布」の先頭の b を落とす。
+//   Belle の頭文字を店名の前に付けた書き方が6〜7月のタブに残っている。
+//   後ろが日本語の地名のときだけ落とす（Belle本厚木などを壊さないため）。
+function stStripB_(name) {
+  const t = stTight_(name);
+  const m = t.match(/^[bB]([ぁ-んァ-ヶ一-龥].*)$/);
+  return m ? m[1] : t;
+}
+
+// タブ名の「〇月」から YYYYMM を決める
+function stMonthKey_(tabTitle, today) {
+  const m = String(tabTitle).match(/(\d{1,2})\s*月/);
+  if (!m) return null;
+  const mm = parseInt(m[1], 10);
+  if (!(mm >= 1 && mm <= 12)) return null;
+  const now = today || new Date();
+  let y = now.getFullYear();
+  if (mm > now.getMonth() + 1 + SALES_TARGET_FUTURE_MONTHS) y -= 1;
+  return ('' + y) + ('0' + mm).slice(-2);
+}
+
+// 「店舗売上目標」のセルを探して、見出し行と列位置を返す
+function stFindHeader_(values) {
+  const limit = Math.min(values.length, 60);
+  for (let i = 0; i < limit; i++) {
+    const row = values[i] || [];
+    let hit = false;
+    for (let j = 0; j < row.length; j++) {
+      if (stTight_(row[j]) === '店舗売上目標') { hit = true; break; }
+    }
+    if (!hit) continue;
+    const cols = {};
+    for (let k = 0; k < row.length; k++) {
+      const n = stTight_(row[k]);
+      if ((n === 'ブランド' || n === '店舗名' || n === '店舗売上目標') && cols[n] === undefined) {
+        cols[n] = k;
+      }
+    }
+    if (cols['ブランド'] !== undefined && cols['店舗名'] !== undefined &&
+        cols['店舗売上目標'] !== undefined) {
+      return { row: i, cols: cols };
+    }
+  }
+  return null;
+}
+
+// 店舗一覧スプシの「目標名対応」タブ（A:目標表のブランド＋店名 B:店舗一覧の略称）
+//   目標表の店名が店舗一覧と違うとき、ここに1行足せば直るようにしてある。
+function stReadNameMap_() {
+  const out = {};
+  try {
+    const sh = getSS('SS_MASTER').getSheetByName('目標名対応');
+    if (!sh) return out;
+    const v = sh.getDataRange().getValues();
+    for (let i = 1; i < v.length; i++) {
+      const a = stTight_(v[i][0]);
+      const b = String(v[i][1] == null ? '' : v[i][1]).trim();
+      if (a && b) out[a] = b;
+    }
+  } catch (e) {
+    Logger.log('⚠️ 目標名対応タブを読めません: ' + e);
+  }
+  return out;
+}
+
+/**
+ * 「売上目標【〇月】」タブを全部読む。
+ *
+ * @param {Object} shortToFull  略称 → 掲載名（店舗一覧から作ったもの）
+ * @param {Object} typeByShort  略称 → '直営'/'加盟'
+ * @param {Array}  listData     店舗一覧タブの getValues()（掲載名から探すのに使う）
+ * @return {{sales:Object, issues:Array, stats:Object}}
+ *          sales  … { 略称: { YYYYMM: 売上目標 } }
+ *          issues … 店舗一覧と突き合わせできなかった店名
+ */
+function readSalesTargetTabs_(shortToFull, typeByShort, listData) {
+  const result = { sales: {}, issues: [], stats: {} };
+  let ssT;
+  try {
+    ssT = getSSKamelV2_();
+  } catch (e) {
+    Logger.log('⚠️ 加盟店目標スプシを開けません: ' + e);
+    return result;
+  }
+  const nameMap = stReadNameMap_();
+
+  // 略称の索引と、略称ごとの掲載名の一覧
+  const tightShort  = {};
+  const pagesByShort = {};
+  Object.keys(shortToFull || {}).forEach(function(short) {
+    tightShort[stTight_(short)] = short;
+    if (!pagesByShort[short]) pagesByShort[short] = [];
+    pagesByShort[short].push(shortToFull[short]);
+  });
+  // 1つの略称（会計単位）に複数の掲載ページがある店があるので、全行から拾う
+  (listData || []).slice(1).forEach(function(row) {
+    const full  = row[0] ? row[0].toString().trim() : '';
+    const short = row[1] ? row[1].toString().trim() : '';
+    if (!full || !short) return;
+    tightShort[stTight_(short)] = short;
+    if (!pagesByShort[short]) pagesByShort[short] = [];
+    if (pagesByShort[short].indexOf(full) < 0) pagesByShort[short].push(full);
+  });
+
+  const today = new Date();
+  ssT.getSheets().forEach(function(ws) {
+    const title = ws.getName();
+    if (title.indexOf('売上目標') < 0) return;
+    const ym = stMonthKey_(title, today);
+    if (!ym) return;
+
+    const values = ws.getDataRange().getValues();
+    const head   = stFindHeader_(values);
+    if (!head) { Logger.log('⚠️ 「店舗売上目標」の見出しが見つかりません: ' + title); return; }
+
+    const seen = {};
+    let n = 0, skippedDirect = 0;
+    for (let i = head.row + 1; i < values.length; i++) {
+      const row   = values[i] || [];
+      const brand = String(row[head.cols['ブランド']] == null ? '' : row[head.cols['ブランド']]).trim();
+      const name  = String(row[head.cols['店舗名']]  == null ? '' : row[head.cols['店舗名']]).trim();
+      if (!brand || !name) continue;
+      if (SALES_TARGET_SKIP.indexOf(stTight_(brand) + stTight_(name)) >= 0) continue;
+      const amount = stNum_(row[head.cols['店舗売上目標']]);
+      if (!amount) continue;
+
+      const place = stStripB_(name);
+      const key   = stTight_(brand) + place;
+      let short   = nameMap[key] || tightShort[key] || null;
+
+      if (!short) {
+        // その名前の略称が無いときは、ブランド名と地名の両方を含む掲載名を
+        // 持つ行の略称（＝会計単位）に足す。複数ブランド1会計の店のため。
+        const cands = {};
+        Object.keys(pagesByShort).forEach(function(s2) {
+          pagesByShort[s2].forEach(function(pg) {
+            if (stTight_(pg).indexOf(place) >= 0 &&
+                pg.toUpperCase().indexOf(brand.toUpperCase()) >= 0) {
+              cands[s2] = true;
+            }
+          });
+        });
+        const ks = Object.keys(cands);
+        if (ks.length === 1) short = ks[0];
+        else if (ks.length > 1) {
+          result.issues.push({ month: ym, brand: brand, name: name,
+                               reason: '店舗一覧の候補が複数あります（' + ks.join('・') + '）' });
+          continue;
+        }
+      }
+      if (!short) {
+        result.issues.push({ month: ym, brand: brand, name: name,
+                             reason: '店舗一覧に見つかりません' });
+        continue;
+      }
+      // 直営店は直営店目標スプシが正なので対象外
+      if (typeByShort && typeByShort[short] === '直営') { skippedDirect++; continue; }
+
+      if (!result.sales[short]) result.sales[short] = {};
+      result.sales[short][ym] = (result.sales[short][ym] || 0) + amount;
+      if (!seen[short]) { seen[short] = true; n++; }
+    }
+    result.stats[ym] = { tab: title, stores: n, direct_skipped: skippedDirect };
+    Logger.log('📋 ' + title + ' → ' + ym + '：売上目標 ' + n + '店舗' +
+               (skippedDirect ? '（直営 ' + skippedDirect + '件は対象外）' : ''));
+  });
+  return result;
+}

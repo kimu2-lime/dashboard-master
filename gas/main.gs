@@ -90,6 +90,18 @@ function pickByName_(map, name) {
   return undefined;
 }
 
+// その月のロイヤリティ。直営だった月は0にする。
+//   直営→加盟の切替がある店舗（例：梅田は2026年8月から加盟）で、
+//   切替より前の月に加盟のロイヤリティがかかってしまうのを防ぐ。
+//   （2026-10-19 追加）
+function royaltyForMonth_(storeName, month, sales, pattern, switchMap) {
+  if (switchMap && month) {
+    const sw = pickByName_(switchMap, storeName);
+    if (sw && String(month) < String(sw)) return 0;
+  }
+  return calcRoyalty(sales, pattern);
+}
+
 function calcRoyalty(sales, pattern) {
   const s = Math.round(sales || 0);
   if (!pattern || pattern === '') return Math.round(s * 0.10 + 44000);
@@ -172,6 +184,12 @@ function buildData(since, targetsOnly) {
   const store_person    = {};
   const targets         = {};
   const store_hpb_url   = {};
+  // 直営→加盟に切り替わった月（略称→YYYYMM）。この月より前は直営として扱う。
+  //   例：梅田は2026年8月に直営から加盟へ。7月以前はロイヤリティがかからない。
+  const store_type_switch = {};
+  // 画面に出す一言（略称→テキスト）。実績が無い理由などを書いておく。
+  //   例：LIME立川「アカウントB未設定のため実績なし」
+  const store_note = {};
   // C列（直営/加盟）が空のまま残っている店舗＝キム兄さんの入力待ち。
   // ダッシュボードの一番上に知らせる。
   const needs_input     = [];
@@ -194,18 +212,22 @@ function buildData(since, targetsOnly) {
   } catch (e) {
     Logger.log('⚠️ 店舗一覧のURLを取れません: ' + e);
   }
+  // 店舗一覧の中身は、あとで売上目標の突き合わせにも使うので外に出しておく
+  let listData = [];
   if (listSheet) {
-    const listData = listSheet.getDataRange().getValues();
+    listData = listSheet.getDataRange().getValues();
     // ヘッダーから列位置を名前で特定する（列を挿入されても壊れないように）
     //   2026-10-03 修正：HPB_URL を F列固定(index 5)で読んでいたが、
     //   実際の並びは A:店舗名 B:略称 C:直営/加盟 D:担当者 E:ロイヤリティパターン
     //   F:撤退月 G:HPB_URL になっており、撤退月の日付をURLとして読み込んでいた。
     //   そのため store_hpb_url が壊れ、HPBのスクレイピングが動かなくなっていた。
     const headerRow = listData[0] || [];
-    let tcol = -1, ucol = -1;
+    let tcol = -1, ucol = -1, scol = -1, ncol = -1;
     headerRow.forEach(function(h, idx){
       const t = h ? h.toString() : '';
       if (t.indexOf('撤退月') >= 0) tcol = idx;
+      if (t.indexOf('切替') >= 0) scol = idx;   // 直営加盟_切替月
+      if (t.indexOf('備考') >= 0) ncol = idx;   // 画面に出す一言
       if (t.toUpperCase().indexOf('HPB') >= 0 && t.toUpperCase().indexOf('URL') >= 0) ucol = idx;
     });
     if (ucol < 0) ucol = 6;   // 見つからなければ G列を既定にする
@@ -230,6 +252,25 @@ function buildData(since, targetsOnly) {
           }
         }
         if (closed) store_closed_month[short] = closed;
+      }
+      // 直営→加盟の切替月（YYYYMMに正規化）
+      if (scol >= 0 && short) {
+        const sv = listData[i][scol];
+        let sw = '';
+        if (sv !== '' && sv != null) {
+          if (Object.prototype.toString.call(sv) === '[object Date]') {
+            sw = Utilities.formatDate(sv, 'Asia/Tokyo', 'yyyyMM');
+          } else {
+            const q = sv.toString().trim().split(/[^\d]+/).filter(function(x){ return x; });
+            if (q.length >= 2) sw = q[0] + ('0' + q[1]).slice(-2);
+            else if (q.length === 1) sw = q[0].slice(0, 6);
+          }
+        }
+        if (sw) store_type_switch[short] = sw;
+      }
+      if (ncol >= 0 && short) {
+        const nv = listData[i][ncol] ? listData[i][ncol].toString().trim() : '';
+        if (nv) store_note[short] = nv;
       }
       if (full && short)  shortToFull[short]      = full;
       if (full && short)  store_short[full]        = short;
@@ -259,6 +300,8 @@ function buildData(since, targetsOnly) {
     addNormAliases_(store_short);
     addNormAliases_(store_type);
     addNormAliases_(royalty_pattern);
+    addNormAliases_(store_type_switch);
+    addNormAliases_(store_note);
     addNormAliases_(store_person);
     addNormAliases_(store_hpb_url);
   }
@@ -284,13 +327,41 @@ function buildData(since, targetsOnly) {
              ' 店舗 / マスター未一致 ' + unmatchedKamel.length +
              (unmatchedKamel.length ? ' → ' + unmatchedKamel.join(', ') : ''));
 
+  // ── 加盟店の売上目標は「売上目標【〇月】」タブを正とする（2026-10-19 依頼29）──
+  //   「目標」タブの合計売上は入力漏れが多く、10月は60店舗しか入っていなかった。
+  //   同じスプシの月別タブの「店舗売上目標」を読むと105店舗まで埋まる。
+  //   売上目標（total_sales）だけ上書きし、新規数・契約率などはそのまま。
+  const typeByShort = {};
+  Object.keys(shortToFull).forEach(function(short) {
+    const t = store_type[shortToFull[short]];
+    if (t) typeByShort[short] = t;
+  });
+  const salesTargetTabs  = readSalesTargetTabs_(shortToFull, typeByShort, listData);
+  const target_name_issues = salesTargetTabs.issues;
+  let stOverwrote = 0, stAdded = 0;
+  Object.keys(salesTargetTabs.sales).forEach(function(short) {
+    if (!targets[short]) targets[short] = {};
+    const byMonth = salesTargetTabs.sales[short];
+    Object.keys(byMonth).forEach(function(ym) {
+      if (!targets[short][ym]) { targets[short][ym] = {}; stAdded++; }
+      else if (targets[short][ym].total_sales) { stOverwrote++; }
+      else { stAdded++; }
+      targets[short][ym].total_sales = Math.round(byMonth[ym]);
+    });
+  });
+  Logger.log('売上目標タブ: 上書き ' + stOverwrote + ' / 新しく入った ' + stAdded +
+             ' / 店名が合わない ' + target_name_issues.length +
+             (target_name_issues.length ? ' → ' + target_name_issues.map(function(x) {
+               return x.brand + x.name + '(' + x.month + ')';
+             }).join(', ') : ''));
+
   // 実績データ
   const ssSalon = getSS('SS_SALON');
-  const actual_data = targetsOnly ? {} : getActualData(ssSalon, new Set(Object.keys(shortToFull)), listSheet, royalty_pattern, since);
+  const actual_data = targetsOnly ? {} : getActualData(ssSalon, new Set(Object.keys(shortToFull)), listSheet, royalty_pattern, since, store_type_switch);
 
   if (!targetsOnly) {
     const ssBM    = getSS('SS_BM');
-    const bm_data = getActualDataBM(ssBM, royalty_pattern, since);
+    const bm_data = getActualDataBM(ssBM, royalty_pattern, since, store_type_switch);
     Object.keys(bm_data).forEach(function(month) {
       if (!actual_data[month]) actual_data[month] = {};
       Object.keys(bm_data[month]).forEach(function(store) {
@@ -302,7 +373,7 @@ function buildData(since, targetsOnly) {
           const total_sales = (sb.total_sales||0) + (bm.total_sales||0);
           const royPat = pickByName_(royalty_pattern, store) || '';
           sb.total_sales             = total_sales;
-          sb.royalty                 = calcRoyalty(total_sales, royPat);
+          sb.royalty                 = royaltyForMonth_(store, month, total_sales, royPat, store_type_switch);
           sb.new_count               = (sb.new_count||0)               + (bm.new_count||0);
           sb.new_contract_count      = (sb.new_contract_count||0)      + (bm.new_contract_count||0);
           sb.total_treatments        = (sb.total_treatments||0)        + (bm.total_treatments||0);
@@ -473,6 +544,10 @@ function buildData(since, targetsOnly) {
     store_type:            st_short,
     store_short:           store_short,
     store_closed_month:    store_closed_month,
+    // 直営→加盟に切り替わった月（略称→YYYYMM）
+    store_type_switch:     store_type_switch,
+    // 画面に出す一言（実績が無い理由など）
+    store_note:            store_note,
     store_royalty_pattern: rp_short,
     store_hpb_url:         hu_short,
     store_hpb_data:        readHpbCache(),
@@ -482,6 +557,8 @@ function buildData(since, targetsOnly) {
     // 店舗一覧スプシ（店舗一覧タブ）へのリンク。お知らせのボタンから開く
     master_url:            master_url,
     needs_input:           needs_input,
+    // 売上目標タブの店名が店舗一覧と合わないもの。needs_input と同じ場所に出す
+    target_name_issues:    target_name_issues,
     // 会計の入れ方がおかしそうな店舗（契約メニューが使われていない可能性）
     accounting_alerts:     buildAccountingAlerts_(normalized_actual, store_closed_month),
     // ブランド別の内訳。既存の店舗単位の数字は変えず、別の枝として足している
@@ -801,7 +878,7 @@ function buildBrandBreakdown_(since) {
 // ============================================================
 //  BM実績データ読み取り
 // ============================================================
-function getActualDataBM(ss, royalty_pattern, since) {
+function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
   const actual_data = {};
 
   function isValidStaffName(name) {
@@ -986,7 +1063,7 @@ function getActualDataBM(ss, royalty_pattern, since) {
 
       actual_data[month][storeName] = {
         total_sales:             Math.round(sm.total_sales),
-        royalty:                 calcRoyalty(Math.round(sm.total_sales), royPat),
+        royalty:                 royaltyForMonth_(storeName, month, Math.round(sm.total_sales), royPat, typeSwitch),
         new_count:               sm.new_count,
         new_contract_count:      sm.new_contract_count,
         new_contract_unit_price: sm.new_contract_count > 0 ? Math.round(sm.new_contract_sales / sm.new_contract_count) : 0,
@@ -1057,7 +1134,7 @@ function getActualDataBM(ss, royalty_pattern, since) {
 //  ・各契約売上   = カテゴリ=F/B/その他 × メニュー「契約」行の金額合計（会計/取消は売上と同様）
 //  ・スタッフ売上 = 行ごとにその行のスタッフへ加算（Σスタッフ=店舗）。取消はマイナスで差引
 // ============================================================
-function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
+function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, typeSwitch) {
   const actual_data = {};
 
   TARGET_MONTHS.forEach(function(month) {
@@ -1415,7 +1492,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since) {
 
       actual_data[month][storeName] = {
         total_sales:             totalSalesR,
-        royalty:                 calcRoyalty(totalSalesR, royPat),
+        royalty:                 royaltyForMonth_(storeName, month, totalSalesR, royPat, typeSwitch),
         new_count:               newCount,
         new_contract_count:      newContCount,
         new_contract_unit_price: sm.new_contract_count > 0 ? Math.round(sm.new_contract_sales / sm.new_contract_count) : 0,

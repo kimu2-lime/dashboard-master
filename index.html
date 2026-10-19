@@ -331,6 +331,10 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .type-btn.active-direct{background:#e53e3e;border-color:#e53e3e;color:#fff}
 .type-btn.active-franchise{background:#2b6cb0;border-color:#2b6cb0;color:#fff}
 .type-btn:hover:not(.active-all):not(.active-direct):not(.active-franchise):not(.active-brand){border-color:#667eea;color:#667eea}
+/* 店舗の備考（実績が無い理由など） */
+.detail-note{background:#ebf8ff;border-left:4px solid #3182ce;border-radius:6px;
+  padding:8px 12px;margin:8px 0 0;font-size:13px;color:#2c5282;line-height:1.6}
+
 /* 入力待ちの新店のお知らせ */
 .ni-wrap{background:#fffaf0;border:1px solid #f6ad55;border-left:5px solid #dd6b20;border-radius:10px;padding:14px 16px;margin:0 0 16px}
 .ni-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -355,6 +359,22 @@ body.mobile .analysis-summary{grid-template-columns:repeat(4,1fr);gap:6px}
 .aa-store{font-weight:700;color:#1a202c}
 .aa-detail{font-size:12px;color:#4a5568}
 @media(max-width:700px){ .aa-wrap{padding:12px} }
+/* 売上目標の店名が合わないお知らせ。入力待ちと同じ形で、色だけ青寄りにする */
+.tn-wrap{background:#ebf8ff;border:1px solid #63b3ed;border-left:5px solid #2b6cb0;border-radius:10px;padding:14px 16px;margin:0 0 16px}
+.tn-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tn-badge{font-size:15px;font-weight:700;color:#2a4365}
+.tn-count{font-size:12px;color:#2a4365;background:#bee3f8;border-radius:999px;padding:2px 10px;font-weight:700}
+.tn-close{margin-left:auto;background:none;border:none;font-size:20px;line-height:1;color:#2a4365;cursor:pointer;padding:0 4px}
+.tn-close:hover{color:#1a365d}
+.tn-note{font-size:12px;color:#2c5282;margin-top:6px;line-height:1.7}
+.tn-open{display:inline-block;margin-top:10px;background:#2b6cb0;color:#fff;font-size:13px;font-weight:700;
+         text-decoration:none;border-radius:8px;padding:8px 14px}
+.tn-open:hover{background:#2c5282}
+.tn-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tn-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#fff;border-radius:8px;padding:8px 12px}
+.tn-store{font-weight:700;color:#1a202c}
+.tn-months{font-size:12px;color:#2b6cb0;font-weight:600;white-space:nowrap}
+.tn-reason{font-size:11px;color:#718096;flex:1 1 220px;min-width:0}
 .ni-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ni-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#fff;border-radius:8px;padding:8px 12px}
 .ni-store{font-weight:700;color:#1a202c}
@@ -1265,6 +1285,9 @@ body.mobile .side-menu-overlay{display:block!important}
 <!-- 入力待ちの新店のお知らせ（一番上） -->
 <div id="needsInputBar" style="display:none"></div>
 
+<!-- 売上目標の店名が店舗一覧と合わないときのお知らせ -->
+<div id="targetNameBar" style="display:none"></div>
+
 <!-- 会計の入れ方がおかしそうな店舗のお知らせ -->
 <div id="accountingAlertBar" style="display:none"></div>
 
@@ -1424,6 +1447,7 @@ body.mobile .side-menu-overlay{display:block!important}
     <div id="detailView">
       <div class="detail-store-name" id="detailName"></div>
       <div class="detail-period" id="detailPeriod"></div>
+      <div class="detail-note" id="dStoreNote" style="display:none"></div>
 
       <div class="kgi-bar">
         <div class="kgi-bar-top">
@@ -2172,9 +2196,13 @@ async function fetchData(){
     DATA.needs_input           = json.needs_input||[];
     DATA.master_url            = json.master_url||'';
     DATA.accounting_alerts     = json.accounting_alerts||[];
+    DATA.target_name_issues    = json.target_name_issues||[];
+    DATA.store_type_switch     = json.store_type_switch||{};
+    DATA.store_note            = json.store_note||{};
     // 入力待ちの新店を一番上に出す
     try { renderNeedsInput(); } catch(e){ console.warn('新店のお知らせを出せません', e); }
     try { renderAccountingAlerts(); } catch(e){ console.warn('会計のお知らせを出せません', e); }
+    try { renderTargetNameIssues(); } catch(e){ console.warn('目標の店名のお知らせを出せません', e); }
     // storesをリセット（古いフル名データを完全除去）
     DATA.stores.length = 0;
     if(json.persons && json.persons.length > 0) DATA.persons = json.persons.filter(p => p !== '雛形');
@@ -4438,6 +4466,77 @@ function renderNeedsInput(){
   el.style.display='';
 }
 
+/* ============================================================
+ *  売上目標の店名が店舗一覧と合わないお知らせ
+ *
+ *  加盟店の売上目標は「売上目標【〇月】」タブから読んでいる。
+ *  そのタブの店名が店舗一覧の略称と合わないと、その店の目標が0になる。
+ *  黙って0になるより、どの店名が合わないかを画面で知らせる。
+ *  直し方は2つ：目標タブの店名を直すか、店舗一覧の「目標名対応」タブに
+ *  1行足す（A列＝目標タブのブランド＋店名、B列＝店舗一覧の略称）。
+ * ============================================================ */
+function renderTargetNameIssues(){
+  const el = document.getElementById('targetNameBar');
+  if(!el) return;
+  const list = (typeof DATA!=='undefined' && DATA.target_name_issues) ? DATA.target_name_issues : [];
+  const masterUrl = (typeof DATA!=='undefined' && DATA.master_url) ? DATA.master_url : '';
+  if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
+
+  // 同じ店名が何ヶ月も出るので、店名でまとめて月を並べる
+  const byName = {};
+  const order = [];
+  list.forEach(function(x){
+    const key = (x.brand||'') + (x.name||'');
+    if(!byName[key]){ byName[key] = { label: key, months: [], reason: x.reason||'' }; order.push(key); }
+    if(byName[key].months.indexOf(x.month) < 0) byName[key].months.push(x.month);
+  });
+
+  const sig = order.slice().sort().join('|');
+  let hidden = '';
+  try { hidden = localStorage.getItem('targetNameDismissed') || ''; } catch(e){}
+  if(hidden === sig){ el.style.display='none'; return; }
+
+  const items = order.map(function(key){
+    const x = byName[key];
+    const ms = x.months.slice().sort().map(function(m){ return MONTH_MAP[m] || m; }).join('・');
+    return '<li class="tn-item">'
+         + '<span class="tn-store">'+x.label+'</span>'
+         + '<span class="tn-months">'+ms+'</span>'
+         + '<span class="tn-reason">'+x.reason+'</span></li>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="tn-wrap">'
+    + '<div class="tn-head">'
+      + '<span class="tn-badge">🎯 目標の店名が店舗一覧と合いません</span>'
+      + '<span class="tn-count">'+order.length+'件</span>'
+      + '<button class="tn-close" onclick="dismissTargetNameIssues()" title="閉じる">×</button>'
+    + '</div>'
+    + '<div class="tn-note">この店名の<strong>売上目標が画面に出ていません</strong>。'
+      + '「売上目標【〇月】」タブの店名を直すか、店舗一覧スプレッドシートの'
+      + '<strong>「目標名対応」タブ</strong>に1行足してください'
+      + '（A列＝目標タブのブランド＋店名、B列＝店舗一覧の略称）。</div>'
+    + (masterUrl
+        ? '<a class="tn-open" href="'+masterUrl+'" target="_blank" rel="noopener">📋 店舗一覧スプレッドシートを開く</a>'
+        : '')
+    + '<ul class="tn-list">'+items+'</ul>'
+    + '</div>';
+  el.style.display='';
+}
+
+function dismissTargetNameIssues(){
+  const list = (typeof DATA!=='undefined' && DATA.target_name_issues) ? DATA.target_name_issues : [];
+  // renderTargetNameIssues と同じ目印にしないと、閉じても消えない
+  const seen = {}, keys = [];
+  list.forEach(function(x){
+    const k = (x.brand||'')+(x.name||'');
+    if(!seen[k]){ seen[k]=true; keys.push(k); }
+  });
+  try { localStorage.setItem('targetNameDismissed', keys.sort().join('|')); } catch(e){}
+  const el = document.getElementById('targetNameBar');
+  if(el) el.style.display='none';
+}
+
 function dismissNeedsInput(){
   const list = (typeof DATA!=='undefined' && DATA.needs_input) ? DATA.needs_input : [];
   const sig = list.map(function(x){ return x.store; }).sort().join('|');
@@ -4453,6 +4552,16 @@ function showDetail(store,d,tgt){
   document.getElementById('bcStore').textContent=dispName(store);
   setEl('detailName',dispName(store));
   setEl('detailPeriod',(MONTH_MAP[curMonth]||curMonth)+' の実績');
+
+  // 店舗一覧マスターの「備考」を出す（実績が無い理由など）。
+  //   例：LIME立川は グループアカウントB の店で、IDが未設定の間は実績が取れない。
+  //   0件なのか、そもそも取れていないのかが画面で分かるようにする。
+  const noteEl = document.getElementById('dStoreNote');
+  if(noteEl){
+    const note = (DATA.store_note||{})[store] || '';
+    if(note){ noteEl.textContent = 'ℹ️ ' + note; noteEl.style.display=''; }
+    else { noteEl.style.display='none'; noteEl.textContent=''; }
+  }
 
   // 推移・構成分析チャート（メインKPI下と同じ3カードを1店舗ぶんで描画）
   const dChartsRow = document.getElementById('dChartsRow');
