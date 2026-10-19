@@ -192,12 +192,33 @@ function mirrorAllToDrive() {
   Logger.log('📁 置き場所: ' + webappFolder_().getUrl());
 }
 
-/** 設定とドライブの中身を確かめる。 */
+/** 設定とドライブの中身・共有状況を確かめる。 */
 function checkWebapp() {
   const folder = webappFolder_();
   Logger.log('ログイン中: ' + (webappUserEmail_() || '(取れません)'));
   Logger.log('許可ドメイン: ' + webappAllowedDomain_());
   Logger.log('フォルダ: ' + folder.getName() + '  ' + folder.getUrl());
+
+  // 置き場所の共有状況。データとAPIキーに関わるので必ず見る。
+  //   親フォルダの共有を引き継いでいないか（ドメイン全体に見えていないか）を確かめる。
+  try {
+    Logger.log('── このフォルダの共有 ──');
+    Logger.log('  リンク共有: ' + folder.getSharingAccess()
+               + ' / ' + folder.getSharingPermission());
+    const owner = folder.getOwner();
+    Logger.log('  オーナー  : ' + (owner ? owner.getEmail() : '(不明)'));
+    const eds = folder.getEditors().map(function (u) { return u.getEmail(); });
+    const vws = folder.getViewers().map(function (u) { return u.getEmail(); });
+    Logger.log('  編集者    : ' + (eds.length ? eds.join(', ') : '(なし)'));
+    Logger.log('  閲覧者    : ' + (vws.length ? vws.join(', ') : '(なし)'));
+    if (String(folder.getSharingAccess()) === 'PRIVATE' && !eds.length && !vws.length) {
+      Logger.log('  → ✅ オーナーだけが見られる状態です');
+    } else {
+      Logger.log('  → ★ オーナー以外にも見えています。確認してください');
+    }
+  } catch (e) {
+    Logger.log('  共有状況を取れません: ' + e);
+  }
   const it = folder.getFiles();
   while (it.hasNext()) {
     const f = it.next();
