@@ -90,6 +90,31 @@ function pickByName_(map, name) {
   return undefined;
 }
 
+// BM（ビューティメリット）上の店名 → 店舗一覧の略称。
+//   BMの店名と、サロンボードの掲載名が同じ文字列なのに別の店ということがある。
+//   例）BM の「ハーブピーリングLIME立川」は 直営 立川（Belle立川・Lift立川と同じ店）、
+//       サロンボード アカウントB の同名ページは 加盟の LIME立川 で別の店。
+//   店舗一覧スプシの「BM店名対応」タブ（A:BM上の店名 B:略称 C:メモ）に書けば、
+//   BMの数字だけ別の店に付け替えられる。タブが無ければ何もしない（従来どおり）。
+function readBmNameMap_() {
+  const out = {};
+  try {
+    const sh = getSS('SS_MASTER').getSheetByName('BM店名対応');
+    if (!sh) return out;
+    const v = sh.getDataRange().getValues();
+    for (let i = 1; i < v.length; i++) {
+      const a = v[i][0] ? v[i][0].toString().trim() : '';
+      const b = v[i][1] ? v[i][1].toString().trim() : '';
+      if (a && b) out[a] = b;
+    }
+    addNormAliases_(out);   // 全角スペースのゆれも引けるようにする
+    Logger.log('BM店名対応: ' + Object.keys(out).length + '件');
+  } catch (e) {
+    Logger.log('⚠️ BM店名対応タブを読めません: ' + e);
+  }
+  return out;
+}
+
 // その月のロイヤリティ。直営だった月は0にする。
 //   直営→加盟の切替がある店舗（例：梅田は2026年8月から加盟）で、
 //   切替より前の月に加盟のロイヤリティがかかってしまうのを防ぐ。
@@ -362,14 +387,20 @@ function buildData(since, targetsOnly) {
   if (!targetsOnly) {
     const ssBM    = getSS('SS_BM');
     const bm_data = getActualDataBM(ssBM, royalty_pattern, since, store_type_switch);
+    // BM上の店名が、サロンボードの掲載名と同じ文字列なのに別の店ということがある。
+    //   例）BM の「ハーブピーリングLIME立川」＝ 直営 立川（Belle立川・Lift立川と同じ店）
+    //       サロンボード アカウントB の同名ページ   ＝ 加盟の LIME立川（別の店）
+    //   店舗一覧の掲載名だけでは区別できないので、BMのときだけ使う対応表で先に置き換える。
+    const bmNameMap = readBmNameMap_();
     Object.keys(bm_data).forEach(function(month) {
       if (!actual_data[month]) actual_data[month] = {};
-      Object.keys(bm_data[month]).forEach(function(store) {
+      Object.keys(bm_data[month]).forEach(function(bmStore) {
+        const store = pickByName_(bmNameMap, bmStore) || bmStore;
         if (!actual_data[month][store]) {
-          actual_data[month][store] = bm_data[month][store];
+          actual_data[month][store] = bm_data[month][bmStore];
         } else {
           const sb = actual_data[month][store];
-          const bm = bm_data[month][store];
+          const bm = bm_data[month][bmStore];
           const total_sales = (sb.total_sales||0) + (bm.total_sales||0);
           const royPat = pickByName_(royalty_pattern, store) || '';
           sb.total_sales             = total_sales;
