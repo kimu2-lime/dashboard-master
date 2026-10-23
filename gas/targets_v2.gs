@@ -697,6 +697,8 @@ function getKamelTargetsV2_() {
   const sheet = ss.getSheetByName(KV2.SHEET_TARGET);
   const out = {};
   if (!sheet) return out;
+  const resolver = buildKamelResolver_();
+  const unresolved = {};   // 寄せ先を決められなかったキー（out には入れない）
 
   const data = sheet.getDataRange().getValues();
   if (data.length < KV2.DATA_START_ROW) return out;
@@ -734,7 +736,10 @@ function getKamelTargetsV2_() {
 
     const yyyymm = kv2MonthToYYYYMM_(curMonth);
     if (!yyyymm) continue;
-    const short = brand + loc;             // 突合キー（略称）
+    // 突合キー。27b で梅田・浦和の5ページを1つの会計単位にまとめたため、
+    //   「目標」タブの Belle梅田 などがそのままでは店舗一覧に無くなった。
+    //   売上目標タブと同じ順番（目標名対応 → 略称そのまま → 掲載名から）で寄せる。
+    const short = resolveKamelKey_(brand + loc, brand, loc, resolver);
 
     const rec = {};
     let hasNonZero = false;
@@ -760,8 +765,19 @@ function getKamelTargetsV2_() {
 
     if (!hasNonZero) continue;   // 全項目0＝未入力店舗はスキップ（旧パーサ互換）
 
+    if (!short) {        // 寄せ先が決められない（候補が複数など）
+      unresolved[brand + loc] = true;
+      continue;
+    }
     if (!out[short]) out[short] = {};
-    out[short][yyyymm] = rec;
+    // 梅田・浦和のように複数ブランドが1つの会計単位にまとまる店があるので、
+    // 同じ略称・同じ月に2つ目が来たら足し込む（率は後で計算し直す）
+    out[short][yyyymm] = out[short][yyyymm] ? mergeKamelRec_(out[short][yyyymm], rec) : rec;
+  }
+  const left = Object.keys(unresolved);
+  if (left.length) {
+    Logger.log('⚠️ 目標タブで寄せ先を決められないキー ' + left.length + '件 → ' +
+               left.join(', ') + '（店舗一覧の「目標名対応」タブに1行足すと直ります）');
   }
   return out;
 }
@@ -1334,4 +1350,81 @@ function readSalesTargetTabs_(shortToFull, typeByShort, listData) {
                (skippedDirect ? '（直営 ' + skippedDirect + '件は対象外）' : ''));
   });
   return result;
+}
+
+
+// ============================================================
+//  「目標」タブのキーを店舗一覧の略称に寄せる（2026-10-23 追加）
+//
+//  27b で梅田・浦和の複数ブランドページを1つの会計単位にまとめた結果、
+//  「目標」タブの Belle梅田・LABO梅田・Lift梅田… が店舗一覧に無くなり、
+//  その店の新規数・契約率などの目標が落ちていた
+//  （10/20 の実行ログ「加盟店目標(V2)：マスター未一致 8」）。
+//  売上目標タブと同じ順番で寄せる：
+//    ① 目標名対応タブ → ② 略称そのまま → ③ ブランド名と地名を含む掲載名の略称
+//  ③で候補が複数のときは勝手に決めず、未一致として残す。
+// ============================================================
+function buildKamelResolver_() {
+  const r = { tight: {}, pages: {}, alias: stReadNameMap_() };
+  try {
+    const sh = getSS('SS_MASTER').getSheetByName('店舗一覧');
+    if (!sh) return r;
+    const v = sh.getDataRange().getValues();
+    for (let i = 1; i < v.length; i++) {
+      const full  = v[i][0] ? v[i][0].toString().trim() : '';
+      const short = v[i][1] ? v[i][1].toString().trim() : '';
+      if (!short) continue;
+      r.tight[stTight_(short)] = short;
+      if (!full) continue;
+      if (!r.pages[short]) r.pages[short] = [];
+      r.pages[short].push(full);
+    }
+  } catch (e) {
+    Logger.log('⚠️ 店舗一覧を読めません（目標の突合）: ' + e);
+  }
+  return r;
+}
+
+function resolveKamelKey_(key, brand, loc, r) {
+  if (!r) return key;
+  const t = stTight_(key);
+  if (r.alias[t])  return r.alias[t];
+  if (r.tight[t])  return r.tight[t];
+
+  // ブランド名と地名の両方を含む掲載名を持つ行の略称（＝会計単位）に寄せる
+  const place = stTight_(loc);
+  const cands = {};
+  Object.keys(r.pages).forEach(function (short) {
+    r.pages[short].forEach(function (pg) {
+      if (place && stTight_(pg).indexOf(place) >= 0 &&
+          pg.toUpperCase().indexOf(String(brand).toUpperCase()) >= 0) {
+        cands[short] = true;
+      }
+    });
+  });
+  const ks = Object.keys(cands);
+  return ks.length === 1 ? ks[0] : null;
+}
+
+// 同じ会計単位に複数ブランドの目標が来たときの足し込み。
+//   件数・金額は足す。率と単価は足しても意味がないので、足した後に計算し直す。
+function mergeKamelRec_(a, b) {
+  const out = {};
+  const rate = { new_contract_rate: 1, reappo_contract_rate: 1, keizoku_rate: 1 };
+  const unit = { new_contract_unit_price: 1, reappo_contract_unit_price: 1,
+                 keizoku_continue_unit_price: 1 };
+  Object.keys(a).forEach(function (k) { out[k] = a[k]; });
+  Object.keys(b).forEach(function (k) {
+    if (rate[k] || unit[k]) return;                 // 後で計算し直す
+    out[k] = (typeof a[k] === 'number' ? a[k] : 0) +
+             (typeof b[k] === 'number' ? b[k] : 0);
+  });
+  if (out.new_count) {
+    out.new_contract_rate = Math.round((out.new_contract_count || 0) / out.new_count * 1000) / 10;
+  }
+  if (out.new_contract_count) {
+    out.new_contract_unit_price =
+      Math.round((out.new_contract_sales || 0) / out.new_contract_count);
+  }
+  return out;
 }
