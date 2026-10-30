@@ -410,6 +410,8 @@ function buildData(since, targetsOnly) {
           sb.total_treatments        = (sb.total_treatments||0)        + (bm.total_treatments||0);
           sb.contract_sales          = (sb.contract_sales||0)          + (bm.contract_sales||0);
           sb.new_contract_sales      = (sb.new_contract_sales||0)      + (bm.new_contract_sales||0);
+          sb.new_sales               = (sb.new_sales||0)               + (bm.new_sales||0);
+          sb.repeat_sales            = (sb.repeat_sales||0)            + (bm.repeat_sales||0);
           // ▼ 再来系KPI 合算（BMは0だが将来対応のため）
           sb.reappo_count            = (sb.reappo_count||0)            + (bm.reappo_count||0);
           sb.reappo_contract_count   = (sb.reappo_contract_count||0)   + (bm.reappo_contract_count||0);
@@ -486,6 +488,7 @@ function buildData(since, targetsOnly) {
   function mergeStoreData(a, b) {
     const numKeys = ['total_sales','new_count','new_contract_count',
       'new_contract_sales','contract_sales','total_treatments','royalty',
+      'new_sales','repeat_sales',
       // ▼ 再来系KPI（実数）
       'reappo_count','reappo_contract_count','reappo_contract_sales',
       'keizoku_end_count','keizoku_continue_count','keizoku_continue_sales',
@@ -568,6 +571,17 @@ function buildData(since, targetsOnly) {
     st_short[short] = '直営';
   });
 
+  // ▼ Limeからの仕入れ（BASE発注管理スプシ。読むだけ）
+  //   店舗一覧の略称と突き合わせるので、略称の集合を先に作る。
+  const shozaiShorts = new Set();
+  Object.keys(store_short).forEach(function(full) {
+    if (store_short[full]) shozaiShorts.add(store_short[full]);
+  });
+  Object.keys(st_short).forEach(function(sh) { shozaiShorts.add(sh); });
+  const shozai = targetsOnly
+    ? { purchase: {}, name_issues: [], kubun: {} }
+    : buildShozai_(since, shozaiShorts);
+
   return {
     updated_at:            new Date().toISOString(),
     persons:               personOrder,   // 店舗一覧D列の担当者（旧SS_KAMELのタブ名は参照しない）
@@ -593,7 +607,16 @@ function buildData(since, targetsOnly) {
     // 会計の入れ方がおかしそうな店舗（契約メニューが使われていない可能性）
     accounting_alerts:     buildAccountingAlerts_(normalized_actual, store_closed_month),
     // ブランド別の内訳。既存の店舗単位の数字は変えず、別の枝として足している
-    brand_breakdown:       buildBrandBreakdown_(since)
+    brand_breakdown:       buildBrandBreakdown_(since),
+    // ▼ Limeからの仕入れ（依頼35）
+    shozai_purchase:       shozai.purchase,
+    // 商材スプシの店名が店舗一覧と合わないもの。target_name_issues と同じ場所に出す
+    shozai_name_issues:    shozai.name_issues,
+    // 正式商品名 → 業務用／物販用（店舗一覧スプシの「商材区分」タブ）
+    shozai_kubun:          shozai.kubun,
+    // 今月まだ仕入れていない加盟店／仕入れが少ない加盟店
+    shozai_alerts:         targetsOnly ? { month: '', no_purchase: [], low: [], median_per_treatment: 0 }
+                                       : buildShozaiAlerts_(shozai.purchase, normalized_actual, st_short, store_closed_month)
   };
 }
 
@@ -822,7 +845,11 @@ function buildBrandBreakdown_(since) {
   }
 
   // ── ④ サロンボード売上：ページ|年月 → 売上（BM会計の店舗は出てこない） ──
+  //   新規売上・再来売上もここで分ける。新規再来は「会計ID単位」で決まる値なので、
+  //   先に会計IDごとの新規再来を拾ってから行を足す（行だけ見ると空欄の行に引っかかる）。
   const sbSales = {};
+  const sbNewSales = {};
+  const sbRepSales = {};
   try {
     const ssSalon = getSS('SS_SALON');
     TARGET_MONTHS.forEach(function (month) {
@@ -834,6 +861,16 @@ function buildBrandBreakdown_(since) {
       const col = {};
       rows[0].forEach(function (h, i) { col[h.toString().trim()] = i; });
       if (col['お店名'] === undefined || col['金額'] === undefined) return;
+      // 会計IDごとの新規再来（最初に見つかった「新規」か「再来」を採る）
+      const shinkiByAcc = {};
+      if (col['会計ID'] !== undefined && col['新規再来'] !== undefined) {
+        for (let r = 1; r < rows.length; r++) {
+          const id = (rows[r][col['会計ID']] || '').toString().trim();
+          if (!id || shinkiByAcc[id]) continue;
+          const v = (rows[r][col['新規再来']] || '').toString().trim();
+          if (v === '新規' || v === '再来') shinkiByAcc[id] = v;
+        }
+      }
       for (let r = 1; r < rows.length; r++) {
         const kubun = col['会計区分'] !== undefined
           ? (rows[r][col['会計区分']] || '').toString().trim() : '会計';
@@ -846,6 +883,11 @@ function buildBrandBreakdown_(since) {
             : parseFloat(amt.toString().replace(/[¥円, ]/g, '')) || 0);
         const k = page + '|' + month;
         sbSales[k] = (sbSales[k] || 0) + amt;   // 取り消し会計の金額はCSV上すでにマイナス
+        const accId = col['会計ID'] !== undefined
+          ? (rows[r][col['会計ID']] || '').toString().trim() : '';
+        const sk = accId ? shinkiByAcc[accId] : '';
+        if (sk === '新規')      sbNewSales[k] = (sbNewSales[k] || 0) + amt;
+        else if (sk === '再来') sbRepSales[k] = (sbRepSales[k] || 0) + amt;
       }
     });
   } catch (e) {
@@ -866,13 +908,16 @@ function buildBrandBreakdown_(since) {
         const r = resv[pk + '|' + month];
         const hm = info.salonId ? hpbMetrics[info.salonId + '|' + month] : null;
         const sales = sbSales[pk + '|' + month];
+        const nSales = sbNewSales[pk + '|' + month];
+        const rSales = sbRepSales[pk + '|' + month];
         if (!r && !hm && sales === undefined) return;
         any = true;
         if (!perBrand[brand]) {
           perBrand[brand] = {
             pages: [], salon_ids: [],
             reserve: 0, hpb_reserve: 0, visit: 0, contract: 0, blank_hold: 0,
-            pv: null, cvr: null, acr: null, sales: null
+            pv: null, cvr: null, acr: null,
+            sales: null, new_sales: null, repeat_sales: null
           };
         }
         const b = perBrand[brand];
@@ -896,6 +941,8 @@ function buildBrandBreakdown_(since) {
           if (hm.acr !== null && (b.acr === null || hm.acr > b.acr)) b.acr = hm.acr;
         }
         if (sales !== undefined) b.sales = (b.sales === null ? 0 : b.sales) + sales;
+        if (nSales !== undefined) b.new_sales = (b.new_sales === null ? 0 : b.new_sales) + nSales;
+        if (rSales !== undefined) b.repeat_sales = (b.repeat_sales === null ? 0 : b.repeat_sales) + rSales;
       });
       if (!any) return;
       if (!out[month]) out[month] = {};
@@ -1043,6 +1090,7 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         storeMap[storeName] = {
           total_sales: 0, new_count: 0, new_contract_count: 0,
           total_treatments: 0, contract_sales: 0, new_contract_sales: 0,
+          new_sales: 0, repeat_sales: 0,
           onda_total_sales: 0, onda_new_count: 0, onda_new_contract_count: 0,
           onda_new_contract_sales: 0,
           staff_data: {}
@@ -1052,6 +1100,9 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       sm.total_sales      += totalAmt;
       sm.total_treatments += 1;
       sm.contract_sales   += contractAmt;
+      // ▼ 新規売上／再来売上（SBと同じ考え方。会計まるごと振り分ける）
+      if (shinki === '新規')      sm.new_sales    += totalAmt;
+      else if (shinki === '再来') sm.repeat_sales += totalAmt;
       if (shinki === '新規') {
         sm.new_count += 1;
         if (isContract) { sm.new_contract_count += 1; sm.new_contract_sales += contractAmt; }
@@ -1102,6 +1153,9 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         total_treatments:        sm.total_treatments,
         contract_sales:          Math.round(sm.contract_sales),
         new_contract_sales:      Math.round(sm.new_contract_sales),
+        // ▼ 誰から入った売上か
+        new_sales:               Math.round(sm.new_sales),
+        repeat_sales:            Math.round(sm.repeat_sales),
         // ▼ 売上内訳（BMは内訳取得未対応、その他に寄せる）
         coupon_sales:            0,
         option_sales:            0,
@@ -1343,6 +1397,8 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
         storeMap[storeName] = {
           total_sales: 0, new_count: 0, new_contract_count: 0,
           total_treatments: 0, contract_sales: 0, new_contract_sales: 0,
+          // ▼ 誰から入った売上か（新規の会計／再来の会計）
+          new_sales: 0, repeat_sales: 0,
           // ▼ 再来系KPI
           reappo_count: 0,
           reappo_contract_count: 0,
@@ -1364,6 +1420,11 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       sm.total_sales      += totalAmt;
       sm.total_treatments += isCancelled ? -1 : 1; // 件数だけsignを使う
       sm.contract_sales   += contractSalesAmt;
+      // ▼ 新規売上／再来売上（会計ID単位の新規再来で会計まるごと振り分ける）
+      //   取り消し会計の金額はCSV上すでにマイナスなのでそのまま足す。
+      //   新規再来が空の会計はどちらにも入れない（店舗売上とのズレとして検算に出る）。
+      if (shinki === '新規')      sm.new_sales    += totalAmt;
+      else if (shinki === '再来') sm.repeat_sales += totalAmt;
 
       // ▼ 売上内訳集計（行単位で再走査）
       //   - クーポン売上: H列カテゴリ=「メニュー付クーポン」AND I列メニューに「契約/消化/回数券/利用」を含まない
@@ -1531,6 +1592,9 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
         total_treatments:        Math.max(0, sm.total_treatments),
         contract_sales:          contractSalesR,
         new_contract_sales:      Math.round(sm.new_contract_sales),
+        // ▼ 誰から入った売上か
+        new_sales:               Math.round(sm.new_sales),
+        repeat_sales:            Math.round(sm.repeat_sales),
         // ▼ 売上内訳（円グラフ用）
         coupon_sales:            couponSalesR,
         option_sales:            optionSalesR,

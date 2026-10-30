@@ -1291,6 +1291,9 @@ body.mobile .side-menu-overlay{display:block!important}
 <!-- 会計の入れ方がおかしそうな店舗のお知らせ -->
 <div id="accountingAlertBar" style="display:none"></div>
 
+<!-- Limeからの仕入れ（店名が合わない／今月まだ仕入れていない加盟店）のお知らせ -->
+<div id="shozaiBar" style="display:none"></div>
+
 <!-- 設定モーダル -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-card">
@@ -1401,6 +1404,11 @@ body.mobile .side-menu-overlay{display:block!important}
   <div class="type-bar" id="kpiBar" style="display:none">
     <div class="type-bar-inner">
       <button class="type-btn active" id="kbSales"    onclick="setKpiSort('total_sales')">💰 売上</button>
+      <!-- ▼ 誰から入った売上か・物販・仕入れ（依頼35） -->
+      <button class="type-btn"        id="kbNewSales" onclick="setKpiSort('new_sales')">🆕 新規売上</button>
+      <button class="type-btn"        id="kbRepSales" onclick="setKpiSort('repeat_sales')">🔁 再来売上</button>
+      <button class="type-btn"        id="kbBuppan"   onclick="setKpiSort('buppan_sales')">🛍 物販売上</button>
+      <button class="type-btn"        id="kbShozai"   onclick="setKpiSort('shozai_purchase')">📦 仕入れ</button>
       <button class="type-btn"        id="kbNew"      onclick="setKpiSort('new_count')">👤 新規数</button>
       <button class="type-btn"        id="kbContract" onclick="setKpiSort('new_contract_count')">📋 契約数</button>
       <button class="type-btn"        id="kbPrice"    onclick="setKpiSort('new_contract_unit_price')">💎 契約単価</button>
@@ -1716,6 +1724,9 @@ body.mobile .side-menu-overlay{display:block!important}
         <div id="staffCardsContainer"></div>
       </div>
 
+      <!-- 新規売上・再来売上・物販売上・Limeからの仕入れ（依頼35） -->
+      <div id="dShozaiSection"></div>
+
       <!-- 予約インサイト・効くワード・推奨アクション（予約CSV由来） -->
       <div id="dReserveInsights"></div>
     </div><!-- /detailView -->
@@ -1968,6 +1979,26 @@ function isBrandSelected(key){ return curBrands.indexOf(key) >= 0; }
  *    unit : 入力欄の右に出す単位
  *    yen  : true なら万円単位で入力させる（内部では円に換算）
  * ============================================================ */
+/* ============================================================
+ *  Limeからの仕入れ（依頼35）の共通ヘルパー
+ *    DATA.shozai_purchase[YYYYMM][略称] = { total, by_kind:{...}, items:{商品名:金額} }
+ *  仕入れは actual_data とは別の枝なので、店舗実績と同じ書き方で引けるようにする。
+ * ============================================================ */
+function shozaiRecOf(store, month){
+  const all = (typeof DATA!=='undefined' && DATA.shozai_purchase) ? DATA.shozai_purchase : null;
+  if(!all) return null;
+  const pm = all[month];
+  return (pm && pm[store]) ? pm[store] : null;
+}
+function shozaiTotalOf(store, month){
+  const r = shozaiRecOf(store, month);
+  return r ? (r.total||0) : 0;
+}
+function shozaiKindOf(store, month, kind){
+  const r = shozaiRecOf(store, month);
+  return (r && r.by_kind) ? (r.by_kind[kind]||0) : 0;
+}
+
 const KPI_FILTER_DEFS = [
   { key:'total_sales',                label:'店舗売上',       unit:'万円', yen:true },
   { key:'sales_achv',                 label:'売上達成率',     unit:'%',
@@ -1995,6 +2026,13 @@ const KPI_FILTER_DEFS = [
   { key:'keizoku_continue_unit_price',label:'継続契約単価',   unit:'万円', yen:true },
   { key:'dropout_rate',               label:'離脱率',         unit:'%' },
   { key:'total_treatments',           label:'施術数',         unit:'件' },
+  { key:'new_sales',                  label:'新規売上',       unit:'万円', yen:true },
+  { key:'repeat_sales',               label:'再来売上',       unit:'万円', yen:true },
+  { key:'repeat_ratio',               label:'再来比率',       unit:'%',
+    calc:function(d){ const t=(d.new_sales||0)+(d.repeat_sales||0); return t>0 ? (d.repeat_sales||0)/t*100 : null; } },
+  { key:'buppan_sales',               label:'物販売上',       unit:'万円', yen:true },
+  { key:'shozai_total',               label:'Limeからの仕入れ', unit:'万円', yen:true,
+    calc:function(d,s,m){ return shozaiTotalOf(s, m); } },
   { key:'royalty',                    label:'ロイヤリティ',   unit:'万円', yen:true },
 ];
 function kpiFilterDef(key){
@@ -2199,10 +2237,16 @@ async function fetchData(){
     DATA.target_name_issues    = json.target_name_issues||[];
     DATA.store_type_switch     = json.store_type_switch||{};
     DATA.store_note            = json.store_note||{};
+    // ▼ Limeからの仕入れ（依頼35）
+    DATA.shozai_purchase       = json.shozai_purchase||{};
+    DATA.shozai_name_issues    = json.shozai_name_issues||[];
+    DATA.shozai_kubun          = json.shozai_kubun||{};
+    DATA.shozai_alerts         = json.shozai_alerts||{month:'',no_purchase:[],low:[],median_per_treatment:0};
     // 入力待ちの新店を一番上に出す
     try { renderNeedsInput(); } catch(e){ console.warn('新店のお知らせを出せません', e); }
     try { renderAccountingAlerts(); } catch(e){ console.warn('会計のお知らせを出せません', e); }
     try { renderTargetNameIssues(); } catch(e){ console.warn('目標の店名のお知らせを出せません', e); }
+    try { renderShozaiNotices(); } catch(e){ console.warn('仕入れのお知らせを出せません', e); }
     // storesをリセット（古いフル名データを完全除去）
     DATA.stores.length = 0;
     if(json.persons && json.persons.length > 0) DATA.persons = json.persons.filter(p => p !== '雛形');
@@ -3288,6 +3332,24 @@ function renderMainKpiRow(fstores, md, month){
   const royA = function(data){ let t=0; fstores.forEach(function(s){ if(!data[s]||isDir(s)) return; const r=(data[s].royalty!==undefined)?data[s].royalty:royalty(data[s].total_sales); t+=r; }); return t; };
   const royPureA = function(data){ let t=0; fstores.forEach(function(s){ if(!data[s]||isDir(s)) return; t+=royaltyPure(data[s].total_sales||0, DATA.store_royalty_pattern?DATA.store_royalty_pattern[s]:''); }); return t; };
   const hqA = function(data){ let t=0; fstores.forEach(function(s){ if(!data[s]) return; t+=_storeHqRevenue(s, data[s]); }); return t; };
+  // ---- 仕入れ集計（表示中・絞り込み後の店舗だけ足す）----
+  const shozaiA = function(ym, kind){
+    let t=0;
+    fstores.forEach(function(s){ t += kind ? shozaiKindOf(s, ym, kind) : shozaiTotalOf(s, ym); });
+    return t;
+  };
+  // 今月まだ仕入れていない加盟店（施術はあるのに仕入れ0）。直営は対象外
+  const noBuyStores = (function(){
+    const out=[];
+    fstores.forEach(function(s){
+      const t=(DATA.store_type||{})[s]||'';
+      if(t.indexOf('加盟')<0) return;
+      const d=md[s];
+      if(!d || !((d.total_treatments||0)>0)) return;
+      if(!shozaiTotalOf(s, month)) out.push(s);
+    });
+    return out;
+  })();
 
   // ---- 目標集計 ----
   const tK   = function(key){ return sumTargetKey(fstores, month, key); };
@@ -3403,9 +3465,34 @@ function renderMainKpiRow(fstores, md, month){
   // ===== セクション2：店舗KPI（売上／新規＋再アポ／新規／再アポ／継続の5グループ）=====
 
   // ── ① 売上 ──
+  //   新規売上・再来売上・物販売上は目標が無いので「目標 —」になる（依頼35）。
+  //   新規売上＋再来売上＝店舗総合売上（新規再来が空の会計があればその分だけ足りなくなる）。
   const gSales =
       valCard('sales','店舗総合売上合計', sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true})
-    + valCard('lime', '店舗売上平均',     sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true, avg:true});
+    + valCard('lime', '店舗売上平均',     sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true, avg:true})
+    + valCard('new',  '新規売上合計',     sumA(md,'new_sales'),    0, sumA(mdPrev,'new_sales'),    {yen:true})
+    + valCard('new',  '新規売上平均',     sumA(md,'new_sales'),    0, sumA(mdPrev,'new_sales'),    {yen:true, avg:true})
+    + valCard('reappo','再来売上合計',    sumA(md,'repeat_sales'), 0, sumA(mdPrev,'repeat_sales'), {yen:true})
+    + valCard('reappo','再来売上平均',    sumA(md,'repeat_sales'), 0, sumA(mdPrev,'repeat_sales'), {yen:true, avg:true})
+    + valCard('retention','物販売上合計', sumA(md,'buppan_sales'), 0, sumA(mdPrev,'buppan_sales'), {yen:true})
+    + valCard('retention','物販売上平均', sumA(md,'buppan_sales'), 0, sumA(mdPrev,'buppan_sales'), {yen:true, avg:true});
+
+  // ── ①-2 Limeからの仕入れ（BASE発注管理。店舗の売上ではなく「お店が買った額」）──
+  const shozaiCur  = shozaiA(month),      shozaiPrev  = shozaiA(prevMonth);
+  const shozaiBup  = shozaiA(month,'物販用'), shozaiGyo = shozaiA(month,'業務用');
+  const shozaiMib  = shozaiA(month,'未分類');
+  const cntCard = function(cls,label,cur,prev,unit,note){
+    const valueHtml='<span class="mk-value">'+fmt(cur)+'</span><span class="mk-unit">'+unit+'</span>';
+    const trendHtml=(prev!=null&&prev>0)?trendPctChip((cur-prev)/prev*100):'<span class="mk-trend-chip flat">—</span>';
+    return cardHtml(cls,label,valueHtml,'<div class="mk-target-line">'+(note||'目標 <b>—</b>')+'</div>',null,trendHtml,'—');
+  };
+  const gShozai =
+      valCard('royalty','Limeからの仕入れ合計', shozaiCur, 0, shozaiPrev, {yen:true})
+    + valCard('royalty','Limeからの仕入れ平均', shozaiCur, 0, shozaiPrev, {yen:true, avg:true})
+    + cntCard('sales',    'うち業務用', shozaiGyo, shozaiA(prevMonth,'業務用'), '円', '施術で使う材料')
+    + cntCard('retention','うち物販用', shozaiBup, shozaiA(prevMonth,'物販用'), '円', 'お客様に売る商品')
+    + (shozaiMib>0 ? cntCard('reappo','うち未分類', shozaiMib, shozaiA(prevMonth,'未分類'), '円', '商材区分タブが空の商品') : '')
+    + cntCard('new','今月まだ仕入れていない加盟店', noBuyStores.length, null, '店', '施術はあるのに仕入れ0');
 
   // ── ② 新規＋再アポ（初回契約＝店舗の決定力）──
   const curRate=rateOf(aNRc,aNR), tgtRate=rateOf(tNRc,tNR), prvRate=rateOf(pNRc,pNR);
@@ -3462,7 +3549,8 @@ function renderMainKpiRow(fstores, md, month){
     '<div class="mk-section">'+
       mkCollapseHead('store','店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span>')+
       '<div class="mk-collapse-body"'+mkBodyAttr('store')+'>'+
-        grp('store-sales',  'g-sales',  '💰 売上',          '2指標', gSales)+
+        grp('store-sales',  'g-sales',  '💰 売上',          '8指標', gSales)+
+        grp('store-shozai', 'g-nr',     '📦 Limeからの仕入れ', (shozaiMib>0?'6指標':'5指標'), gShozai)+
         grp('store-nr',     'g-nr',     '🎯 新規＋再アポ',  '4指標', gNR)+
         grp('store-new',    'g-new',    '🆕 新規のみ',      '4指標', gNew)+
         grp('store-reappo', 'g-reappo', '🔁 再アポのみ',    '4指標', gReappo)+
@@ -3883,6 +3971,10 @@ function renderList(){
   const getKpiVal = (s) => {
     if (!md[s]) return -1;
     if (curKpi === 'total_sales') return md[s].total_sales || 0;
+    if (curKpi === 'new_sales') return md[s].new_sales || 0;
+    if (curKpi === 'repeat_sales') return md[s].repeat_sales || 0;
+    if (curKpi === 'buppan_sales') return md[s].buppan_sales || 0;
+    if (curKpi === 'shozai_purchase') return shozaiTotalOf(s, curMonth);
     if (curKpi === 'new_count') return md[s].new_count || 0;
     if (curKpi === 'new_contract_count') return md[s].new_contract_count || 0;
     if (curKpi === 'new_contract_unit_price') return md[s].new_contract_unit_price || 0;
@@ -3975,6 +4067,11 @@ function renderList(){
       const makeKpiFocusCard = (kpi) => {
         const KPI_DEF = {
           total_sales:             { label:'総売上',     unit:'円', getValue: d=>d.total_sales, getTgt: t=>t&&t.total_sales, fmt: fmt, isYen: true },
+          // ▼ 誰から入った売上か・物販・仕入れ（目標は無いので getTgt は null 返し）
+          new_sales:               { label:'新規売上',   unit:'円', getValue: d=>d.new_sales||0, getTgt: t=>null, fmt: fmt, isYen: true },
+          repeat_sales:            { label:'再来売上',   unit:'円', getValue: d=>d.repeat_sales||0, getTgt: t=>null, fmt: fmt, isYen: true },
+          buppan_sales:            { label:'物販売上',   unit:'円', getValue: d=>d.buppan_sales||0, getTgt: t=>null, fmt: fmt, isYen: true },
+          shozai_purchase:         { label:'Limeからの仕入れ', unit:'円', getValue: ()=>shozaiTotalOf(s, curMonth), getTgt: t=>null, fmt: fmt, isYen: true },
           new_count:               { label:'新規数',     unit:'人', getValue: d=>d.new_count, getTgt: t=>t&&t.new_count, fmt: v=>v, isYen: false },
           new_contract_count:      { label:'新規契約数', unit:'件', getValue: d=>d.new_contract_count, getTgt: t=>t&&t.new_contract_count, fmt: v=>v, isYen: false },
           new_contract_unit_price: { label:'新規契約単価', unit:'円', getValue: d=>d.new_contract_unit_price, getTgt: t=>t&&t.new_contract_unit_price, fmt: fmt, isYen: true },
@@ -4305,10 +4402,12 @@ function renderBrandBreakdown(store){
   brands.sort(function(a,b){ return (per[b].hpb_reserve||0)-(per[a].hpb_reserve||0); });
 
   let anySales = false, blankTotal = 0;
-  const tot = {reserve:0,hpb_reserve:0,visit:0,contract:0,sales:0};
+  const tot = {reserve:0,hpb_reserve:0,visit:0,contract:0,sales:0,new_sales:0,repeat_sales:0};
   brands.forEach(function(k){
     const b = per[k];
     if(b.sales!==null && b.sales!==undefined){ anySales=true; tot.sales += b.sales; }
+    if(b.new_sales!==null && b.new_sales!==undefined){ tot.new_sales += b.new_sales; }
+    if(b.repeat_sales!==null && b.repeat_sales!==undefined){ tot.repeat_sales += b.repeat_sales; }
     blankTotal += (b.blank_hold||0);
     tot.reserve += (b.reserve||0); tot.hpb_reserve += (b.hpb_reserve||0);
     tot.visit += (b.visit||0); tot.contract += (b.contract||0);
@@ -4324,7 +4423,7 @@ function renderBrandBreakdown(store){
 
   h += '<table class="bb-table"><thead><tr>'
      + '<th>ブランド</th><th>予約</th><th>HPB経由</th><th>来店</th><th>契約</th>'
-     + '<th>PV</th><th>CVR</th><th>ACR</th><th>売上</th>'
+     + '<th>PV</th><th>CVR</th><th>ACR</th><th>売上</th><th>新規売上</th><th>再来売上</th>'
      + '</tr></thead><tbody>';
 
   brands.forEach(function(k){
@@ -4341,6 +4440,8 @@ function renderBrandBreakdown(store){
       + '<td>'+(b.cvr===null||b.cvr===undefined?'<span class="bb-na">—</span>':(b.cvr+'%'))+'</td>'
       + '<td>'+(b.acr===null||b.acr===undefined?'<span class="bb-na">—</span>':(b.acr+'%'))+'</td>'
       + '<td>'+bbCell(bbNum(b.sales), '円', (b.sales===null||b.sales===undefined)?'BM会計':'')+'</td>'
+      + '<td>'+bbCell(bbNum(b.new_sales), '円', (b.new_sales===null||b.new_sales===undefined)?'BM会計':'')+'</td>'
+      + '<td>'+bbCell(bbNum(b.repeat_sales), '円', (b.repeat_sales===null||b.repeat_sales===undefined)?'BM会計':'')+'</td>'
       + '</tr>';
   });
 
@@ -4352,12 +4453,16 @@ function renderBrandBreakdown(store){
      + '<td>'+fmt(tot.contract)+'</td>'
      + '<td class="bb-na">—</td><td class="bb-na">—</td><td class="bb-na">—</td>'
      + '<td>'+(anySales?(fmt(tot.sales)+'円'):'<span class="bb-na">—</span>')+'</td>'
+     + '<td>'+(anySales?(fmt(tot.new_sales)+'円'):'<span class="bb-na">—</span>')+'</td>'
+     + '<td>'+(anySales?(fmt(tot.repeat_sales)+'円'):'<span class="bb-na">—</span>')+'</td>'
      + '</tr>';
   h += '</tbody></table>';
   h += '<div class="bb-note" style="margin-top:10px;margin-bottom:0">'
      + 'PV・CVR・ACR はHPBレポートの値をそのまま出しています（HPBのCVRは100%を超えることがあります）。'
      + '来店・契約はサロンボードの予約ステータス由来のため、'
      + 'BM会計の店舗では受付待ちのまま残る分が来店に数えられません。'
+     + '売上・新規売上・再来売上はサロンボード会計の店舗だけブランド別に出せます'
+     + '（BM会計は店舗単位の明細しか無いため「BM会計」と出ます）。'
      + '</div>';
   h += '</div>';
 
@@ -4522,6 +4627,103 @@ function renderTargetNameIssues(){
     + '<ul class="tn-list">'+items+'</ul>'
     + '</div>';
   el.style.display='';
+}
+
+/* ============================================================
+ *  Limeからの仕入れのお知らせ（画面の上）
+ *
+ *  ① 商材スプシの店名が店舗一覧と合わないもの
+ *       → その店の仕入れが画面に出ていない。「商材店名対応」タブに1行足す
+ *  ② 今月まだ仕入れていない加盟店（施術はあるのに仕入れ0）
+ *  ③ 施術はあるのに仕入れが少ない加盟店（1施術あたりが中位値の40%未満）
+ *  直営はBASEで買っていないので②③の対象外（GAS側で外している）。
+ * ============================================================ */
+function renderShozaiNotices(){
+  const el = document.getElementById('shozaiBar');
+  if(!el) return;
+  const issues = (typeof DATA!=='undefined' && DATA.shozai_name_issues) ? DATA.shozai_name_issues : [];
+  const al     = (typeof DATA!=='undefined' && DATA.shozai_alerts) ? DATA.shozai_alerts : null;
+  const noBuy  = (al && al.no_purchase) ? al.no_purchase : [];
+  const low    = (al && al.low) ? al.low : [];
+  const masterUrl = (typeof DATA!=='undefined' && DATA.master_url) ? DATA.master_url : '';
+  if(!issues.length && !noBuy.length && !low.length){ el.style.display='none'; el.innerHTML=''; return; }
+
+  const sig = 'shozai|' + issues.map(function(x){ return x.name; }).sort().join(',')
+            + '|' + (al?al.month:'') + '|' + noBuy.length + '|' + low.length;
+  let hidden = '';
+  try { hidden = localStorage.getItem('shozaiDismissed') || ''; } catch(e){}
+  if(hidden === sig){ el.style.display='none'; return; }
+
+  const mLabel = (al && al.month) ? (MONTH_MAP[al.month] || al.month) : '';
+  let h = '<div class="tn-wrap" style="background:#fffaf0;border-color:#f6ad55;border-left-color:#c05621">';
+  h += '<div class="tn-head">'
+     + '<span class="tn-badge" style="color:#7b341e">📦 Limeからの仕入れのお知らせ</span>'
+     + '<span class="tn-count" style="background:#feebc8;color:#7b341e">'
+       + (issues.length + (noBuy.length?1:0) + (low.length?1:0)) + '件</span>'
+     + '<button class="tn-close" style="color:#7b341e" onclick="dismissShozaiNotices()" title="閉じる">×</button>'
+     + '</div>';
+
+  if(issues.length){
+    h += '<div class="tn-note" style="color:#7b341e">商材スプシの店名が店舗一覧と合いません。'
+       + 'この店の<strong>仕入れが画面に出ていません</strong>。店舗一覧スプレッドシートの'
+       + '<strong>「商材店名対応」タブ</strong>に1行足してください'
+       + '（A列＝商材スプシの店名、B列＝店舗一覧の略称）。</div>'
+       + '<ul class="tn-list">'
+       + issues.map(function(x){
+           return '<li class="tn-item"><span class="tn-store">'+x.name+'</span>'
+                + '<span class="tn-months">'+fmt(x.amount||0)+'円</span>'
+                + '<span class="tn-reason">明細 '+(x.rows||0)+'行</span></li>';
+         }).join('')
+       + '</ul>';
+  }
+
+  if(noBuy.length){
+    const top = noBuy.slice(0, 12);
+    h += '<div class="tn-note" style="color:#7b341e;margin-top:10px">'
+       + '<strong>'+mLabel+'にまだ仕入れていない加盟店が '+noBuy.length+'店</strong>あります'
+       + '（施術はあるのに仕入れ0。施術の多い順）。</div>'
+       + '<ul class="tn-list">'
+       + top.map(function(x){
+           return '<li class="tn-item"><span class="tn-store">'+dispName(x.store)+'</span>'
+                + '<span class="tn-months">施術 '+fmt(x.treatments)+'件</span></li>';
+         }).join('')
+       + (noBuy.length>top.length
+            ? '<li class="tn-item"><span class="tn-reason">ほか '+(noBuy.length-top.length)+'店</span></li>' : '')
+       + '</ul>';
+  }
+
+  if(low.length){
+    h += '<div class="tn-note" style="color:#7b341e;margin-top:10px">'
+       + '施術はあるのに<strong>仕入れが少ない加盟店が '+low.length+'店</strong>あります'
+       + '（1施術あたりの仕入れ額が、加盟店の中位値 '+fmt(al.median_per_treatment||0)+'円の40%未満）。</div>'
+       + '<ul class="tn-list">'
+       + low.map(function(x){
+           return '<li class="tn-item"><span class="tn-store">'+dispName(x.store)+'</span>'
+                + '<span class="tn-months">1施術あたり '+fmt(x.per_treatment)+'円</span>'
+                + '<span class="tn-reason">施術 '+fmt(x.treatments)+'件 / 仕入れ '+fmt(x.purchase)+'円</span></li>';
+         }).join('')
+       + '</ul>';
+  }
+
+  if(masterUrl && issues.length){
+    h += '<a class="tn-open" style="background:#c05621" href="'+masterUrl+'" target="_blank" rel="noopener">'
+       + '📋 店舗一覧スプレッドシートを開く</a>';
+  }
+  h += '</div>';
+  el.innerHTML = h;
+  el.style.display = '';
+}
+
+function dismissShozaiNotices(){
+  const issues = (typeof DATA!=='undefined' && DATA.shozai_name_issues) ? DATA.shozai_name_issues : [];
+  const al     = (typeof DATA!=='undefined' && DATA.shozai_alerts) ? DATA.shozai_alerts : null;
+  const noBuy  = (al && al.no_purchase) ? al.no_purchase : [];
+  const low    = (al && al.low) ? al.low : [];
+  const sig = 'shozai|' + issues.map(function(x){ return x.name; }).sort().join(',')
+            + '|' + (al?al.month:'') + '|' + noBuy.length + '|' + low.length;
+  try { localStorage.setItem('shozaiDismissed', sig); } catch(e){}
+  const el = document.getElementById('shozaiBar');
+  if(el) el.style.display='none';
 }
 
 function dismissTargetNameIssues(){
@@ -4974,9 +5176,140 @@ function showDetail(store,d,tgt){
     staffSection.style.display = 'none';
   }
 
+  // 新規売上・再来売上・物販売上・Limeからの仕入れ（依頼35）
+  const szEl = document.getElementById('dShozaiSection');
+  if (szEl) {
+    try { szEl.innerHTML = renderStoreSalesMixHtml(store, curMonth); }
+    catch(e){ console.warn('売上の内訳・仕入れを出せません', e); szEl.innerHTML=''; }
+  }
+
   // 予約インサイト・効くワード・推奨アクション（予約CSV由来）
   const riEl = document.getElementById('dReserveInsights');
   if (riEl) riEl.innerHTML = detailExtraSectionsHtml(store);
+}
+
+/* ============================================================
+ *  店舗詳細：新規売上・再来売上・物販売上・Limeからの仕入れ（依頼35）
+ *
+ *  ・新規売上＋再来売上＝店舗売上（新規再来が空の会計があればその分だけ足りない）
+ *  ・再来比率＝再来売上 ÷（新規売上＋再来売上）
+ *  ・仕入れは actual_data とは別の枝（DATA.shozai_purchase）から引く
+ *  ・物販売上（お客様に売った額）と、物販用の仕入れ（Limeから買った額）を並べる
+ * ============================================================ */
+function renderStoreSalesMixHtml(store, month){
+  const md = DATA.data[month] || {};
+  const d  = md[store];
+  const rec = shozaiRecOf(store, month);
+  if(!d && !rec) return '';
+
+  const newS = d ? (d.new_sales||0) : 0;
+  const repS = d ? (d.repeat_sales||0) : 0;
+  const bupS = d ? (d.buppan_sales||0) : 0;
+  const tot  = d ? (d.total_sales||0) : 0;
+  const nr   = newS + repS;
+  const repRatio = nr>0 ? Math.round(repS/nr*1000)/10 : null;
+  const gap  = tot - nr;    // 新規再来が空の会計があるとここが残る
+
+  const box = function(label, sub, val, color, unit){
+    return '<div class="dkpi" style="border-top:3px solid '+color+'">'
+         + '<div class="dkpi-label" style="color:'+color+'">'+label+'</div>'
+         + '<div class="dkpi-sublabel">'+sub+'</div>'
+         + '<div class="dkpi-row"><span class="dkpi-actual" style="color:'+color+'">'+val+'</span>'
+         + (unit?'<span class="dkpi-dunit">'+unit+'</span>':'')+'</div></div>';
+  };
+
+  let h = '<div class="detail-section-label">💠 誰から入った売上か</div>';
+  h += '<div class="detail-kpis-2">'
+     + box('新規売上', '新規の会計の金額合計', fmt(newS), '#2b6cb0', '')
+     + box('再来売上', '再来の会計の金額合計', fmt(repS), '#dd6b20', '')
+     + box('再来比率', '再来売上 ÷（新規＋再来）', (repRatio==null?'—':repRatio), '#718096', repRatio==null?'':'%')
+     + box('物販売上', '会計の「店販」行の合計', fmt(bupS), '#a855f7', '')
+     + '</div>';
+  if(Math.abs(gap) >= 1){
+    h += '<div class="bb-note" style="margin-top:8px">新規売上＋再来売上が店舗売上と '
+       + fmt(Math.abs(gap)) + '円 ずれています（新規再来の欄が空の会計がある分です）。</div>';
+  }
+
+  // ── 仕入れ ──
+  const kind = (rec && rec.by_kind) ? rec.by_kind : {};
+  const pGyo = kind['業務用']||0, pBup = kind['物販用']||0, pMib = kind['未分類']||0;
+  const pTot = rec ? (rec.total||0) : 0;
+  const storeType = (DATA.store_type||{})[store] || '';
+  h += '<div class="detail-section-label" style="margin-top:18px">📦 Limeからの仕入れ</div>';
+  h += '<div class="detail-kpis-2">'
+     + box('仕入れ合計', 'BASE発注管理の合計金額', fmt(pTot), '#c05621', '')
+     + box('うち業務用', '施術で使う材料', fmt(pGyo), '#2f855a', '')
+     + box('うち物販用', 'お客様に売る商品', fmt(pBup), '#a855f7', '')
+     + (pMib>0 ? box('うち未分類', '商材区分タブが空の商品', fmt(pMib), '#718096', '') : '')
+     + '</div>';
+  if(pBup>0 || bupS>0){
+    const rate = pBup>0 ? Math.round(bupS/pBup*1000)/10 : null;
+    h += '<div class="bb-note" style="margin-top:8px">'
+       + '物販売上 <strong>'+fmt(bupS)+'円</strong> ／ 物販用の仕入れ <strong>'+fmt(pBup)+'円</strong>'
+       + (rate!=null ? '（売上は仕入れの '+rate+'%）' : '')
+       + '。仕入れた月と売れた月はずれるので、1か月だけでは判断できません。</div>';
+  }
+  if(!pTot){
+    h += '<div class="bb-note" style="margin-top:8px">'
+       + (storeType==='直営'
+            ? 'この月の仕入れはありません（直営はBASEで買っていないのが基本です）。'
+            : 'この月はまだ仕入れがありません。')
+       + '</div>';
+  }
+
+  // ── 月ごとの推移（直近6か月）──
+  const months = Object.keys(DATA.data||{});
+  const all = (DATA.shozai_purchase||{});
+  Object.keys(all).forEach(function(m){ if(months.indexOf(m)<0) months.push(m); });
+  months.sort();
+  const idx = months.indexOf(month);
+  const end = (idx<0 ? months.length : idx+1);
+  const show = months.slice(Math.max(0, end-6), end);
+  const rowsHtml = show.map(function(m){
+    const dm = (DATA.data[m]||{})[store];
+    const rm = shozaiRecOf(store, m);
+    const nS = dm?(dm.new_sales||0):0, rS = dm?(dm.repeat_sales||0):0;
+    const t2 = nS+rS;
+    const rr = t2>0 ? Math.round(rS/t2*1000)/10 : null;
+    return '<tr'+(m===month?' class="bb-total"':'')+'>'
+      + '<td>'+(MONTH_MAP[m]||m)+'</td>'
+      + '<td>'+(dm?fmt(dm.total_sales||0):'<span class="bb-na">—</span>')+'</td>'
+      + '<td>'+(dm?fmt(nS):'<span class="bb-na">—</span>')+'</td>'
+      + '<td>'+(dm?fmt(rS):'<span class="bb-na">—</span>')+'</td>'
+      + '<td>'+(rr==null?'<span class="bb-na">—</span>':(rr+'%'))+'</td>'
+      + '<td>'+(dm?fmt(dm.buppan_sales||0):'<span class="bb-na">—</span>')+'</td>'
+      + '<td>'+(rm?fmt(rm.total||0):'<span class="bb-na">—</span>')+'</td>'
+      + '</tr>';
+  }).join('');
+  if(show.length){
+    h += '<div class="bb-wrap" style="margin-top:14px">'
+       + '<div class="bb-head"><div class="bb-title">📈 月ごとの推移</div></div>'
+       + '<table class="bb-table"><thead><tr>'
+       + '<th>月</th><th>店舗売上</th><th>新規売上</th><th>再来売上</th><th>再来比率</th>'
+       + '<th>物販売上</th><th>仕入れ</th></tr></thead><tbody>'
+       + rowsHtml + '</tbody></table>'
+       + '<div class="bb-note" style="margin-top:8px;margin-bottom:0">'
+       + '仕入れのデータは2026年9月からです。それより前の月は「—」になります。</div>'
+       + '</div>';
+  }
+
+  // ── よく買う商材 ──
+  if(rec && rec.items){
+    const kb = (DATA.shozai_kubun||{});
+    const its = Object.keys(rec.items).map(function(k){
+                    return {name:k, amt:rec.items[k], kind:(kb[k]||'未分類')};
+                  }).sort(function(a,b){ return b.amt-a.amt; }).slice(0, 8);
+    if(its.length){
+      h += '<div class="bb-wrap" style="margin-top:14px">'
+         + '<div class="bb-head"><div class="bb-title">🧴 '+(MONTH_MAP[month]||month)+'によく買った商材</div></div>'
+         + '<table class="bb-table"><thead><tr><th>商品</th><th>区分</th><th>金額</th></tr></thead><tbody>'
+         + its.map(function(x){
+             return '<tr><td>'+x.name+'</td><td>'+x.kind+'</td><td>'+fmt(x.amt)+'円</td></tr>';
+           }).join('')
+         + '</tbody></table></div>';
+    }
+  }
+  return h;
 }
 
 function goList(){
@@ -5000,6 +5333,10 @@ function setKpiSort(kpi) {
   // ボタンのactive状態とアイコンを更新
   const map = {
     total_sales: 'kbSales',
+    new_sales: 'kbNewSales',
+    repeat_sales: 'kbRepSales',
+    buppan_sales: 'kbBuppan',
+    shozai_purchase: 'kbShozai',
     new_count: 'kbNew',
     new_contract_count: 'kbContract',
     new_contract_unit_price: 'kbPrice',
@@ -5012,6 +5349,10 @@ function setKpiSort(kpi) {
   };
   const labels = {
     total_sales: '💰 売上',
+    new_sales: '🆕 新規売上',
+    repeat_sales: '🔁 再来売上',
+    buppan_sales: '🛍 物販売上',
+    shozai_purchase: '📦 仕入れ',
     new_count: '👤 新規数',
     new_contract_count: '📋 契約数',
     new_contract_unit_price: '💎 契約単価',
