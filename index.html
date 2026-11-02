@@ -2241,7 +2241,7 @@ async function fetchData(){
     DATA.shozai_purchase       = json.shozai_purchase||{};
     DATA.shozai_name_issues    = json.shozai_name_issues||[];
     DATA.shozai_kubun          = json.shozai_kubun||{};
-    DATA.shozai_alerts         = json.shozai_alerts||{month:'',no_purchase:[],low:[],median_per_treatment:0};
+    DATA.shozai_alerts         = json.shozai_alerts||{month:'',prev_month:'',no_purchase:[],low:[],median_per_treatment:0};
     // 入力待ちの新店を一番上に出す
     try { renderNeedsInput(); } catch(e){ console.warn('新店のお知らせを出せません', e); }
     try { renderAccountingAlerts(); } catch(e){ console.warn('会計のお知らせを出せません', e); }
@@ -3338,7 +3338,9 @@ function renderMainKpiRow(fstores, md, month){
     fstores.forEach(function(s){ t += kind ? shozaiKindOf(s, ym, kind) : shozaiTotalOf(s, ym); });
     return t;
   };
-  // 今月まだ仕入れていない加盟店（施術はあるのに仕入れ0）。直営は対象外
+  // 仕入れが止まっている加盟店（先月も今月も0円＋今月の施術1件以上）。直営は対象外
+  //   「今月だけ0」だと買わない月がある店まで出てしまうため、2か月続けて0で見る
+  //   （2026-11-02 基準変更。GAS側の buildShozaiAlerts_ と同じ数え方）
   const noBuyStores = (function(){
     const out=[];
     fstores.forEach(function(s){
@@ -3346,7 +3348,7 @@ function renderMainKpiRow(fstores, md, month){
       if(t.indexOf('加盟')<0) return;
       const d=md[s];
       if(!d || !((d.total_treatments||0)>0)) return;
-      if(!shozaiTotalOf(s, month)) out.push(s);
+      if(!shozaiTotalOf(s, month) && !shozaiTotalOf(s, prevMonth)) out.push(s);
     });
     return out;
   })();
@@ -3492,7 +3494,7 @@ function renderMainKpiRow(fstores, md, month){
     + cntCard('sales',    'うち業務用', shozaiGyo, shozaiA(prevMonth,'業務用'), '円', '施術で使う材料')
     + cntCard('retention','うち物販用', shozaiBup, shozaiA(prevMonth,'物販用'), '円', 'お客様に売る商品')
     + (shozaiMib>0 ? cntCard('reappo','うち未分類', shozaiMib, shozaiA(prevMonth,'未分類'), '円', '商材区分タブが空の商品') : '')
-    + cntCard('new','今月まだ仕入れていない加盟店', noBuyStores.length, null, '店', '施術はあるのに仕入れ0');
+    + cntCard('new','仕入れが止まっている加盟店', noBuyStores.length, null, '店', '先月も今月も0円＋施術あり');
 
   // ── ② 新規＋再アポ（初回契約＝店舗の決定力）──
   const curRate=rateOf(aNRc,aNR), tgtRate=rateOf(tNRc,tNR), prvRate=rateOf(pNRc,pNR);
@@ -4679,9 +4681,10 @@ function renderShozaiNotices(){
 
   if(noBuy.length){
     const top = noBuy.slice(0, 12);
+    const pLabel = (al && al.prev_month) ? (MONTH_MAP[al.prev_month] || al.prev_month) : '先月';
     h += '<div class="tn-note" style="color:#7b341e;margin-top:10px">'
-       + '<strong>'+mLabel+'にまだ仕入れていない加盟店が '+noBuy.length+'店</strong>あります'
-       + '（施術はあるのに仕入れ0。施術の多い順）。</div>'
+       + '<strong>仕入れが止まっている加盟店が '+noBuy.length+'店</strong>あります'
+       + '（'+pLabel+'も'+mLabel+'も仕入れ0円で、'+mLabel+'の施術は1件以上。施術の多い順）。</div>'
        + '<ul class="tn-list">'
        + top.map(function(x){
            return '<li class="tn-item"><span class="tn-store">'+dispName(x.store)+'</span>'

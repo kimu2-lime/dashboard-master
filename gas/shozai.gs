@@ -196,7 +196,11 @@ function buildShozai_(since, knownShorts) {
 }
 
 // 仕入れのアラート。
-//   ① 今月まだ仕入れていない加盟店（施術があるのに仕入れ0）… 施術の多い順
+//   ① 仕入れが止まっている加盟店
+//      … 先月も今月も仕入れ0円 かつ 今月の施術が1件以上。施術の多い順
+//      （2026-11-02 基準変更。「今月だけ0」だと51店出てしまい、
+//        LMハーブはまとめ買いなので買わない月があるのが普通だった。
+//        2か月続けて0なら本当に止まっている、という見方に変えた）
 //   ② 施術はあるのに直近の仕入れが少ない加盟店
 //      … 1施術あたりの仕入れ額が、加盟店の中位値の40%未満
 //   直営はBASEで買っていないので対象外（キム兄さんの指示）。
@@ -204,8 +208,17 @@ function buildShozai_(since, knownShorts) {
 const SHOZAI_LOW_RATIO = 0.4;
 const SHOZAI_LOW_MIN_TREATMENTS = 20;
 
+// YYYYMM の1か月前。actual_data のキーに頼らず自分で数える
+//   （仕入れは2026年9月からなので、月が抜けていることがある）
+function shozaiPrevMonth_(ym) {
+  const y = parseInt(String(ym).slice(0, 4), 10);
+  const m = parseInt(String(ym).slice(4, 6), 10);
+  if (!y || !m) return '';
+  return m === 1 ? String(y - 1) + '12' : String(y) + ('0' + (m - 1)).slice(-2);
+}
+
 function buildShozaiAlerts_(purchase, actual, store_type, store_closed_month) {
-  const out = { month: '', no_purchase: [], low: [], median_per_treatment: 0 };
+  const out = { month: '', prev_month: '', no_purchase: [], low: [], median_per_treatment: 0 };
   const months = Object.keys(actual || {}).sort();
   if (!months.length) return out;
   const month = months[months.length - 1];
@@ -213,6 +226,9 @@ function buildShozaiAlerts_(purchase, actual, store_type, store_closed_month) {
 
   const am = actual[month] || {};
   const pm = (purchase || {})[month] || {};
+  const prev = shozaiPrevMonth_(month);
+  const pPrev = (purchase || {})[prev] || {};
+  out.prev_month = prev;
 
   const isKamel = function (st) {
     const t = store_type ? store_type[st] : '';
@@ -226,7 +242,9 @@ function buildShozaiAlerts_(purchase, actual, store_type, store_closed_month) {
     if (!isKamel(st)) return;
     const tr = am[st].total_treatments || 0;
     const p = pm[st] ? pm[st].total : 0;
-    if (tr > 0 && !p) {
+    const pPrevAmt = pPrev[st] ? pPrev[st].total : 0;
+    // 先月も今月も0円、かつ今月の施術が1件以上
+    if (tr > 0 && !p && !pPrevAmt) {
       out.no_purchase.push({ store: st, treatments: tr });
     }
     if (tr >= SHOZAI_LOW_MIN_TREATMENTS && p > 0) {
@@ -246,7 +264,8 @@ function buildShozaiAlerts_(purchase, actual, store_type, store_closed_month) {
                    .sort(function (a, b) { return a.per_treatment - b.per_treatment; });
   }
 
-  Logger.log('仕入れアラート(' + month + '): 未仕入れ ' + out.no_purchase.length + '店 / '
+  Logger.log('仕入れアラート(' + prev + '〜' + month + '): 2か月続けて仕入れ0 '
+           + out.no_purchase.length + '店 / '
            + '少ない ' + out.low.length + '店（1施術あたり中位値 ' + out.median_per_treatment + '円）');
   return out;
 }
