@@ -3480,8 +3480,13 @@ function renderMainKpiRow(fstores, md, month){
     + valCard('retention','物販売上平均', sumA(md,'buppan_sales'), 0, sumA(mdPrev,'buppan_sales'), {yen:true, avg:true});
 
   // ── ①-2 Limeからの仕入れ（BASE発注管理。店舗の売上ではなく「お店が買った額」）──
-  const shozaiCur  = shozaiA(month),      shozaiPrev  = shozaiA(prevMonth);
-  const shozaiBup  = shozaiA(month,'物販用'), shozaiGyo = shozaiA(month,'業務用');
+  //   区分は店舗一覧スプシの「商材区分」タブそのまま（物販専用／兼用／業務用／値引き）。
+  //   兼用は施術にも物販にも使うので、物販売上と比べるのは「物販専用」だけにする。
+  //   （2026-11-02 依頼35d。兼用を全部物販として比べると売り切れているように見える）
+  const shozaiCur  = shozaiA(month),            shozaiPrev = shozaiA(prevMonth);
+  const shozaiGyo  = shozaiA(month,'業務用');
+  const shozaiKen  = shozaiA(month,'兼用');
+  const shozaiBup  = shozaiA(month,'物販専用');
   const shozaiMib  = shozaiA(month,'未分類');
   const cntCard = function(cls,label,cur,prev,unit,note){
     const valueHtml='<span class="mk-value">'+fmt(cur)+'</span><span class="mk-unit">'+unit+'</span>';
@@ -3491,8 +3496,9 @@ function renderMainKpiRow(fstores, md, month){
   const gShozai =
       valCard('royalty','Limeからの仕入れ合計', shozaiCur, 0, shozaiPrev, {yen:true})
     + valCard('royalty','Limeからの仕入れ平均', shozaiCur, 0, shozaiPrev, {yen:true, avg:true})
-    + cntCard('sales',    'うち業務用', shozaiGyo, shozaiA(prevMonth,'業務用'), '円', '施術で使う材料')
-    + cntCard('retention','うち物販用', shozaiBup, shozaiA(prevMonth,'物販用'), '円', 'お客様に売る商品')
+    + cntCard('sales',    'うち業務用',  shozaiGyo, shozaiA(prevMonth,'業務用'),  '円', '施術で使う材料')
+    + cntCard('lime',     'うち兼用',    shozaiKen, shozaiA(prevMonth,'兼用'),    '円', '施術にも物販にも使う')
+    + cntCard('retention','うち物販専用', shozaiBup, shozaiA(prevMonth,'物販専用'), '円', 'お客様に売る商品')
     + (shozaiMib>0 ? cntCard('reappo','うち未分類', shozaiMib, shozaiA(prevMonth,'未分類'), '円', '商材区分タブが空の商品') : '')
     + cntCard('new','仕入れが止まっている加盟店', noBuyStores.length, null, '店', '先月も今月も0円＋施術あり');
 
@@ -3552,7 +3558,7 @@ function renderMainKpiRow(fstores, md, month){
       mkCollapseHead('store','店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span>')+
       '<div class="mk-collapse-body"'+mkBodyAttr('store')+'>'+
         grp('store-sales',  'g-sales',  '💰 売上',          '8指標', gSales)+
-        grp('store-shozai', 'g-nr',     '📦 Limeからの仕入れ', (shozaiMib>0?'6指標':'5指標'), gShozai)+
+        grp('store-shozai', 'g-nr',     '📦 Limeからの仕入れ', (shozaiMib>0?'7指標':'6指標'), gShozai)+
         grp('store-nr',     'g-nr',     '🎯 新規＋再アポ',  '4指標', gNR)+
         grp('store-new',    'g-new',    '🆕 新規のみ',      '4指標', gNew)+
         grp('store-reappo', 'g-reappo', '🔁 再アポのみ',    '4指標', gReappo)+
@@ -5235,22 +5241,29 @@ function renderStoreSalesMixHtml(store, month){
 
   // ── 仕入れ ──
   const kind = (rec && rec.by_kind) ? rec.by_kind : {};
-  const pGyo = kind['業務用']||0, pBup = kind['物販用']||0, pMib = kind['未分類']||0;
+  const pGyo = kind['業務用']||0, pKen = kind['兼用']||0;
+  const pBup = kind['物販専用']||0, pMib = kind['未分類']||0;
   const pTot = rec ? (rec.total||0) : 0;
   const storeType = (DATA.store_type||{})[store] || '';
   h += '<div class="detail-section-label" style="margin-top:18px">📦 Limeからの仕入れ</div>';
   h += '<div class="detail-kpis-2">'
      + box('仕入れ合計', 'BASE発注管理の合計金額', fmt(pTot), '#c05621', '')
      + box('うち業務用', '施術で使う材料', fmt(pGyo), '#2f855a', '')
-     + box('うち物販用', 'お客様に売る商品', fmt(pBup), '#a855f7', '')
+     + box('うち兼用', '施術にも物販にも使う', fmt(pKen), '#2b6cb0', '')
+     + box('うち物販専用', 'お客様に売る商品', fmt(pBup), '#a855f7', '')
      + (pMib>0 ? box('うち未分類', '商材区分タブが空の商品', fmt(pMib), '#718096', '') : '')
      + '</div>';
-  if(pBup>0 || bupS>0){
+  if(pBup>0 || pKen>0 || bupS>0){
     const rate = pBup>0 ? Math.round(bupS/pBup*1000)/10 : null;
     h += '<div class="bb-note" style="margin-top:8px">'
-       + '物販売上 <strong>'+fmt(bupS)+'円</strong> ／ 物販用の仕入れ <strong>'+fmt(pBup)+'円</strong>'
+       + '物販売上 <strong>'+fmt(bupS)+'円</strong> ／ <strong>物販専用</strong>の仕入れ <strong>'+fmt(pBup)+'円</strong>'
        + (rate!=null ? '（売上は仕入れの '+rate+'%）' : '')
        + '。仕入れた月と売れた月はずれるので、1か月だけでは判断できません。</div>';
+    if(pKen>0){
+      h += '<div class="bb-note" style="margin-top:4px">'
+         + 'このほかに<strong>兼用</strong>の仕入れが '+fmt(pKen)+'円 あります。'
+         + '洗顔料・乳液・エッセンスは施術にも使うので、上の比較には入れていません。</div>';
+    }
   }
   if(!pTot){
     h += '<div class="bb-note" style="margin-top:8px">'
