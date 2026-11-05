@@ -3511,6 +3511,7 @@ function renderMainKpiRow(fstores, md, month){
   const shozaiMib  = shozaiA(month,'未分類');
   // ▼ 回数券の目印が入っていない店（消化はあるのに終了/継続が0）
   const markMissing = (typeof keizokuMarkMissingStores === 'function') ? keizokuMarkMissingStores(month) : [];
+  const markNone    = (typeof keizokuNoMarkStores === 'function')       ? keizokuNoMarkStores(month)       : [];
   const cntCard = function(cls,label,cur,prev,unit,note){
     const valueHtml='<span class="mk-value">'+fmt(cur)+'</span><span class="mk-unit">'+unit+'</span>';
     const trendHtml=(prev!=null&&prev>0)?trendPctChip((cur-prev)/prev*100):'<span class="mk-trend-chip flat">—</span>';
@@ -3562,7 +3563,8 @@ function renderMainKpiRow(fstores, md, month){
         rateOf(sumA(mdPrev,'keizoku_continue_count'), sumA(mdPrev,'keizoku_end_count')))
     + valCard('retention','継続契約数平均', sumA(md,'keizoku_continue_count'), tK('keizoku_continue_count'), sumA(mdPrev,'keizoku_continue_count'), {avg:true, unit:'件'})
     + priceCard('retention','継続契約単価平均', sumA(md,'keizoku_continue_sales'), sumA(md,'keizoku_continue_count'), tK('keizoku_continue_sales'), tK('keizoku_continue_count'))
-    + cntCard('new','目印が入っていない店', markMissing.length, null, '店', '消化はあるのに終了/継続が0');
+    + cntCard('new','目印が入っていない店', markMissing.length, null, '店', '消化はあるのに終了/継続が0')
+    + cntCard('new','目印が1件もない店', markNone.length, null, '店', '回数券は売っているのに目印0');
 
   // ── ⑥ 回数券売上（依頼42）：いつ払われたかで2つに分ける ──
   //   ①契約時＝メニューに「契約」を含む行　②消化時＝「消化」を含む行（オプションは除く）
@@ -3597,7 +3599,7 @@ function renderMainKpiRow(fstores, md, month){
         grp('store-nr',     'g-nr',     '🎯 新規＋再アポ',  '4指標', gNR)+
         grp('store-new',    'g-new',    '🆕 新規のみ',      '4指標', gNew)+
         grp('store-reappo', 'g-reappo', '🔁 再アポのみ',    '4指標', gReappo)+
-        grp('store-keizoku','g-keizoku','🔄 継続のみ<span class="keizoku-fixnote">11/5に計算を修正（それ以前の表示は高く出ていました）</span>', '5指標', gKeizoku)+
+        grp('store-keizoku','g-keizoku','🔄 継続のみ<span class="keizoku-fixnote">11/5に計算を修正（それ以前の表示は高く出ていました）</span>', '6指標', gKeizoku)+
         grp('store-kaisuken','g-sales',  '🎟 回数券売上（契約時／消化時）', '5指標', gKaisuken)+
       '</div>'+
     '</div>';
@@ -4703,53 +4705,116 @@ function keizokuMarkMissingStores(month){
   return out;
 }
 
+/* 目印が1件もない店（消化も終了/継続も0）。
+   ただし回数券を売っていない店は出さないので、直近3か月に回数券の契約（契約時の入金）
+   がある店だけに絞る。2026-11-05 依頼。 */
+function keizokuNoMarkStores(month){
+  const md = (DATA.data && DATA.data[month]) ? DATA.data[month] : {};
+  const m1 = getPrevMonth(month), m2 = getPrevMonth(m1);
+  const months = [month, m1, m2];
+  const out = [];
+  Object.keys(md).forEach(function(st){
+    const d = md[st] || {};
+    const closed = DATA.store_closed_month && DATA.store_closed_month[st];
+    if (closed && String(month) > String(closed)) return;
+    // 目印が1件もない（消化の目印も、終了/継続/追加の目印も無い）
+    if ((d.keizoku_shouka_count || 0) !== 0) return;
+    if ((d.keizoku_end_count    || 0) !== 0) return;
+    // 直近3か月に回数券の契約があるか
+    let sales = 0;
+    months.forEach(function(m){
+      const dd = (DATA.data && DATA.data[m] && DATA.data[m][st]) ? DATA.data[m][st] : null;
+      if (dd) sales += (dd.kaisuken_contract_sales || 0);
+    });
+    if (sales <= 0) return;
+    out.push({ store: st, sales: sales,
+               person: (DATA.store_person && DATA.store_person[st]) || '担当者未設定' });
+  });
+  out.sort(function(a,b){ return b.sales - a.sales; });
+  return out;
+}
+
 function renderKeizokuMarkNotices(){
   const el = document.getElementById('keizokuMarkBar');
   if(!el) return;
   const month = curMonth;
-  const list = keizokuMarkMissingStores(month);
-  if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
+  const list   = keizokuMarkMissingStores(month);
+  const noMark = keizokuNoMarkStores(month);
+  if(!list.length && !noMark.length){ el.style.display='none'; el.innerHTML=''; return; }
 
-  const sig = 'kmark|' + month + '|' + list.map(function(x){ return x.store; }).sort().join(',');
+  const sig = 'kmark|' + month
+            + '|' + list.map(function(x){ return x.store; }).sort().join(',')
+            + '|none:' + noMark.map(function(x){ return x.store; }).sort().join(',');
   let hidden = '';
   try { hidden = localStorage.getItem('keizokuMarkDismissed') || ''; } catch(e){}
   if(hidden === sig){ el.style.display='none'; return; }
 
-  // 担当者ごとにまとめる（SVが自分の店を探しやすいように）
-  const byPerson = {};
-  list.forEach(function(x){ (byPerson[x.person] = byPerson[x.person] || []).push(x); });
-  const persons = Object.keys(byPerson).sort(function(a,b){ return byPerson[b].length - byPerson[a].length; });
   const mLabel = MONTH_MAP[month] || month;
+
+  // 担当者ごとにまとめる（SVが自分の店を探しやすいように）
+  const groupByPerson = function(rows){
+    const by = {};
+    rows.forEach(function(x){ (by[x.person] = by[x.person] || []).push(x); });
+    return Object.keys(by).sort(function(a,b){ return by[b].length - by[a].length; })
+      .map(function(p){ return { person: p, rows: by[p] }; });
+  };
 
   let h = '<div class="tn-wrap" style="background:#fffbeb;border-color:#fcd34d;border-left-color:#b45309">';
   h += '<div class="tn-head">'
      + '<span class="tn-badge" style="color:#92400e">🔄 回数券の目印が入っていません</span>'
-     + '<span class="tn-count" style="background:#fde68a;color:#92400e">'+list.length+'店</span>'
+     + '<span class="tn-count" style="background:#fde68a;color:#92400e">'+(list.length + noMark.length)+'店</span>'
      + '<button class="tn-close" style="color:#92400e" onclick="dismissKeizokuMarkNotices()" title="閉じる">×</button>'
      + '</div>';
-  h += '<div class="tn-note" style="color:#92400e">'
-     + mLabel+'は<strong>「消化」の目印は入れているのに、「終了／継続／追加」の目印が0件</strong>の店です。'
-     + 'この店は<strong>継続率が出ません</strong>（分母が0のため「—」になります）。'
-     + '会計のときにサービス行で目印を選ぶよう、担当者から声をかけてください。</div>';
-  persons.forEach(function(p){
-    const rows = byPerson[p];
-    h += '<div class="tn-note" style="color:#92400e;margin-top:8px"><strong>'+p+'</strong>（'+rows.length+'店）</div>'
-       + '<ul class="tn-list">'
-       + rows.map(function(x){
-           return '<li class="tn-item"><span class="tn-store">'+dispName(x.store)+'</span>'
-                + '<span class="tn-months">消化 '+x.shouka+'件</span>'
-                + '<span class="tn-reason">終了/継続 0件</span></li>';
-         }).join('')
-       + '</ul>';
-  });
+
+  // ① 消化は入れているのに、終了/継続/追加だけ0件
+  if(list.length){
+    h += '<div class="tn-note" style="color:#92400e">'
+       + '<strong>①「終了／継続／追加」の目印だけ0件：'+list.length+'店</strong><br>'
+       + mLabel+'は「消化」の目印は入れているのに、終わりの目印が0件です。'
+       + 'この店は<strong>継続率が出ません</strong>（分母が0のため「—」になります）。'
+       + '会計のときにサービス行で目印を選ぶよう、担当者から声をかけてください。</div>';
+    groupByPerson(list).forEach(function(g){
+      h += '<div class="tn-note" style="color:#92400e;margin-top:8px"><strong>'+g.person+'</strong>（'+g.rows.length+'店）</div>'
+         + '<ul class="tn-list">'
+         + g.rows.map(function(x){
+             return '<li class="tn-item"><span class="tn-store">'+dispName(x.store)+'</span>'
+                  + '<span class="tn-months">消化 '+x.shouka+'件</span>'
+                  + '<span class="tn-reason">終了/継続 0件</span></li>';
+           }).join('')
+         + '</ul>';
+    });
+  }
+
+  // ② 目印が1件もない（回数券は売っている店だけ）
+  if(noMark.length){
+    h += '<div class="tn-note" style="color:#92400e;margin-top:'+(list.length?'14px':'0')+'">'
+       + '<strong>②「目印が1件もない」：'+noMark.length+'店</strong><br>'
+       + mLabel+'は消化・終了・継続・追加の目印が<strong>どれも0件</strong>です。'
+       + '回数券の契約は直近3か月にあるので（金額はその3か月の合計）、'
+       + '<strong>回数券は売っているのに会計に目印を入れていない</strong>状態です。'
+       + 'この店も継続率が出ません。</div>';
+    groupByPerson(noMark).forEach(function(g){
+      h += '<div class="tn-note" style="color:#92400e;margin-top:8px"><strong>'+g.person+'</strong>（'+g.rows.length+'店）</div>'
+         + '<ul class="tn-list">'
+         + g.rows.map(function(x){
+             return '<li class="tn-item"><span class="tn-store">'+dispName(x.store)+'</span>'
+                  + '<span class="tn-months">回数券契約 '+fmt(x.sales)+'</span>'
+                  + '<span class="tn-reason">目印 0件</span></li>';
+           }).join('')
+         + '</ul>';
+    });
+  }
   h += '</div>';
   el.innerHTML = h;
   el.style.display = '';
 }
 
 function dismissKeizokuMarkNotices(){
-  const list = keizokuMarkMissingStores(curMonth);
-  const sig = 'kmark|' + curMonth + '|' + list.map(function(x){ return x.store; }).sort().join(',');
+  const list   = keizokuMarkMissingStores(curMonth);
+  const noMark = keizokuNoMarkStores(curMonth);
+  const sig = 'kmark|' + curMonth
+            + '|' + list.map(function(x){ return x.store; }).sort().join(',')
+            + '|none:' + noMark.map(function(x){ return x.store; }).sort().join(',');
   try { localStorage.setItem('keizokuMarkDismissed', sig); } catch(e){}
   const el = document.getElementById('keizokuMarkBar');
   if(el){ el.style.display='none'; }
