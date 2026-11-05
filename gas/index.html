@@ -210,6 +210,17 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .staff-phase-row .v.good{color:#38b06c}
 .staff-phase-row .v.mid {color:#d97706}
 .staff-phase-row .v.low {color:#e74c3c}
+/* ▼ スタッフカードの回数券売上（依頼42） */
+.staff-kaisuken-row{margin-top:9px;padding:7px 11px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;
+  font-size:11px;color:#9a3412;font-weight:700;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+.staff-kaisuken-row b{font-size:13px;font-weight:800;color:#7c2d12}
+.staff-kaisuken-sum{margin:0 0 12px;padding:10px 14px;background:linear-gradient(135deg,#fff7ed,#fffaf5);
+  border:1px solid #fdba74;border-left:4px solid #f97316;border-radius:11px;
+  font-size:12px;color:#9a3412;font-weight:700;display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline}
+.staff-kaisuken-sum b{font-size:15px;font-weight:800;color:#7c2d12}
+/* ▼ 継続率の注記 */
+.keizoku-fixnote{font-size:10px;font-weight:600;color:#b45309;background:#fffbeb;border:1px solid #fcd34d;
+  border-radius:6px;padding:1px 6px;margin-left:8px;white-space:nowrap}
 /* 旧 .staff-metrics は後方互換のため残す（未使用） */
 .staff-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 @media(max-width:600px){.staff-metrics{grid-template-columns:repeat(3,1fr)}}
@@ -1295,6 +1306,7 @@ body.mobile .side-menu-overlay{display:block!important}
 
 <!-- Limeからの仕入れ（店名が合わない／今月まだ仕入れていない加盟店）のお知らせ -->
 <div id="shozaiBar" style="display:none"></div>
+<div id="keizokuMarkBar" style="display:none"></div>
 
 <!-- 設定モーダル -->
 <div class="modal-overlay" id="settingsModal">
@@ -1605,7 +1617,7 @@ body.mobile .side-menu-overlay{display:block!important}
       </div>
 
       <!-- ▼ 継続フェーズ -->
-      <div class="phase-label retention">🔄 継続フェーズ<span class="phase-sub">終了・継続・追加で継続意思を評価</span></div>
+      <div class="phase-label retention">🔄 継続フェーズ<span class="phase-sub">終了・継続・追加で継続意思を評価</span><span class="keizoku-fixnote">11/5に計算を修正（それ以前の表示は高く出ていました）</span></div>
       <div class="detail-kpis-5">
         <div class="dkpi retention-end">
           <div class="dkpi-icon">⌛</div><div class="dkpi-label">継続対象数</div>
@@ -1746,6 +1758,9 @@ body.mobile .side-menu-overlay{display:block!important}
           <button class="ranking-sort-btn"        id="rsNew"     onclick="setRankingSort('new_count')">👤 新規数</button>
           <button class="ranking-sort-btn"        id="rsContract" onclick="setRankingSort('new_contract_count')">📋 契約数</button>
           <button class="ranking-sort-btn"        id="rsRate"    onclick="setRankingSort('new_contract_rate')">📈 契約率</button>
+          <button class="ranking-sort-btn"        id="rsKsCont"  onclick="setRankingSort('kaisuken_contract_sales')">🎟 回数券(契約時)</button>
+          <button class="ranking-sort-btn"        id="rsKsUse"   onclick="setRankingSort('kaisuken_shouka_sales')">🎟 回数券(消化時)</button>
+          <button class="ranking-sort-btn"        id="rsKsAll"   onclick="setRankingSort('kaisuken_total_sales')">🎟 回数券合計</button>
         </div>
       </div>
       <div class="ranking-table-wrap">
@@ -1759,6 +1774,9 @@ body.mobile .side-menu-overlay{display:block!important}
               <th id="thNew"     onclick="setRankingSort('new_count')"         >新規数<span class="sort-arrow">▼</span></th>
               <th id="thContract" onclick="setRankingSort('new_contract_count')">契約数<span class="sort-arrow">▼</span></th>
               <th id="thRate"    onclick="setRankingSort('new_contract_rate')" >契約率<span class="sort-arrow">▼</span></th>
+              <th id="thKsCont"  onclick="setRankingSort('kaisuken_contract_sales')">回数券売上<br><span style="font-size:10px;font-weight:600">（契約時）</span><span class="sort-arrow">▼</span></th>
+              <th id="thKsUse"   onclick="setRankingSort('kaisuken_shouka_sales')"  >回数券売上<br><span style="font-size:10px;font-weight:600">（消化時）</span><span class="sort-arrow">▼</span></th>
+              <th id="thKsAll"   onclick="setRankingSort('kaisuken_total_sales')"   >回数券売上<br><span style="font-size:10px;font-weight:600">合計</span><span class="sort-arrow">▼</span></th>
             </tr>
           </thead>
           <tbody id="rankingBody"></tbody>
@@ -2249,6 +2267,7 @@ async function fetchData(){
     try { renderAccountingAlerts(); } catch(e){ console.warn('会計のお知らせを出せません', e); }
     try { renderTargetNameIssues(); } catch(e){ console.warn('目標の店名のお知らせを出せません', e); }
     try { renderShozaiNotices(); } catch(e){ console.warn('仕入れのお知らせを出せません', e); }
+    try { renderKeizokuMarkNotices(); } catch(e){ console.warn('回数券の目印のお知らせを出せません', e); }
     // storesをリセット（古いフル名データを完全除去）
     DATA.stores.length = 0;
     if(json.persons && json.persons.length > 0) DATA.persons = json.persons.filter(p => p !== '雛形');
@@ -3490,6 +3509,8 @@ function renderMainKpiRow(fstores, md, month){
   const shozaiKen  = shozaiA(month,'兼用');
   const shozaiBup  = shozaiA(month,'物販専用');
   const shozaiMib  = shozaiA(month,'未分類');
+  // ▼ 回数券の目印が入っていない店（消化はあるのに終了/継続が0）
+  const markMissing = (typeof keizokuMarkMissingStores === 'function') ? keizokuMarkMissingStores(month) : [];
   const cntCard = function(cls,label,cur,prev,unit,note){
     const valueHtml='<span class="mk-value">'+fmt(cur)+'</span><span class="mk-unit">'+unit+'</span>';
     const trendHtml=(prev!=null&&prev>0)?trendPctChip((cur-prev)/prev*100):'<span class="mk-trend-chip flat">—</span>';
@@ -3540,7 +3561,19 @@ function renderMainKpiRow(fstores, md, month){
         tKPair('keizoku_continue_count','keizoku_end_count'),
         rateOf(sumA(mdPrev,'keizoku_continue_count'), sumA(mdPrev,'keizoku_end_count')))
     + valCard('retention','継続契約数平均', sumA(md,'keizoku_continue_count'), tK('keizoku_continue_count'), sumA(mdPrev,'keizoku_continue_count'), {avg:true, unit:'件'})
-    + priceCard('retention','継続契約単価平均', sumA(md,'keizoku_continue_sales'), sumA(md,'keizoku_continue_count'), tK('keizoku_continue_sales'), tK('keizoku_continue_count'));
+    + priceCard('retention','継続契約単価平均', sumA(md,'keizoku_continue_sales'), sumA(md,'keizoku_continue_count'), tK('keizoku_continue_sales'), tK('keizoku_continue_count'))
+    + cntCard('new','目印が入っていない店', markMissing.length, null, '店', '消化はあるのに終了/継続が0');
+
+  // ── ⑥ 回数券売上（依頼42）：いつ払われたかで2つに分ける ──
+  //   ①契約時＝メニューに「契約」を含む行　②消化時＝「消化」を含む行（オプションは除く）
+  const ksCont = sumA(md,'kaisuken_contract_sales'), ksUse = sumA(md,'kaisuken_shouka_sales');
+  const ksContP = sumA(mdPrev,'kaisuken_contract_sales'), ksUseP = sumA(mdPrev,'kaisuken_shouka_sales');
+  const gKaisuken =
+      valCard('royalty','回数券売上（契約時）合計', ksCont, 0, ksContP, {yen:true})
+    + valCard('sales',  '回数券売上（消化時）合計', ksUse,  0, ksUseP,  {yen:true})
+    + valCard('retention','回数券売上 合計',        ksCont+ksUse, 0, ksContP+ksUseP, {yen:true})
+    + valCard('royalty','回数券売上（契約時）平均', ksCont, 0, ksContP, {yen:true, avg:true})
+    + valCard('sales',  '回数券売上（消化時）平均', ksUse,  0, ksUseP,  {yen:true, avg:true});
 
   // グループ（見出しクリックで個別に開閉。状態はlocalStorageに保存される）
   const grp = function(key, cls, title, note, cards){
@@ -3564,7 +3597,8 @@ function renderMainKpiRow(fstores, md, month){
         grp('store-nr',     'g-nr',     '🎯 新規＋再アポ',  '4指標', gNR)+
         grp('store-new',    'g-new',    '🆕 新規のみ',      '4指標', gNew)+
         grp('store-reappo', 'g-reappo', '🔁 再アポのみ',    '4指標', gReappo)+
-        grp('store-keizoku','g-keizoku','🔄 継続のみ',      '4指標', gKeizoku)+
+        grp('store-keizoku','g-keizoku','🔄 継続のみ<span class="keizoku-fixnote">11/5に計算を修正（それ以前の表示は高く出ていました）</span>', '5指標', gKeizoku)+
+        grp('store-kaisuken','g-sales',  '🎟 回数券売上（契約時／消化時）', '5指標', gKaisuken)+
       '</div>'+
     '</div>';
 }
@@ -4648,6 +4682,79 @@ function renderTargetNameIssues(){
  *  ③ 施術はあるのに仕入れが少ない加盟店（1施術あたりが中位値の40%未満）
  *  直営はBASEで買っていないので②③の対象外（GAS側で外している）。
  * ============================================================ */
+/* ============================================================
+ *  回数券の目印の入力もれアラート（依頼38-3）
+ *  「消化」の目印は入れているのに、「終了／継続／追加」の目印が0件の店。
+ *  この状態だと継続率が出ないので、担当者が分かるように出す。
+ * ============================================================ */
+function keizokuMarkMissingStores(month){
+  const md = (DATA.data && DATA.data[month]) ? DATA.data[month] : {};
+  const out = [];
+  Object.keys(md).forEach(function(st){
+    const d = md[st] || {};
+    const closed = DATA.store_closed_month && DATA.store_closed_month[st];
+    if (closed && String(month) > String(closed)) return;
+    if ((d.keizoku_shouka_count || 0) > 0 && (d.keizoku_end_count || 0) === 0) {
+      out.push({ store: st, shouka: d.keizoku_shouka_count || 0,
+                 person: (DATA.store_person && DATA.store_person[st]) || '担当者未設定' });
+    }
+  });
+  out.sort(function(a,b){ return b.shouka - a.shouka; });
+  return out;
+}
+
+function renderKeizokuMarkNotices(){
+  const el = document.getElementById('keizokuMarkBar');
+  if(!el) return;
+  const month = curMonth;
+  const list = keizokuMarkMissingStores(month);
+  if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
+
+  const sig = 'kmark|' + month + '|' + list.map(function(x){ return x.store; }).sort().join(',');
+  let hidden = '';
+  try { hidden = localStorage.getItem('keizokuMarkDismissed') || ''; } catch(e){}
+  if(hidden === sig){ el.style.display='none'; return; }
+
+  // 担当者ごとにまとめる（SVが自分の店を探しやすいように）
+  const byPerson = {};
+  list.forEach(function(x){ (byPerson[x.person] = byPerson[x.person] || []).push(x); });
+  const persons = Object.keys(byPerson).sort(function(a,b){ return byPerson[b].length - byPerson[a].length; });
+  const mLabel = MONTH_MAP[month] || month;
+
+  let h = '<div class="tn-wrap" style="background:#fffbeb;border-color:#fcd34d;border-left-color:#b45309">';
+  h += '<div class="tn-head">'
+     + '<span class="tn-badge" style="color:#92400e">🔄 回数券の目印が入っていません</span>'
+     + '<span class="tn-count" style="background:#fde68a;color:#92400e">'+list.length+'店</span>'
+     + '<button class="tn-close" style="color:#92400e" onclick="dismissKeizokuMarkNotices()" title="閉じる">×</button>'
+     + '</div>';
+  h += '<div class="tn-note" style="color:#92400e">'
+     + mLabel+'は<strong>「消化」の目印は入れているのに、「終了／継続／追加」の目印が0件</strong>の店です。'
+     + 'この店は<strong>継続率が出ません</strong>（分母が0のため「—」になります）。'
+     + '会計のときにサービス行で目印を選ぶよう、担当者から声をかけてください。</div>';
+  persons.forEach(function(p){
+    const rows = byPerson[p];
+    h += '<div class="tn-note" style="color:#92400e;margin-top:8px"><strong>'+p+'</strong>（'+rows.length+'店）</div>'
+       + '<ul class="tn-list">'
+       + rows.map(function(x){
+           return '<li class="tn-item"><span class="tn-store">'+dispName(x.store)+'</span>'
+                + '<span class="tn-months">消化 '+x.shouka+'件</span>'
+                + '<span class="tn-reason">終了/継続 0件</span></li>';
+         }).join('')
+       + '</ul>';
+  });
+  h += '</div>';
+  el.innerHTML = h;
+  el.style.display = '';
+}
+
+function dismissKeizokuMarkNotices(){
+  const list = keizokuMarkMissingStores(curMonth);
+  const sig = 'kmark|' + curMonth + '|' + list.map(function(x){ return x.store; }).sort().join(',');
+  try { localStorage.setItem('keizokuMarkDismissed', sig); } catch(e){}
+  const el = document.getElementById('keizokuMarkBar');
+  if(el){ el.style.display='none'; }
+}
+
 function renderShozaiNotices(){
   const el = document.getElementById('shozaiBar');
   if(!el) return;
@@ -5112,6 +5219,19 @@ function showDetail(store,d,tgt){
     // 総売上の降順でソート
     staffNames.sort(function(a, b) { return (staffData[b].total_sales || 0) - (staffData[a].total_sales || 0); });
 
+    // ▼ 店舗合計の回数券売上（依頼42）
+    const stKsC = d.kaisuken_contract_sales || 0;
+    const stKsU = d.kaisuken_shouka_sales   || 0;
+    if (stKsC || stKsU) {
+      const sumDiv = document.createElement('div');
+      sumDiv.className = 'staff-kaisuken-sum';
+      sumDiv.innerHTML = '<span>🎟 店舗合計の回数券売上</span>' +
+        '<span>契約時 <b>' + fmt(stKsC) + '</b></span>' +
+        '<span>消化時 <b>' + fmt(stKsU) + '</b></span>' +
+        '<span>合計 <b>' + fmt(stKsC + stKsU) + '</b></span>';
+      staffContainer.appendChild(sumDiv);
+    }
+
     // フェーズ別 row helper（値が0/未集計のときはミュート表示）
     const rateClass = function(v, hi, mid){
       if(!v || v <= 0) return 'muted';
@@ -5173,6 +5293,18 @@ function showDetail(store,d,tgt){
           '<div class="staff-phase-row"><span>継続単価</span>'   + vYen(s.keizoku_continue_unit_price) + '</div>' +
         '</div>';
 
+      // 回数券売上（依頼42）：①契約時の入金／②消化時の入金
+      const ksC = s.kaisuken_contract_sales || 0;
+      const ksU = s.kaisuken_shouka_sales   || 0;
+      const ksRow = (ksC || ksU)
+        ? '<div class="staff-kaisuken-row">' +
+            '<span>🎟 回数券売上</span>' +
+            '<span>契約時 <b>' + fmt(ksC) + '</b></span>' +
+            '<span>消化時 <b>' + fmt(ksU) + '</b></span>' +
+            '<span>合計 <b>' + fmt(ksC + ksU) + '</b></span>' +
+          '</div>'
+        : '';
+
       const person = document.createElement('div');
       person.className = 'staff-person';
       person.innerHTML =
@@ -5180,7 +5312,8 @@ function showDetail(store,d,tgt){
           '<div class="staff-person-name">' + name + '</div>' +
           summary +
         '</div>' +
-        '<div class="staff-phase-grid">' + acquisition + nurture + retention + '</div>';
+        '<div class="staff-phase-grid">' + acquisition + nurture + retention + '</div>' +
+        ksRow;
       staffContainer.appendChild(person);
     });
   } else {
@@ -5742,13 +5875,19 @@ function setRankingSort(key) {
     total_sales:         'rsTotal',
     new_count:           'rsNew',
     new_contract_count:  'rsContract',
-    new_contract_rate:   'rsRate'
+    new_contract_rate:   'rsRate',
+    kaisuken_contract_sales: 'rsKsCont',
+    kaisuken_shouka_sales:   'rsKsUse',
+    kaisuken_total_sales:    'rsKsAll'
   };
   const btnLabels = {
     total_sales: '💰 総売上',
     new_count: '👤 新規数',
     new_contract_count: '📋 契約数',
-    new_contract_rate: '📈 契約率'
+    new_contract_rate: '📈 契約率',
+    kaisuken_contract_sales: '🎟 回数券(契約時)',
+    kaisuken_shouka_sales:   '🎟 回数券(消化時)',
+    kaisuken_total_sales:    '🎟 回数券合計'
   };
   Object.keys(btnMap).forEach(function(k) {
     const el = document.getElementById(btnMap[k]);
@@ -5766,13 +5905,19 @@ function setRankingSort(key) {
     total_sales:         'thTotal',
     new_count:           'thNew',
     new_contract_count:  'thContract',
-    new_contract_rate:   'thRate'
+    new_contract_rate:   'thRate',
+    kaisuken_contract_sales: 'thKsCont',
+    kaisuken_shouka_sales:   'thKsUse',
+    kaisuken_total_sales:    'thKsAll'
   };
   const thLabels = {
     total_sales: '総売上',
     new_count: '新規数',
     new_contract_count: '契約数',
-    new_contract_rate: '契約率'
+    new_contract_rate: '契約率',
+    kaisuken_contract_sales: '回数券売上（契約時）',
+    kaisuken_shouka_sales:   '回数券売上（消化時）',
+    kaisuken_total_sales:    '回数券売上 合計'
   };
   Object.keys(thMap).forEach(function(k) {
     const el = document.getElementById(thMap[k]);
@@ -5819,13 +5964,19 @@ function renderRanking() {
         total_sales:          s.total_sales          || 0,
         new_count:            s.new_count            || 0,
         new_contract_count:   s.new_contract_count   || 0,
-        new_contract_rate:    s.new_contract_rate     || 0
+        new_contract_rate:    s.new_contract_rate     || 0,
+        // ▼ 回数券売上（依頼42）
+        kaisuken_contract_sales: s.kaisuken_contract_sales || 0,
+        kaisuken_shouka_sales:   s.kaisuken_shouka_sales   || 0,
+        kaisuken_total_sales:    (s.kaisuken_total_sales != null)
+                                   ? s.kaisuken_total_sales
+                                   : ((s.kaisuken_contract_sales || 0) + (s.kaisuken_shouka_sales || 0))
       });
     });
   });
 
   if (rows.length === 0) {
-    body.innerHTML = '<tr><td colspan="7" class="ranking-empty">📭 ' + (MONTH_MAP[curMonth]||curMonth) + 'のスタッフデータがありません</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="ranking-empty">📭 ' + (MONTH_MAP[curMonth]||curMonth) + 'のスタッフデータがありません</td></tr>';
     if (meta) meta.textContent = 'スタッフデータなし';
     return;
   }
@@ -5854,7 +6005,10 @@ function renderRanking() {
       '<td class="ranking-sales">' + (r.total_sales > 0 ? '¥' + r.total_sales.toLocaleString('ja-JP') : '—') + '</td>' +
       '<td>' + r.new_count + '<span style="font-size:11px;color:#aaa"> 人</span></td>' +
       '<td>' + r.new_contract_count + '<span style="font-size:11px;color:#aaa"> 件</span></td>' +
-      '<td class="ranking-rate ' + rateCls + '">' + r.new_contract_rate.toFixed(1) + '<span style="font-size:11px;font-weight:400">%</span></td>';
+      '<td class="ranking-rate ' + rateCls + '">' + r.new_contract_rate.toFixed(1) + '<span style="font-size:11px;font-weight:400">%</span></td>' +
+      '<td class="ranking-sales">' + (r.kaisuken_contract_sales > 0 ? fmt(r.kaisuken_contract_sales) : '—') + '</td>' +
+      '<td class="ranking-sales">' + (r.kaisuken_shouka_sales   > 0 ? fmt(r.kaisuken_shouka_sales)   : '—') + '</td>' +
+      '<td class="ranking-sales">' + (r.kaisuken_total_sales    > 0 ? fmt(r.kaisuken_total_sales)    : '—') + '</td>';
     body.appendChild(tr);
   });
 }
