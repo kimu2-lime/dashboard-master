@@ -216,6 +216,25 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
   border:1px solid #fdba74;border-left:4px solid #f97316;border-radius:11px;
   font-size:12px;color:#9a3412;font-weight:700;display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline}
 .staff-kaisuken-sum b{font-size:15px;font-weight:800;color:#7c2d12}
+/* ▼ 新しいページ（店舗の課題／週次・対策／投資回収／会計の入れ方）の枠 */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin:0 0 16px;padding:16px 20px;background:#fff;border:1px solid #ececf4;border-radius:14px}
+.page-title{font-size:17px;font-weight:800;color:#1a1a2e;display:flex;align-items:center;gap:8px}
+.page-meta{font-size:12px;color:#8a8aa0;margin-top:4px;line-height:1.6}
+.page-ph{background:#fff;border:1px solid #ececf4;border-radius:14px;padding:22px 24px}
+.page-ph-badge{display:inline-block;font-size:11px;font-weight:800;color:#4338ca;background:#eef2ff;
+  border:1px solid #c7d2fe;border-radius:999px;padding:3px 11px;margin-bottom:12px}
+.page-ph h4{font-size:13px;font-weight:800;color:#1a1a2e;margin:18px 0 8px}
+.page-ph ul{margin:0;padding-left:1.2em;font-size:12.5px;color:#55556b;line-height:1.9}
+.page-ph p{font-size:12.5px;color:#55556b;line-height:1.8;margin:0}
+.page-ph .ph-note{margin-top:18px;padding:12px 14px;background:#fffbeb;border:1px solid #fcd34d;
+  border-radius:10px;font-size:12px;color:#92400e;line-height:1.7}
+.page-ph a{color:#4f46e5;font-weight:700}
+/* ▼ 店舗詳細からの行き先 */
+.detail-jump{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.detail-jump-btn{font-size:12px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
+  border-radius:999px;padding:6px 14px;cursor:pointer;transition:.15s}
+.detail-jump-btn:hover{background:#e0e7ff;border-color:#a5b4fc}
 /* ▼ 継続率の注記 */
 .keizoku-fixnote{font-size:10px;font-weight:600;color:#b45309;background:#fffbeb;border:1px solid #fcd34d;
   border-radius:6px;padding:1px 6px;margin-left:8px;white-space:nowrap}
@@ -1394,6 +1413,10 @@ body.mobile .side-menu-overlay{display:block!important}
       <button class="nav-tab active" id="navStore" onclick="switchMainTab('store')">📊 店舗一覧</button>
       <button class="nav-tab" id="navRanking" onclick="switchMainTab('ranking')">👤 スタッフ</button>
       <button class="nav-tab" id="navAnalysis" onclick="switchMainTab('analysis')" style="display:none">🔍 課題分析</button>
+      <button class="nav-tab" id="navIssues"  onclick="switchMainTab('issues')">🔍 店舗の課題</button>
+      <button class="nav-tab" id="navTracker" onclick="switchMainTab('tracker')">📅 週次・対策</button>
+      <button class="nav-tab" id="navPayback" onclick="switchMainTab('payback')">💰 投資回収</button>
+      <button class="nav-tab" id="navManual"  onclick="switchMainTab('manual')">📘 会計の入れ方</button>
     </div>
   </div>
 
@@ -1467,6 +1490,11 @@ body.mobile .side-menu-overlay{display:block!important}
     <div id="detailView">
       <div class="detail-store-name" id="detailName"></div>
       <div class="detail-period" id="detailPeriod"></div>
+      <div class="detail-jump" id="detailJump">
+        <button class="detail-jump-btn" onclick="jumpFromDetail('issues')">🔍 この店の課題</button>
+        <button class="detail-jump-btn" onclick="jumpFromDetail('tracker')">📅 週次・対策メモ</button>
+        <button class="detail-jump-btn" onclick="jumpFromDetail('payback')">💰 投資回収</button>
+      </div>
       <div class="detail-note" id="dStoreNote" style="display:none"></div>
 
       <div class="kgi-bar">
@@ -1852,6 +1880,93 @@ body.mobile .side-menu-overlay{display:block!important}
 
       <!-- 課題カード一覧 -->
       <div class="issue-cards" id="issueCards"></div>
+    </div>
+
+    <!-- ② 店舗の課題 -->
+    <div id="issuesView" style="display:none">
+      <div class="page-head">
+        <div>
+          <div class="page-title">🔍 店舗の課題</div>
+          <div class="page-meta" id="issuesMeta">ラインに届いていない店を見つけて、原因ごとに振り分けます</div>
+        </div>
+      </div>
+      <div class="page-ph">
+        <span class="page-ph-badge">段階3で中身が入ります</span>
+        <p>いまCoworkが手で作っている「120万未達店舗の原因分析」を、<strong>data.json から毎月自動で</strong>出すページです。</p>
+        <h4>ここに出る予定のもの</h4>
+        <ul>
+          <li>直近3か月に一度もラインを超えていない店（Belle・LIME系は120万、Liftは100万）</li>
+          <li>そのうち今月の着地見込もラインに届かない店</li>
+          <li>原因の振り分け（新規数／契約率／契約数／契約単価／契約がほぼ0件）と、原因ごとのやること</li>
+          <li>「あと一歩」の店（着地がラインの83%以上）を上に目立たせる</li>
+          <li>担当SVで絞り込み</li>
+        </ul>
+        <div class="ph-note">移行が済むまでは、Coworkが作ったドキュメントを見てください。
+          <a href="https://claude.ai/artifact/TnagsERrpQ9M4iDzpR2Pjh" target="_blank" rel="noopener">120万未達店舗の原因分析（8〜10月）</a></div>
+      </div>
+    </div>
+
+    <!-- ③ 週次の進捗・対策メモ -->
+    <div id="trackerView" style="display:none">
+      <div class="page-head">
+        <div>
+          <div class="page-title">📅 週次の進捗・対策メモ</div>
+          <div class="page-meta" id="trackerMeta">週ごとの着地見込と、店舗ごとのロープレ・サロボ修正の予定と結果</div>
+        </div>
+      </div>
+      <div class="page-ph">
+        <span class="page-ph-badge">段階5で中身が入ります</span>
+        <p>週ごとの進捗は<strong>自動</strong>で、対策メモは<strong>この画面から書き込み</strong>ます（会社のスプシに保存）。</p>
+        <h4>ここに出る予定のもの</h4>
+        <ul>
+          <li>週（日曜〜土曜）ごとの売上・月累計・着地見込と、先週からの増減</li>
+          <li>進捗の色分け（ライン以上＝緑／85%以上＝黄／未満＝赤）</li>
+          <li>週の新規数・新規契約数と、月累計の新規契約率</li>
+          <li>店ごとの状態（未着手／予定あり／実施中／完了）、ロープレ予定日、サロボ修正予定日と内容、メモ</li>
+          <li>予定日を過ぎて「済」が付いていないものは赤く表示</li>
+        </ul>
+        <div class="ph-note">移行が済むまでは、いまのスプレッドシートが正です。
+          <a href="https://claude.ai/artifact/RrvqSAWbFt9prR8dUD89u1" target="_blank" rel="noopener">未達店舗トラッカー 11月</a></div>
+      </div>
+    </div>
+
+    <!-- ④ 投資回収 -->
+    <div id="paybackView" style="display:none">
+      <div class="page-head">
+        <div>
+          <div class="page-title">💰 投資回収</div>
+          <div class="page-meta" id="paybackMeta">店舗ごとの投資回収の見通し。家賃・初期投資はこの画面から入力します</div>
+        </div>
+      </div>
+      <div class="page-ph">
+        <span class="page-ph-badge">段階6で中身が入ります</span>
+        <p>テスト版の投資回収ボードを、<strong>実データ</strong>で動くようにしてこのページに入れます。</p>
+        <h4>ここに出る予定のもの</h4>
+        <ul>
+          <li>店舗ごとの累計利益と回収の見通し（回収期限は既定36か月）</li>
+          <li>家賃・初期投資・オープン年月・スタッフ数などの入力欄（店舗ごと）</li>
+          <li>ロイヤリティは店ごとの実際の額を使う（直営は0）</li>
+          <li>判定は前月までの確定月で行い、今月は着地見込として別に見せる</li>
+        </ul>
+        <div class="ph-note">データは<strong>2026年1月から</strong>です（BM会計の店は3月から）。
+          それより前の売上明細は入っていないので、累計利益もそこからの積み上げになります。</div>
+      </div>
+    </div>
+
+    <!-- ⑤ 会計の入れ方 -->
+    <div id="manualView" style="display:none">
+      <div class="page-head">
+        <div>
+          <div class="page-title">📘 会計の入れ方</div>
+          <div class="page-meta" id="manualMeta">サロンボードの会計のしかたと、目印がダッシュボードのどこに出るか</div>
+        </div>
+      </div>
+      <div class="page-ph">
+        <span class="page-ph-badge">段階7で中身が入ります</span>
+        <p>ケース別の会計の入れ方と、入れた目印がダッシュボードのどの数字になるかの早見表が入ります。中身はCoworkから受け取ります。</p>
+        <div class="ph-note">移行が済むまでは、Coworkが作ったドキュメントを見てください。
+          <a href="https://claude.ai/artifact/6evcU4fzBED1GEkuDGgfUe" target="_blank" rel="noopener">売上明細のサービス項目 早見表</a></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2309,6 +2424,8 @@ async function fetchData(){
     buildTypeBar();
     buildBrandBar();
     renderList();
+    // ?store=... が付いていればその店を開く（店舗別リンクの下ごしらえ）
+    try { applyStoreFromQuery(); } catch(e){ console.warn('store= を読めません', e); }
     setTimeout(closeSettings, 1200);
   }catch(e){
     document.getElementById('fetchStatus').textContent = 'エラー: '+e.message;
@@ -2422,6 +2539,8 @@ function init(){
   movePanelsToSideMenu();
   syncSidePanelSections();
   renderList();
+  // URLの # でページを開き分ける（#issues など）
+  applyRouteFromUrl();
   // ページ読み込み時に自動でdata.jsonを取得
   fetchData();
   // AI分析結果（data/ai-analysis.json）も並行ロード
@@ -4928,7 +5047,9 @@ function dismissNeedsInput(){
   if(el) el.style.display='none';
 }
 
+let detailStore = '';   // いま店舗詳細で開いている店（②③④へ飛ぶときに使う）
 function showDetail(store,d,tgt){
+  detailStore = store;
   document.getElementById('listView').style.display='none';
   document.getElementById('detailView').style.display='block';
   document.getElementById('breadcrumb').classList.add('visible');
@@ -5591,28 +5712,132 @@ function setKpiSort(kpi) {
   renderList();
 }
 
-function switchMainTab(tab) {
-  const isStore    = tab === 'store';
-  const isRanking  = tab === 'ranking';
-  const isAnalysis = tab === 'analysis';
+/* ============================================================
+ *  ページ（タブ）の定義
+ *  ------------------------------------------------------------
+ *  「今後作るものは全部ダッシュボードの中に入れる」方針（2026-11-12）。
+ *  URLの # で開き分けられるので、あとで店舗別リンクを足せる。
+ *    #store / #staff / #issues / #tracker / #payback / #manual
+ *  ついでに ?store=Belle藤沢 でその店の詳細を開ける（店舗別リンクの下ごしらえ）。
+ * ============================================================ */
+const MAIN_TABS = {
+  store:    { view:'listView',     nav:'navStore',    hash:'store'    },
+  ranking:  { view:'rankingView',  nav:'navRanking',  hash:'staff'    },
+  analysis: { view:'analysisView', nav:'navAnalysis', hash:'analysis' },
+  issues:   { view:'issuesView',   nav:'navIssues',   hash:'issues'   },
+  tracker:  { view:'trackerView',  nav:'navTracker',  hash:'tracker'  },
+  payback:  { view:'paybackView',  nav:'navPayback',  hash:'payback'  },
+  manual:   { view:'manualView',   nav:'navManual',   hash:'manual'   }
+};
+const HASH_TO_TAB = (function(){
+  const m = {};
+  Object.keys(MAIN_TABS).forEach(function(k){ m[MAIN_TABS[k].hash] = k; });
+  return m;
+})();
+let curMainTab = 'store';
+// ②③④で「この店だけ」に絞るときの店（店舗詳細から飛んだとき）。段階3以降で使う
+let focusStore = '';
+let _routing = false;   // # を書き換えたときに hashchange でループしないための目印
+
+function switchMainTab(tab, opts) {
+  if (!MAIN_TABS[tab]) tab = 'store';
+  curMainTab = tab;
+  const isStore = tab === 'store';
   document.getElementById('kpiBar').style.display = isStore ? '' : 'none';
-  document.getElementById('navStore').classList.toggle('active', isStore);
-  document.getElementById('navRanking').classList.toggle('active', isRanking);
-  document.getElementById('navAnalysis').classList.toggle('active', isAnalysis);
-  // 担当者・タイプバーは両タブで表示（課題分析でもフィルターを使えるように）
+  Object.keys(MAIN_TABS).forEach(function(k){
+    const def = MAIN_TABS[k];
+    const nav = document.getElementById(def.nav);
+    if (nav) nav.classList.toggle('active', k === tab);
+    const view = document.getElementById(def.view);
+    if (view) view.style.display = (k === tab) ? (k === 'store' ? '' : 'block') : 'none';
+  });
+  // 担当者・タイプバーは全ページで表示（どのページでもフィルターを使えるように）
   document.getElementById('personBarWrap').style.display = '';
   const hasType = DATA.store_type && Object.keys(DATA.store_type).length > 0;
   document.getElementById('typeBar').style.display = hasType ? '' : 'none';
   buildBrandBar();   // ブランドバーは全タブで表示（表示要否は buildBrandBar が判定）
   document.getElementById('breadcrumb').classList.remove('visible');
-  document.getElementById('listView').style.display    = isStore    ? '' : 'none';
   document.getElementById('detailView').style.display  = 'none';
-  document.getElementById('rankingView').style.display = isRanking  ? 'block' : 'none';
-  document.getElementById('analysisView').style.display= isAnalysis ? 'block' : 'none';
-  if (isRanking)  renderRanking();
-  if (isAnalysis) renderAnalysis();
+  if (tab === 'ranking')  renderRanking();
+  if (tab === 'analysis') renderAnalysis();
+  renderSubPage(tab);
+  if (!(opts && opts.silent)) setRouteHash(MAIN_TABS[tab].hash);
   if (typeof syncSidePanelSections === 'function') syncSidePanelSections();
 }
+
+/* ②③④⑤の中身。段階1では枠だけなので、絞り込みの表示だけ更新する */
+function renderSubPage(tab) {
+  const metaId = { issues:'issuesMeta', tracker:'trackerMeta', payback:'paybackMeta' }[tab];
+  if (!metaId) return;
+  const el = document.getElementById(metaId);
+  if (!el) return;
+  const base = {
+    issues:  'ラインに届いていない店を見つけて、原因ごとに振り分けます',
+    tracker: '週ごとの着地見込と、店舗ごとのロープレ・サロボ修正の予定と結果',
+    payback: '店舗ごとの投資回収の見通し。家賃・初期投資はこの画面から入力します'
+  }[tab];
+  el.innerHTML = focusStore
+    ? base + '<br><strong>いま選んでいる店：' + escHtml(dispName(focusStore)) + '</strong>'
+      + ' <span style="cursor:pointer;text-decoration:underline" onclick="clearFocusStore()">（全店に戻す）</span>'
+    : base;
+}
+
+function clearFocusStore(){
+  focusStore = '';
+  renderSubPage(curMainTab);
+}
+
+/* 店舗詳細から②③④へ飛ぶ */
+function jumpFromDetail(tab){
+  // 表示名ではなく、いま開いている店のキーを使う
+  focusStore = detailStore || '';
+  switchMainTab(tab);
+  window.scrollTo(0, 0);
+}
+
+/* ===== URLの # と ?store= ===== */
+function setRouteHash(h){
+  if (!h) return;
+  const want = '#' + h;
+  if (location.hash === want) return;
+  _routing = true;
+  try { history.replaceState(null, '', location.pathname + location.search + want); }
+  catch(e) { location.hash = want; }
+  setTimeout(function(){ _routing = false; }, 0);
+}
+
+function applyRouteFromUrl(){
+  // GASのWebアプリは #... を親フレームに持つことがあるので、両方見る
+  let h = (location.hash || '').replace(/^#/, '');
+  if (!h) {
+    try { h = (parent !== window && parent.location.hash || '').replace(/^#/, ''); } catch(e) {}
+  }
+  const tab = HASH_TO_TAB[h];
+  if (tab) switchMainTab(tab, { silent:true });
+}
+
+/* ?store=Belle藤沢 … 略称でもフル店名でも開ける。将来の店舗別リンク用 */
+function applyStoreFromQuery(){
+  let q = '';
+  try {
+    q = new URLSearchParams(location.search).get('store') || '';
+    if (!q && parent !== window) q = new URLSearchParams(parent.location.search).get('store') || '';
+  } catch(e) {}
+  if (!q) return;
+  const want = q.trim();
+  const stores = (DATA.stores || []);
+  let hit = stores.filter(function(st){ return st === want || dispName(st) === want; })[0];
+  if (!hit) hit = stores.filter(function(st){ return dispName(st).indexOf(want) >= 0; })[0];
+  if (!hit) return;
+  focusStore = hit;
+  if (curMainTab === 'store' && typeof goToStoreDetail === 'function') goToStoreDetail(hit);
+  else renderSubPage(curMainTab);
+}
+
+window.addEventListener('hashchange', function(){
+  if (_routing) return;
+  applyRouteFromUrl();
+});
 
 // 課題判定しきい値
 const THRESHOLDS = {
