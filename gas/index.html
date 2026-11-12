@@ -1586,11 +1586,11 @@ body.mobile .side-menu-overlay{display:block!important}
       </div>
 
       <!-- ▼ 育成（再アポ）フェーズ -->
-      <div class="phase-label nurture">🎯 育成フェーズ<span class="phase-sub">再来 → 再アポで契約化</span></div>
+      <div class="phase-label nurture">🎯 育成フェーズ<span class="phase-sub">再来 → 再アポで契約化</span><span class="keizoku-fixnote">11/12に計算を修正（それ以前の表示は低く出ていました）</span></div>
       <div class="detail-kpis-5">
         <div class="dkpi nurture-count">
           <div class="dkpi-icon">🔁</div><div class="dkpi-label">再アポ数</div>
-          <div class="dkpi-sublabel">未契約状態の再来</div>
+          <div class="dkpi-sublabel">新規から90日以内・未契約の再来</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dReappo"></span><span class="dkpi-dunit">人</span>
             <span class="dkpi-vs" id="dReappoVs"></span>
@@ -1641,6 +1641,16 @@ body.mobile .side-menu-overlay{display:block!important}
           <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#c026d3">再アポ契約売上</div>
           <div class="dkpi-sublabel">「契約」行の金額合計</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dReappoSales" style="color:#c026d3"></span></div>
+        </div>
+        <div class="dkpi nurture-count">
+          <div class="dkpi-icon">🚶</div><div class="dkpi-label">再アポ来店数</div>
+          <div class="dkpi-sublabel">新規で契約しなかった人が90日以内に再来（人数）</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoVisit"></span><span class="dkpi-dunit">人</span></div>
+        </div>
+        <div class="dkpi nurture-rate">
+          <div class="dkpi-icon">📊</div><div class="dkpi-label">再アポ来店率</div>
+          <div class="dkpi-sublabel">再アポ来店数 ÷ 新規未契約数</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoVisitRate"></span><span class="dkpi-dunit">%</span></div>
         </div>
       </div>
 
@@ -3671,7 +3681,12 @@ function renderMainKpiRow(fstores, md, month){
         tKPair('reappo_contract_count','reappo_count'),
         rateOf(sumA(mdPrev,'reappo_contract_count'), sumA(mdPrev,'reappo_count')))
     + valCard('reappo','再アポ契約数平均', sumA(md,'reappo_contract_count'), tK('reappo_contract_count'), sumA(mdPrev,'reappo_contract_count'), {avg:true, unit:'件'})
-    + priceCard('royalty','再アポ契約単価平均', sumA(md,'reappo_contract_sales'), sumA(md,'reappo_contract_count'), tK('reappo_contract_sales'), tK('reappo_contract_count'));
+    + priceCard('royalty','再アポ契約単価平均', sumA(md,'reappo_contract_sales'), sumA(md,'reappo_contract_count'), tK('reappo_contract_sales'), tK('reappo_contract_count'))
+    + valCard('reappo','再アポ来店数平均', sumA(md,'reappo_visit_count'), 0, sumA(mdPrev,'reappo_visit_count'), {avg:true, unit:'人'})
+    + rateCard('rate','再アポ来店率平均',
+        rateOf(sumA(md,'reappo_visit_count'), Math.max(0, sumA(md,'new_count') - sumA(md,'new_contract_count'))),
+        0,
+        rateOf(sumA(mdPrev,'reappo_visit_count'), Math.max(0, sumA(mdPrev,'new_count') - sumA(mdPrev,'new_contract_count'))));
 
   // ── ⑤ 継続のみ（継続率＝継続成功数 ÷ 継続対象数）──
   const gKeizoku =
@@ -3717,7 +3732,7 @@ function renderMainKpiRow(fstores, md, month){
         grp('store-shozai', 'g-nr',     '📦 Limeからの仕入れ', (shozaiMib>0?'7指標':'6指標'), gShozai)+
         grp('store-nr',     'g-nr',     '🎯 新規＋再アポ',  '4指標', gNR)+
         grp('store-new',    'g-new',    '🆕 新規のみ',      '4指標', gNew)+
-        grp('store-reappo', 'g-reappo', '🔁 再アポのみ',    '4指標', gReappo)+
+        grp('store-reappo', 'g-reappo', '🔁 再アポのみ<span class="keizoku-fixnote">11/12に計算を修正（それ以前の表示は低く出ていました）</span>', '6指標', gReappo)+
         grp('store-keizoku','g-keizoku','🔄 継続のみ<span class="keizoku-fixnote">11/5に計算を修正（それ以前の表示は高く出ていました）</span>', '6指標', gKeizoku)+
         grp('store-kaisuken','g-sales',  '🎟 回数券売上（契約時／消化時）', '5指標', gKaisuken)+
       '</div>'+
@@ -5238,6 +5253,9 @@ function showDetail(store,d,tgt){
   if (tgt && tgt.reappo_contract_unit_price > 0) { setEl('dReappoPriceVs','/'); setEl('dReappoPriceTgt', fmt(tgt.reappo_contract_unit_price)); }
   else { setEl('dReappoPriceVs',''); setEl('dReappoPriceTgt',''); }
   setEl('dReappoSales',   (d.reappo_contract_sales > 0)    ? fmt(d.reappo_contract_sales)    : '—');
+  // ▼ 再アポ来店数・来店率（依頼45b）。新規の月に足すので、直近月は後から増える
+  setEl('dReappoVisit',     (d.reappo_visit_count  > 0) ? d.reappo_visit_count  : '—');
+  setEl('dReappoVisitRate', (d.reappo_visit_rate   > 0) ? d.reappo_visit_rate   : '—');
 
   // ── 継続フェーズ ────────────────────────────────
   setVsTarget('dKeizokuEnd','dKeizokuEndVs','dKeizokuEndTgt','dKeizokuEndTgtU','dKeizokuEndProg', d.keizoku_end_count || 0, tgt?tgt.keizoku_end_count:null, '件');
