@@ -292,7 +292,14 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .issue-todo{margin-top:10px;background:#f7f7fc;border-radius:9px;padding:10px 14px}
 .issue-todo-head{font-size:11px;font-weight:800;color:#55556b;margin-bottom:5px}
 .issue-todo ul{margin:0;padding-left:1.2em;font-size:12px;color:#55556b;line-height:1.8}
-.issue-todo-note{font-size:10px;color:#aaa;margin-top:6px}
+.issue-todo ol{margin:0;padding-left:1.4em;font-size:12px;color:#55556b;line-height:1.9}
+.issue-todo-what{font-size:12px;color:#55556b;line-height:1.7;margin-bottom:8px}
+.issue-todo-what span,.issue-todo-next span{display:inline-block;font-size:10px;font-weight:800;color:#8a8aa0;
+  background:#fff;border:1px solid #e4e4ef;border-radius:5px;padding:1px 6px;margin-right:7px}
+.issue-todo-next{font-size:12px;color:#55556b;margin-top:8px}
+.issue-almost-todo{font-size:12px;color:#92400e;line-height:1.7;margin-bottom:10px}
+.issue-ref-todo{font-size:11.5px;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;
+  padding:8px 12px;margin-bottom:9px;line-height:1.7}
 /* ▼ 店舗詳細のブランド平均比較 */
 .cmp-box{background:#fff;border:1px solid #ececf4;border-radius:12px;padding:14px 18px;margin:14px 0}
 .cmp-head{font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -6621,24 +6628,51 @@ const ISSUE_CAUSES = {
 };
 const ISSUE_CAUSE_ORDER = ['zero', 'new', 'rate', 'count', 'price'];
 
-/* 原因ごとのやること。※Coworkのドキュメント「原因別にやること」が届いたら差し替える */
+/* 原因ごとのやること（引き継ぎ 48a_原因別にやること.md の文面をそのまま）*/
 const ISSUE_TODO = {
-  zero: ['サロンボードの会計の入れ方を一緒に確認する（契約・消化・終了の目印）',
-         '「契約」メニューを使っているか、都度払いと混ざっていないかを見る',
-         '直近1か月の明細をSVと店長で突き合わせる'],
-  new:  ['ホットペッパーのクーポン・写真・メニュー画像を見直す',
-         '口コミの返信率を上げる',
-         'SNSからの導線を作る'],
-  rate: ['カウンセリングのトークスクリプトを見直す',
-         '体験メニューから本コースへの導線を整える',
-         'スタッフ別の契約率を出して底上げする'],
-  count:['新規数と契約率のどちらを先に上げるかを決める（伸びしろの大きい方から）',
-         '再アポの声かけを仕組みにする（次回予約の取り方）',
-         '週ごとの契約数を追いかける'],
-  price:['高単価コースの提案を強化する',
-         'セット・オプションの提案を仕組みにする',
-         '回数券の回数を上げる提案をする']
+  new: {
+    what: '契約率は悪くないのに、来店（新規）が少ない。',
+    todo: ['HPBのクーポンを見直す（上位3つの価格・写真・タイトル）',
+           '写真とブログの更新を増やす',
+           '予約から来店までのキャンセルを減らす（前日に連絡する）',
+           '契約率は高い店なので、広告やプランの引き上げを優先してよい'],
+    next: '新規数、HPBのPV・CVR'
+  },
+  rate: {
+    what: '来店はあるのに、契約が取れていない。',
+    todo: ['スタッフ別の新規契約率を見て、低い人を見つける',
+           'カウンセリングとクロージングのロープレを週1回入れる',
+           '契約率の高い店のトークを共有する',
+           '契約しなかったお客様には、その場で次回予約を取る（再アポで取り返す）'],
+    next: '新規契約率（スタッフ別）、再アポ契約数'
+  },
+  count: {
+    what: '新規数も契約率も少しずつ足りない。または、どちらもそこそこあるのに再アポの契約が少なく、契約が積み上がらない。',
+    todo: ['契約しなかったお客様全員に、その場で次回予約を取る（再アポで取り返す）',
+           '再アポの2回目で契約を提案する流れを決める',
+           '消化し終わりのお客様への継続提案を漏らさない',
+           'そのうえで、新規数と契約率のどちらか効きやすい方を1つ選んで手を打つ'],
+    next: '再アポ数・再アポ契約数、再アポ来店率、継続率'
+  },
+  price: {
+    what: '契約の件数はあるのに、1件あたりの金額が小さい。',
+    todo: ['<strong>まず会計の入れ方を確認する。</strong>消化の日の都度払いや残金を「契約」メニューで入れると、小さな契約が増えて単価が下がる',
+           '提案を上のコースから出す（6回より12回、プレミアム）',
+           '頭金だけの契約やお試し券の割合を下げる'],
+    next: '契約単価、回数券売上（契約時）'
+  },
+  zero: {
+    what: '3か月で契約がほぼ0件。売上はあるので、契約を「契約」メニューで入れていない可能性が高い。',
+    todo: ['サロンボードの回数券メニューの名前に「契約」が入っているか確認する',
+           '「会計の入れ方」ページ（⑤）を店に見てもらう',
+           'それでも0件なら、「契約率」と同じ対応をする'],
+    next: '新規契約数'
+  }
 };
+const ISSUE_ALMOST_TODO = '原因の対策より先に、<strong>今月の残りの日数で契約を1〜3件上乗せする</strong>ことを'
+  + '優先してください。いちばん早いのは、契約中のお客様への継続提案と、契約しなかったお客様への再アポです。';
+const ISSUE_REF_TODO = '数字で判断せず、まず会計の入れ方を決めてください。'
+  + '決まるまでは店舗の課題の対象にしません。';
 
 function issueBrandOf(store) {
   const n = dispName(store);
@@ -6855,7 +6889,9 @@ function renderIssuesPage() {
                      .sort(function(a, b){ return (b.landing / b.line) - (a.landing / a.line); });
   if (almost.length) {
     h += '<div class="issue-almost"><div class="issue-almost-head">⚡ あと一歩（着地がラインの83%以上）'
-       + '<span class="issue-almost-n">' + almost.length + '店</span></div><div class="issue-almost-body">'
+       + '<span class="issue-almost-n">' + almost.length + '店</span></div>'
+       + '<div class="issue-almost-todo">' + ISSUE_ALMOST_TODO + '</div>'
+       + '<div class="issue-almost-body">'
        + almost.map(function(x) {
            return '<div class="issue-almost-item" onclick="goToStoreDetail(\'' + x.store.replace(/'/g, "\\'") + '\')">'
                 + '<span class="iai-name">' + escHtml(dispName(x.store)) + '</span>'
@@ -6909,8 +6945,11 @@ function renderIssuesPage() {
       h += '<div class="issue-cause" style="border-left-color:' + def.color + '">'
          + '<div class="issue-cause-head"><span>' + def.emoji + ' ' + def.label + '</span>'
          + '<span class="icd-n">' + sub.length + '店</span>'
-         + '<span class="icd-note">' + def.note + '</span></div>'
-         + '<div class="issue-table-wrap"><table class="issue-table"><thead><tr>'
+         + '<span class="icd-note">' + def.note + '</span></div>';
+      if (sub.some(function(x){ return x.ref; })) {
+        h += '<div class="issue-ref-todo">🛠 <b>会計ルール整備中の店が入っています。</b>' + ISSUE_REF_TODO + '</div>';
+      }
+      h += '<div class="issue-table-wrap"><table class="issue-table"><thead><tr>'
          + '<th>店舗</th><th>担当SV</th><th>3か月の売上</th><th>今月の着地</th>'
          + '<th>新規数</th><th>契約率</th><th>契約数</th><th>再アポ契約</th><th>契約単価</th><th>ほかに弱い所</th>'
          + '</tr></thead><tbody>';
@@ -6934,9 +6973,17 @@ function renderIssuesPage() {
            + '</tr>';
       });
       h += '</tbody></table></div>';
-      h += '<div class="issue-todo"><div class="issue-todo-head">やること</div><ul>'
-         + (ISSUE_TODO[c] || []).map(function(t){ return '<li>' + t + '</li>'; }).join('')
-         + '</ul><div class="issue-todo-note">※この文面はCoworkの「原因別にやること」が届いたら差し替えます</div></div>';
+      const td = ISSUE_TODO[c];
+      if (td) {
+        h += '<div class="issue-todo">'
+           + '<div class="issue-todo-what"><span>起きていること</span>' + td.what + '</div>'
+           + '<div class="issue-todo-head">やること</div><ol>'
+           + td.todo.map(function(t){ return '<li>' + t + '</li>'; }).join('')
+           + '</ol>'
+           + '<div class="issue-todo-next"><span>次に見る数字</span>' + td.next + '</div>'
+           + '</div>';
+      }
+      h += '</div>';
       h += '</div>';
     });
     h += '</div>';
