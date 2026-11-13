@@ -237,6 +237,55 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .detail-jump-btn{font-size:12px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
   border-radius:999px;padding:6px 14px;cursor:pointer;transition:.15s}
 .detail-jump-btn:hover{background:#e0e7ff;border-color:#a5b4fc}
+/* ▼ 判定の基準（依頼50a） */
+.info-panel{background:#fff;border:1px solid #ececf4;border-radius:12px;margin-bottom:14px;overflow:hidden}
+.info-sum{cursor:pointer;list-style:none;padding:11px 16px;font-size:12.5px;font-weight:800;color:#4338ca;
+  background:#f7f7fc;user-select:none}
+.info-sum::-webkit-details-marker{display:none}
+.info-sum::after{content:'▾';float:right;font-size:11px;color:#8a8aa0}
+.info-panel[open] .info-sum::after{content:'▴'}
+.info-sum:hover{background:#eef2ff}
+.info-body{padding:14px 18px;border-top:1px solid #ececf4}
+.crit-sec{font-size:12px;color:#55556b;line-height:1.85;margin-bottom:10px}
+.crit-sec b{color:#1a1a2e}
+.crit-note{color:#8a8aa0;background:#fafaff;border-radius:8px;padding:8px 12px}
+.crit-group{border:1px solid #ececf4;border-radius:10px;padding:10px 14px;margin-bottom:10px}
+.crit-group-head{font-size:12.5px;font-weight:800;color:#1a1a2e;display:flex;align-items:baseline;
+  gap:10px;margin-bottom:5px}
+.crit-line{font-size:11px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:999px;padding:1px 9px}
+.crit-how{font-size:11px;color:#8a8aa0;margin-bottom:7px}
+.crit-table{width:100%;border-collapse:collapse;font-size:12px}
+.crit-table td{padding:4px 6px;border-bottom:1px solid #f4f4fa;color:#55556b}
+.crit-table td:last-child{text-align:right;font-weight:800;color:#1a1a2e}
+.crit-table tr.crit-ref td{color:#8a8aa0}
+.crit-table tr.crit-ref td:last-child{color:#55556b;font-weight:700}
+.crit-sub{font-size:9.5px;font-weight:700;color:#8a8aa0;background:#f0f0f7;border-radius:5px;
+  padding:1px 5px;margin-left:5px}
+.crit-steps{margin:6px 0 0;padding-left:1.3em;font-size:12px;color:#55556b;line-height:1.9}
+.crit-page{background:#fff;border:1px solid #ececf4;border-radius:14px;padding:18px 22px}
+.crit-page-head{font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:14px}
+.crit-page-sub{display:block;font-size:11px;font-weight:600;color:#8a8aa0;margin-top:3px}
+.crit-page-sec{border-top:1px solid #ececf4;padding-top:14px;margin-top:14px}
+.crit-page-sec:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.crit-page-title{font-size:13px;font-weight:800;color:#4338ca;margin-bottom:10px}
+/* 指標ひとつぶんのセル（値・基準・差） */
+.issue-cell2{min-width:92px;line-height:1.5}
+.issue-cell2.cause{background:#fffbeb;border-radius:7px;padding:3px 6px;margin:-3px -6px}
+.ic2-val{font-size:12.5px;font-weight:800}
+.ic2-val.ir-good{color:#38b06c}.ic2-val.ir-mid{color:#d97706}.ic2-val.ir-bad{color:#e74c3c}
+.ic2-star{color:#f59e0b;margin-left:3px}
+.ic2-bench{font-size:10px;color:#aaa}
+.ic2-diff{font-size:10.5px;font-weight:700}
+.ic2-diff.ir-good{color:#38b06c}.ic2-diff.ir-mid{color:#d97706}.ic2-diff.ir-bad{color:#e74c3c}
+.ic2-pt{color:#aaa;font-weight:600;margin-left:5px}
+.issue-why{background:#fffbeb;border-left:3px solid #f59e0b;font-size:11.5px;color:#92400e;
+  padding:7px 12px;line-height:1.7}
+.issue-why b{color:#78350f}
+.issue-why .why-step{font-size:10px;font-weight:800;background:#fde68a;color:#92400e;
+  border-radius:5px;padding:1px 7px;margin-right:7px}
+.issue-keizoku{font-size:11px;color:#55556b;margin-left:10px}
+.issue-keizoku .kz-missing{font-size:10px;font-weight:800;color:#92400e;background:#fef3c7;
+  border-radius:5px;padding:1px 6px}
 /* ▼ ③週次の進捗・対策メモ */
 .trk-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
 .trk-weeks{display:flex;gap:6px;flex-wrap:wrap}
@@ -287,6 +336,18 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .trk-memo-row td{background:#fafaff;font-size:11.5px;color:#55556b;white-space:normal;line-height:1.7}
 .trk-by{font-size:10px;color:#aaa;margin-left:10px}
 .trk-note{font-size:11px;color:#8a8aa0;margin-top:10px;line-height:1.7}
+.trk-sortbar{display:flex;align-items:center;gap:7px;margin-bottom:12px;font-size:11.5px;color:#8a8aa0}
+.trk-sortbar>span{font-weight:700}
+.trk-sort-btn{background:#fff;border:1.5px solid #e4e4ef;border-radius:999px;padding:4px 12px;cursor:pointer;
+  font-size:11.5px;font-weight:700;color:#55556b}
+.trk-sort-btn.active{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.trk-team{background:#fff;border:1px solid #ececf4;border-left:4px solid #6366f1;border-radius:12px;
+  padding:11px 16px;margin-bottom:12px}
+.trk-team-head{font-size:12.5px;font-weight:800;color:#1a1a2e;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;margin-bottom:6px}
+.trk-team-body{font-size:12px;color:#55556b;line-height:1.8;white-space:pre-wrap}
+.trk-team-empty{color:#bbb}
+.trk-carried{font-size:10px;font-weight:800;color:#4338ca;background:#eef2ff;border-radius:6px;padding:2px 7px}
 /* 対策メモの入力 */
 .trk-modal{position:fixed;inset:0;background:rgba(20,20,40,.45);display:none;align-items:center;
   justify-content:center;z-index:9000;padding:20px}
@@ -1604,7 +1665,7 @@ body.mobile .side-menu-overlay{display:block!important}
       <button class="nav-tab" id="navIssues"  onclick="switchMainTab('issues')">🔍 店舗の課題</button>
       <button class="nav-tab" id="navTracker" onclick="switchMainTab('tracker')">📅 週次・対策</button>
       <button class="nav-tab" id="navPayback" onclick="switchMainTab('payback')">💰 投資回収</button>
-      <button class="nav-tab" id="navManual"  onclick="switchMainTab('manual')">📘 会計の入れ方</button>
+      <button class="nav-tab" id="navManual"  onclick="switchMainTab('manual')">📘 会計の入れ方・判定の基準</button>
     </div>
   </div>
 
@@ -2129,20 +2190,15 @@ body.mobile .side-menu-overlay{display:block!important}
       </div>
     </div>
 
-    <!-- ⑤ 会計の入れ方 -->
+    <!-- ⑤ 会計の入れ方・判定の基準 -->
     <div id="manualView" style="display:none">
       <div class="page-head">
         <div>
-          <div class="page-title">📘 会計の入れ方</div>
-          <div class="page-meta" id="manualMeta">サロンボードの会計のしかたと、目印がダッシュボードのどこに出るか</div>
+          <div class="page-title">📘 会計の入れ方・判定の基準</div>
+          <div class="page-meta" id="manualMeta">サロンボードの会計のしかたと、ダッシュボードが使っている基準のまとめ</div>
         </div>
       </div>
-      <div class="page-ph">
-        <span class="page-ph-badge">段階7で中身が入ります</span>
-        <p>ケース別の会計の入れ方と、入れた目印がダッシュボードのどの数字になるかの早見表が入ります。中身はCoworkから受け取ります。</p>
-        <div class="ph-note">移行が済むまでは、Coworkが作ったドキュメントを見てください。
-          <a href="https://claude.ai/artifact/6evcU4fzBED1GEkuDGgfUe" target="_blank" rel="noopener">売上明細のサービス項目 早見表</a></div>
-      </div>
+      <div id="manualBody"></div>
     </div>
   </div>
 </div>
@@ -6096,6 +6152,7 @@ function switchMainTab(tab, opts) {
     try { renderTrackerPage(); } catch(e){ console.warn('週次の進捗を出せません', e); }
   }
   if (tab === 'payback') { try { renderUdStatus('paybackUdStatus'); } catch(e){} }
+  if (tab === 'manual')  { try { renderManualPage(); } catch(e){ console.warn('判定の基準を出せません', e); } }
   renderSubPage(tab);
   if (!(opts && opts.silent)) setRouteHash(MAIN_TABS[tab].hash);
   if (typeof syncSidePanelSections === 'function') syncSidePanelSections();
@@ -6839,6 +6896,10 @@ const ISSUE_ALMOST_RATIO = 0.83;      // 「あと一歩」のしきい値（着
 const ISSUE_MONTHS_BACK  = 3;
 // 会計のルールがまだ固まっていない店。数字は出すが「参考値」と断る（2026-11-12 キム兄さん）
 const ISSUE_REF_STORES = ['Belle下北沢', 'LIME下北沢', 'Lift下北沢', '直営 研修生サロン'];
+// 継続率の目標（投資回収ボードの前提値と同じ。依頼45の4章）
+const ISSUE_KEIZOKU_TARGET = { BelleLIME: 60, Lift: 40, '直営': 60 };
+// 継続率の基準値に入れる店の条件（目印が入っていて、3か月で継続対象がこの件数以上）
+const ISSUE_KEIZOKU_MIN = 3;
 
 const ISSUE_CAUSES = {
   zero:  { key:'zero',  label:'契約がほぼ0件', emoji:'🚨', color:'#dc2626',
@@ -6946,6 +7007,7 @@ function issueAvg(arr) {
 function issueStatsOf(store, months) {
   const sales = [];
   let withData = 0, nc = 0, ncc = 0, rcc = 0, ncs = 0, rcs = 0, tsum = 0;
+  let ke = 0, kc = 0;   // 継続対象・継続成功（3か月の合計）
   months.forEach(function(m) {
     const d = (DATA.data[m] || {})[store];
     if (!d) { sales.push(null); return; }
@@ -6957,6 +7019,8 @@ function issueStatsOf(store, months) {
     rcc += d.reappo_contract_count || 0;
     ncs += d.new_contract_sales || 0;
     rcs += d.reappo_contract_sales || 0;
+    ke  += d.keizoku_end_count || 0;
+    kc  += d.keizoku_continue_count || 0;
   });
   const cnt = ncc + rcc;
   return {
@@ -6966,24 +7030,58 @@ function issueStatsOf(store, months) {
     avg_count: cnt / ISSUE_MONTHS_BACK,
     price:     cnt > 0 ? (ncs + rcs) / cnt : 0,
     contract_count: cnt, reappo_contract_count: rcc,
-    new_count: nc, new_contract_count: ncc
+    new_count: nc, new_contract_count: ncc,
+    // ▼ 継続率（振り分けには使わない。参考として見せる。依頼50a）
+    keizoku_end: ke, keizoku_cont: kc,
+    keizoku_rate: ke > 0 ? Math.round(kc / ke * 1000) / 10 : 0,
+    keizoku_ok: ke >= ISSUE_KEIZOKU_MIN
   };
 }
 
-/* 原因を決める。r は基準値に対する割合（1.0＝基準どおり） */
+/*
+ * 原因を決める。r は基準値に対する割合（1.0＝基準どおり）。
+ * どの段で決まったか（step）と、理由の文（why）も一緒に返す（依頼50a）。
+ */
 function issueCauseOf(st, rNew, rRate, rPrice) {
+  const pc = function (r) { return Math.round(r * 100) + '%'; };
   // ① 契約がほぼ0件
-  if (st.rate <= 0 || st.avg_count < 0.5) return 'zero';
+  if (st.rate <= 0 || st.avg_count < 0.5) {
+    return { cause: 'zero', step: 1,
+             why: st.rate <= 0
+               ? '3か月の契約率が0%のため「契約がほぼ0件」。会計の入れ方を確認してください'
+               : '契約が月' + st.avg_count.toFixed(1) + '件（0.5件未満）のため「契約がほぼ0件」。会計の入れ方を確認してください' };
+  }
   // ② 契約単価がいちばん悪く、基準の8割未満
   const worst = Math.min(rNew, rRate, rPrice);
-  if (rPrice === worst && rPrice < 0.8) return 'price';
+  if (rPrice === worst && rPrice < 0.8) {
+    return { cause: 'price', step: 2,
+             why: '契約単価が基準の' + pc(rPrice) + 'で、3つの指標（新規数' + pc(rNew)
+                + '・契約率' + pc(rRate) + '・契約単価' + pc(rPrice) + '）の中でいちばん足りないため「契約単価」' };
+  }
   // ③ 新規数・契約率がどちらも7割以上、または両方7割未満で差が小さい
   const bothOk  = (rNew >= 0.7 && rRate >= 0.7);
   const bothBad = (rNew < 0.7 && rRate < 0.7);
   const close   = Math.min(rNew, rRate) / Math.max(rNew, rRate) >= 0.6;
-  if (bothOk || (bothBad && close)) return 'count';
+  if (bothOk) {
+    return { cause: 'count', step: 3,
+             why: '新規数（基準の' + pc(rNew) + '）も契約率（基準の' + pc(rRate)
+                + '）も7割以上あるのに届いていないため「契約数」。契約は月' + st.avg_count.toFixed(1)
+                + '件（基準の' + pc(st.avg_count / (st.bench_count || st.avg_count || 1)) + '）' };
+  }
+  if (bothBad && close) {
+    return { cause: 'count', step: 3,
+             why: '新規数（基準の' + pc(rNew) + '）と契約率（基準の' + pc(rRate)
+                + '）が同じくらい足りないため「契約数」。どちらか一方だけでは説明できません' };
+  }
   // ④ 新規数と契約率の悪い方
-  return rNew <= rRate ? 'new' : 'rate';
+  if (rNew <= rRate) {
+    return { cause: 'new', step: 4,
+             why: '新規数が基準の' + pc(rNew) + 'で、契約率（基準の' + pc(rRate)
+                + '）より足りないため「新規数」' };
+  }
+  return { cause: 'rate', step: 4,
+           why: '契約率が基準の' + pc(rRate) + 'で、新規数（基準の' + pc(rNew)
+              + '）より足りないため「契約率」' };
 }
 
 /* ページぜんぶのデータを作る */
@@ -7016,11 +7114,15 @@ function buildIssueBoard(month) {
                       x.st.sales.some(function(v){ return v != null && v >= ISSUE_LINE_LIFT; }); });
   const overD    = all.filter(function(x){ return x.group === '直営' && x.over; });
   const benchOf = function(list) {
+    // 継続率は「目印が入っていて継続対象が3件以上ある店」だけで中央値を出す（依頼50a）
+    const kList = list.filter(function (x) { return x.st.keizoku_ok; });
     return { n: list.length,
              avg_new:   issueMedian(list.map(function(x){ return x.st.avg_new; })),
              rate:      issueMedian(list.map(function(x){ return x.st.rate; })),
              avg_count: issueMedian(list.map(function(x){ return x.st.avg_count; })),
-             price:     issueMedian(list.map(function(x){ return x.st.price; })) };
+             price:     issueMedian(list.map(function(x){ return x.st.price; })),
+             keizoku_rate: issueMedian(kList.map(function(x){ return x.st.keizoku_rate; })),
+             keizoku_n:    kList.length };
   };
   const bench = { BelleLIME: benchOf(overBL), Lift: benchOf(overLift),
                   '直営': benchOf(overD.length >= 5 ? overD : overBL) };
@@ -7035,7 +7137,15 @@ function buildIssueBoard(month) {
     x.stage1 = !x.over;
     x.stage2 = x.stage1 && (x.landing < x.line);
     x.almost = x.stage2 && (x.landing >= x.line * ISSUE_ALMOST_RATIO);
-    x.cause  = x.stage2 ? issueCauseOf(x.st, x.r.new, x.r.rate, x.r.price) : '';
+    // 継続率（参考。振り分けには使わない）
+    x.r.keizoku = b.keizoku_rate > 0 ? x.st.keizoku_rate / b.keizoku_rate : 0;
+    x.keizoku_target = ISSUE_KEIZOKU_TARGET[x.group] || ISSUE_KEIZOKU_TARGET.BelleLIME;
+    x.keizoku_missing = (x.st.keizoku_end || 0) === 0;
+    if (x.stage2) {
+      x.st.bench_count = b.avg_count;
+      const dec = issueCauseOf(x.st, x.r.new, x.r.rate, x.r.price);
+      x.cause = dec.cause; x.step = dec.step; x.why = dec.why;
+    } else { x.cause = ''; x.step = 0; x.why = ''; }
     // 補足の印
     x.flags = [];
     if (x.st.price > 0 && x.st.price < 30000 &&
@@ -7100,14 +7210,14 @@ function renderIssuesPage() {
 
   let h = '';
 
-  // ── 条件の説明 ──
+  // ── 判定の基準（開閉。依頼50a）──
+  h += infoPanel('判定の基準（ラインと基準値、原因の決め方）', issueCriteriaInner(board));
   h += '<div class="issue-legend">'
-     + '<div><b>対象</b> Belle・LIME・Lift の店（直営は別グループ）</div>'
-     + '<div><b>ライン</b> Belle・LIME系 120万／Lift 100万（直営は120万で見ています）</div>'
      + '<div><b>①</b> ' + mNames + ' に一度もラインを超えていない店</div>'
      + '<div><b>②</b> ①のうち ' + mLabel + ' の着地見込もラインに届かない店'
      + '（着地＝今月の売上 ÷ ' + day + '日 × 月の日数）</div>'
-     + '<div><b>基準値</b> ラインを超えた店の中央値（3か月の月平均）。Liftは加盟店で100万を超えた店まで広げています</div>'
+     + '<div class="issue-legend-hint">表の各指標は「その店の値／基準／基準に対する割合」。'
+     + '★が原因に選ばれた指標です</div>'
      + '</div>';
 
   if (!rows.length) {
@@ -7195,13 +7305,23 @@ function renderIssuesPage() {
            + '<td class="it-sv">' + escHtml(x.person || '—') + '</td>'
            + '<td>' + issueFmtMan(x.st.total_sales) + '</td>'
            + '<td class="it-land">' + issueFmtMan(x.landing) + '<span class="it-line">／' + issueFmtMan(x.line) + '</span></td>'
-           + '<td>' + issueCell(x.st.avg_new.toFixed(1), x.r.new, '人') + '</td>'
-           + '<td>' + issueCell(x.st.rate.toFixed(1), x.r.rate, '%') + '</td>'
-           + '<td>' + issueCell(x.st.avg_count.toFixed(1), x.r.count, '件') + '</td>'
+           + '<td>' + issueCell2(x.st.avg_new, x.bench.avg_new, x.r.new, '人', false, x.cause === 'new') + '</td>'
+           + '<td>' + issueCell2(x.st.rate, x.bench.rate, x.r.rate, '%', true, x.cause === 'rate') + '</td>'
+           + '<td>' + issueCell2(x.st.avg_count, x.bench.avg_count, x.r.count, '件', false, x.cause === 'count' || x.cause === 'zero') + '</td>'
            + '<td>' + (x.st.reappo_contract_count || 0) + '<span class="it-unit">件</span></td>'
-           + '<td>' + issueCell(Math.round(x.st.price).toLocaleString('ja-JP'), x.r.price, '円') + '</td>'
+           + '<td>' + issueCell2(x.st.price, x.bench.price, x.r.price, '円', false, x.cause === 'price') + '</td>'
            + '<td class="it-weak">' + (x.weak.length ? x.weak.join('、') : '—') + '</td>'
            + '</tr>';
+        // ▼ なぜその原因になったか（依頼50a）と、継続率（参考）
+        const kz = x.keizoku_missing
+          ? '<span class="kz-missing">目印不足</span> 継続率は計算できません'
+          : '継続率 <b>' + issueFmtVal(x.st.keizoku_rate, '%') + '</b>'
+            + '（基準 ' + (x.bench.keizoku_rate > 0 ? issueFmtVal(x.bench.keizoku_rate, '%') : '—')
+            + '／目標 ' + x.keizoku_target + '%・対象' + x.st.keizoku_end + '件）';
+        h += '<tr class="issue-why-row"><td colspan="10"><div class="issue-why">'
+           + '<span class="why-step">判定' + x.step + '</span>' + x.why
+           + '<span class="issue-keizoku">' + kz + '</span>'
+           + '</div></td></tr>';
       });
       h += '</tbody></table></div>';
       const td = ISSUE_TODO[c];
@@ -7298,6 +7418,8 @@ function renderStoreCompareHtml(store, month) {
                 + '<b>' + Math.round(x.diff) + '%</b></span>';
          }).join('') + '</div>';
   }
+  h += infoPanel('判定の基準（比べている相手・弱みの決め方）',
+                 cmpCriteriaInner(group, peers.length, overs.length, line));
   h += '<div class="cmp-table-wrap"><table class="cmp-table"><thead><tr>'
      + '<th>指標</th><th>この店</th><th>グループ平均</th><th>中央値</th><th>ライン超の平均</th><th>平均との差</th>'
      + '</tr></thead><tbody>';
@@ -7317,6 +7439,163 @@ function renderStoreCompareHtml(store, month) {
 }
 
 /* ============================================================
+ *  判定の基準を画面に出す（依頼50a）
+ *  ------------------------------------------------------------
+ *  「どんな基準で判断しているのか」と「その店がどれだけ足りないのか」を見せる。
+ *  数字は固定の文ではなく、そのときの計算に使った実際の値を出す。
+ *  ②③店舗詳細⑤のどこを見ても同じ数字になるよう、同じ関数から作る。
+ * ============================================================ */
+
+/** 開閉できる枠（最初は閉じている） */
+function infoPanel(title, inner, open) {
+  return '<details class="info-panel"' + (open ? ' open' : '') + '>'
+       + '<summary class="info-sum">ⓘ ' + title + '</summary>'
+       + '<div class="info-body">' + inner + '</div></details>';
+}
+
+function issueFmtVal(v, unit) {
+  if (unit === '円') return Math.round(v).toLocaleString('ja-JP') + '円';
+  if (unit === '万円') return (Math.round(v / 1000) / 10) + '万円';
+  return (Math.round(v * 10) / 10) + unit;
+}
+
+/**
+ * 指標ひとつぶんのセル。その店の値・基準値・差（基準の何%か、何ポイント／何件足りないか）。
+ *   isPct … %の指標はポイントで、そうでなければ単位つきの差で出す
+ */
+function issueCell2(val, bench, ratio, unit, isPct, isCause) {
+  const diff = val - bench;
+  const sign = diff >= 0 ? '+' : '−';
+  const diffTxt = bench > 0
+    ? (isPct ? sign + Math.abs(Math.round(diff * 10) / 10) + 'pt'
+             : sign + issueFmtVal(Math.abs(diff), unit))
+    : '—';
+  return '<div class="issue-cell2' + (isCause ? ' cause' : '') + '">'
+       + '<div class="ic2-val ' + issueRatioClass(ratio) + '">' + issueFmtVal(val, unit)
+         + (isCause ? '<span class="ic2-star">★</span>' : '') + '</div>'
+       + '<div class="ic2-bench">基準 ' + (bench > 0 ? issueFmtVal(bench, unit) : '—') + '</div>'
+       + '<div class="ic2-diff ' + issueRatioClass(ratio) + '">'
+         + (bench > 0 ? Math.round(ratio * 100) + '%' : '—')
+         + '<span class="ic2-pt">' + diffTxt + '</span></div>'
+       + '</div>';
+}
+
+/** ②の「判定の基準」。グループごとに出す */
+function issueCriteriaInner(board) {
+  const mNames = board.months.map(function (m) { return MONTH_MAP[m] || m; }).join('・');
+  let h = '<div class="crit-sec"><b>対象</b> 店名が Belle・LIME・Lift で始まる店（直営は別グループ）。'
+        + '閉店した店は外します</div>';
+  h += '<div class="crit-sec"><b>対象月</b> ' + mNames + '（今月の前の3か月）。指標は3か月の月平均</div>';
+  h += '<div class="crit-sec"><b>①</b> この3か月に一度もラインを超えていない店<br>'
+     + '<b>②</b> ①のうち、今月の着地見込もラインに届かない店'
+     + '（着地＝今月の売上 ÷ 経過日数 × 月の日数）</div>';
+
+  ['BelleLIME', 'Lift', '直営'].forEach(function (g) {
+    const b = board.bench[g];
+    if (!b) return;
+    const line = (g === 'Lift') ? ISSUE_LINE_LIFT : ISSUE_LINE_DEFAULT;
+    const how = g === 'BelleLIME'
+      ? '同じ3か月にラインを超えた Belle・LIME 店 ' + b.n + '店の中央値'
+      : g === 'Lift'
+        ? 'Liftで超えた店が少ないので、加盟店で100万円を超えた店 ' + b.n + '店の中央値（直営は入れていません）'
+        : 'ラインを超えた直営店 ' + b.n + '店の中央値';
+    h += '<div class="crit-group"><div class="crit-group-head">' + (ISSUE_GROUP_LABEL[g] || g)
+       + '<span class="crit-line">ライン ' + issueFmtVal(line, '万円') + '</span></div>'
+       + '<div class="crit-how">基準値の作り方：' + how + '</div>'
+       + '<table class="crit-table"><tbody>'
+       + '<tr><td>新規数</td><td>' + issueFmtVal(b.avg_new, '人') + ' / 月</td></tr>'
+       + '<tr><td>新規契約率</td><td>' + issueFmtVal(b.rate, '%') + '</td></tr>'
+       + '<tr><td>契約数</td><td>' + issueFmtVal(b.avg_count, '件') + ' / 月</td></tr>'
+       + '<tr><td>契約単価</td><td>' + issueFmtVal(b.price, '円') + '</td></tr>'
+       + '<tr class="crit-ref"><td>継続率<span class="crit-sub">参考</span></td><td>'
+         + (b.keizoku_rate > 0 ? issueFmtVal(b.keizoku_rate, '%') + '（' + b.keizoku_n + '店の中央値）' : '—')
+         + '　目標 ' + (ISSUE_KEIZOKU_TARGET[g] || 60) + '%</td></tr>'
+       + '</tbody></table></div>';
+  });
+
+  h += '<div class="crit-sec"><b>原因の決め方</b>（上から順に当てはめます）'
+     + '<ol class="crit-steps">'
+     + '<li>3か月の契約率が0%、または契約が月0.5件未満なら <b>契約がほぼ0件</b></li>'
+     + '<li>契約単価がいちばん低く、基準の8割に届かないなら <b>契約単価</b></li>'
+     + '<li>新規数と契約率がどちらも基準の7割以上ある、'
+       + 'または同じくらい低い（低い方 ÷ 高い方が0.6以上）なら <b>契約数</b></li>'
+     + '<li>それ以外は、新規数と契約率のうち基準に対して低い方</li>'
+     + '</ol></div>';
+  h += '<div class="crit-sec crit-note"><b>継続率は振り分けに使っていません。</b>'
+     + '目印（終了・継続・追加）を入れていない店が多く、数字の信用度が低いためです。参考として基準と並べています。'
+     + '<br>継続の目印が入っていない店は継続率を計算できません。その店には「目印不足」と出します。</div>';
+  h += '<div class="crit-sec crit-note">「あと一歩」は、着地がラインの'
+     + Math.round(ISSUE_ALMOST_RATIO * 100) + '%以上の店です。</div>';
+  return h;
+}
+
+/** ③の「判定の基準」 */
+function trkCriteriaInner(month, weeks) {
+  const el = trkElapsedDays(month);
+  const y = parseInt(month.slice(0, 4), 10), m = parseInt(month.slice(4, 6), 10);
+  const dim = new Date(y, m, 0).getDate();
+  let h = '<div class="crit-sec"><b>着地見込</b> 月累計 ÷ 経過日数 × 月の日数'
+        + '（' + (MONTH_MAP[month] || month) + 'は ÷' + (el || dim) + '日 ×' + dim + '日）。'
+        + '暦の日数で割ります（店ごとの最終会計日ではありません）</div>';
+  h += '<div class="crit-sec"><b>進捗の色</b>'
+     + '<span class="trk-pace trk-pace-ok">到達ペース</span> ライン以上　'
+     + '<span class="trk-pace trk-pace-close">あと少し</span> ライン の'
+       + Math.round(TRK_CLOSE_RATIO * 100) + '%以上　'
+     + '<span class="trk-pace trk-pace-ng">要対策</span> それ未満</div>';
+  h += '<div class="crit-sec"><b>ライン</b> Belle・LIME系 120万円／Lift 100万円（直営は120万円で見ています）</div>';
+  h += '<div class="crit-sec"><b>週の区切り</b> 日曜〜土曜。月末の端数は最後の週に入れます<br>'
+     + (MONTH_MAP[month] || month) + '：'
+     + weeks.map(function (w) { return '第' + w.no + '週 ' + w.d1 + '〜' + w.d2 + '日'; }).join('／')
+     + '</div>';
+  h += '<div class="crit-sec crit-note">週の途中は、その週の<b>今日まで</b>で計算します。'
+     + '先の週は「—」と出ます。</div>';
+  return h;
+}
+
+/** 店舗詳細の比較の「判定の基準」 */
+function cmpCriteriaInner(group, peers, overs, line) {
+  let h = '<div class="crit-sec"><b>比べている相手</b><br>'
+        + '・同じ' + (ISSUE_GROUP_LABEL[group] || group) + 'の全店 <b>' + peers + '店</b>の平均と中央値<br>'
+        + '・そのうちライン（' + issueFmtVal(line, '万円') + '）を超えた店 <b>' + overs + '店</b>の平均</div>';
+  h += '<div class="crit-sec"><b>弱みとする基準</b> 同じグループの平均より<b>10%以上低い</b>もの</div>';
+  h += '<div class="crit-sec"><b>注力箇所</b> 弱みのうち、差が大きい順に1〜2個</div>';
+  h += '<div class="crit-sec crit-note">この比較は<b>表示している月だけ</b>の数字です'
+     + '（②の課題は3か月の平均で見ています）。</div>';
+  return h;
+}
+
+/** ⑤「会計の入れ方・判定の基準」のページ */
+function renderManualPage() {
+  const el = document.getElementById('manualBody');
+  if (!el) return;
+  const month = curMonth;
+  let board = null;
+  try { board = buildIssueBoard(month); } catch (e) {}
+  const weeks = trkWeeks(month);
+
+  let h = '<div class="page-ph" style="margin-bottom:16px">'
+        + '<span class="page-ph-badge">会計の入れ方は段階7で入ります</span>'
+        + '<p>サロンボードの会計のしかた（ケース別）と、入れた目印がダッシュボードのどの数字になるかの'
+        + '早見表が入ります。中身はCoworkから受け取ります。</p>'
+        + '<div class="ph-note">移行が済むまでは、Coworkが作ったドキュメントを見てください。'
+        + '<a href="https://claude.ai/artifact/6evcU4fzBED1GEkuDGgfUe" target="_blank" rel="noopener">'
+        + '売上明細のサービス項目 早見表</a></div></div>';
+
+  h += '<div class="crit-page">';
+  h += '<div class="crit-page-head">📐 判定の基準（' + (MONTH_MAP[month] || month) + '時点）'
+     + '<span class="crit-page-sub">各タブのⓘ欄と同じ数字です。同じ計算から出しています</span></div>';
+  h += '<div class="crit-page-sec"><div class="crit-page-title">🔍 店舗の課題（②）</div>'
+     + (board ? issueCriteriaInner(board) : '<div class="crit-sec">計算できませんでした</div>') + '</div>';
+  h += '<div class="crit-page-sec"><div class="crit-page-title">📅 週次の進捗（③）</div>'
+     + trkCriteriaInner(month, weeks) + '</div>';
+  h += '<div class="crit-page-sec"><div class="crit-page-title">📐 ブランド平均との比較（店舗詳細）</div>'
+     + '<div class="crit-sec">店舗詳細を開くと、その店のグループで実際に何店と比べているかが出ます。'
+     + '弱みは<b>平均より10%以上低いもの</b>、注力箇所は<b>差が大きい順に1〜2個</b>です。</div></div>';
+  h += '</div>';
+  el.innerHTML = h;
+}
+
+/* ============================================================
  *  ③ 週次の進捗・対策メモ（依頼45の3章）
  *  ------------------------------------------------------------
  *  週は日曜〜土曜。月末の端数は最後の週に入れる（区切りは data.json の weeks）。
@@ -7327,6 +7606,9 @@ const TRK_OK_RATIO    = 1.0;     // ライン以上 → 到達ペース
 const TRK_CLOSE_RATIO = 0.85;    // 85%以上 → あと少し
 let trkWeek  = -1;               // いま見ている週（-1 は「今の週」）
 let trkAll   = false;            // true なら全店、false なら②で出た店だけ
+let trkSort  = 'landing';        // 'landing' 着地が遠い順／'sv' 担当SV順／'cause' 原因順
+// 店に紐づかない「その週全体のメモ」を入れるときの、店舗欄の決まった値（GAS側と同じ）
+const TRK_TEAM_STORE = '（全体）';
 
 /** その月の「今日までの日数」。過ぎた月は月末、先の月は0 */
 function trkElapsedDays(month) {
@@ -7420,12 +7702,30 @@ function trkPaceOf(landing, line) {
   return { key: 'ng', label: '要対策', color: '#e74c3c' };
 }
 
-/** 対策メモの1行を読む（無ければ空） */
+/**
+ * 対策メモの1行を読む。
+ * その月に無ければ、前の月の「完了していないもの」を引き継いで見せる（依頼50a）。
+ * 引き継いだものは carried=true を付ける。保存するとその月の行になる。
+ */
 function trkMemoOf(month, store) {
-  return udGet('memo', month + '|' + store) || {};
+  const own = udGet('memo', month + '|' + store);
+  if (own) return own;
+  const prev = udGet('memo', getPrevMonth(month) + '|' + store);
+  if (prev && (prev['状態'] || '') !== '完了') {
+    const c = {};
+    Object.keys(prev).forEach(function (k) { c[k] = prev[k]; });
+    c.carried = true;
+    c.carried_from = getPrevMonth(month);
+    return c;
+  }
+  return {};
 }
 function trkWeekMemoOf(month, week, store) {
   return udGet('weekmemo', month + '|' + week + '|' + store) || {};
+}
+/** その週全体のメモ（店に紐づかない。依頼50a） */
+function trkTeamMemoOf(month, week) {
+  return udGet('weekmemo', month + '|' + week + '|' + TRK_TEAM_STORE) || {};
 }
 /** 予定日を過ぎて「済」が付いていないか */
 function trkOverdue(dateStr, done) {
@@ -7464,6 +7764,7 @@ function trkStores(month) {
 
 function trkSetWeek(i) { trkWeek = i; renderTrackerPage(); }
 function trkSetAll(v)  { trkAll = !!v; renderTrackerPage(); }
+function trkSetSort(k) { trkSort = k; renderTrackerPage(); }
 
 function renderTrackerPage() {
   const el = document.getElementById('trackerBody');
@@ -7478,6 +7779,9 @@ function renderTrackerPage() {
 
   let h = '';
 
+  // ── 判定の基準（依頼50a）──
+  h += infoPanel('判定の基準（着地見込・進捗の色・週の区切り）', trkCriteriaInner(month, weeks));
+
   // ── 週のタブ ──
   h += '<div class="trk-bar"><div class="trk-weeks">';
   weeks.forEach(function (w, i) {
@@ -7489,6 +7793,12 @@ function renderTrackerPage() {
      + '<button class="trk-scope-btn' + (trkAll ? '' : ' active') + '" onclick="trkSetAll(false)">②の店だけ</button>'
      + '<button class="trk-scope-btn' + (trkAll ? ' active' : '') + '" onclick="trkSetAll(true)">全店</button>'
      + '</div></div>';
+  // 並べ替え
+  h += '<div class="trk-sortbar"><span>並び替え</span>'
+     + [['landing', '着地が遠い順'], ['sv', '担当SV順'], ['cause', '原因順']].map(function (p) {
+         return '<button class="trk-sort-btn' + (trkSort === p[0] ? ' active' : '')
+              + '" onclick="trkSetSort(\'' + p[0] + '\')">' + p[1] + '</button>';
+       }).join('') + '</div>';
 
   if (!stores.length) {
     el.innerHTML = h + '<div class="page-ph"><p>この絞り込みでは対象の店がありません。</p></div>';
@@ -7496,6 +7806,11 @@ function renderTrackerPage() {
   }
 
   // ── 表 ──
+  // 原因で並べ替えるために、②の判定を引いておく
+  const causeOf = {};
+  try {
+    buildIssueBoard(month).all.forEach(function (x) { if (x.cause) causeOf[x.store] = x.cause; });
+  } catch (e) {}
   const rows = stores.map(function (s) {
     const brand = issueBrandOf(s);
     const line  = issueLineOf(brand);
@@ -7503,9 +7818,27 @@ function renderTrackerPage() {
     const prev  = wi > 0 ? trkStoreWeek(s, month, weeks, wi - 1) : null;
     return { store: s, line: line, cur: cur, prev: prev,
              memo: trkMemoOf(month, s), wmemo: trkWeekMemoOf(month, weeks[wi].no, s),
+             cause: (causeOf[s] || ''),
              person: (DATA.store_person && DATA.store_person[s]) || '' };
   }).filter(function (r) { return r.cur; });
-  rows.sort(function (a, b) { return (a.cur.landing / a.line) - (b.cur.landing / b.line); });
+  // 並べ替え（依頼50a）
+  if (trkSort === 'sv') {
+    rows.sort(function (a, b) {
+      const pa = a.person || '', pb = b.person || '';
+      // 担当なしは後ろへ（印の文字で並べると、漢字より小さくて先頭に来てしまう）
+      if (!pa !== !pb) return pa ? -1 : 1;
+      if (pa !== pb) return pa < pb ? -1 : 1;
+      return (a.cur.landing / a.line) - (b.cur.landing / b.line);
+    });
+  } else if (trkSort === 'cause') {
+    const ord = function (c) { const i = ISSUE_CAUSE_ORDER.indexOf(c); return i < 0 ? 99 : i; };
+    rows.sort(function (a, b) {
+      if (ord(a.cause) !== ord(b.cause)) return ord(a.cause) - ord(b.cause);
+      return (a.cur.landing / a.line) - (b.cur.landing / b.line);
+    });
+  } else {
+    rows.sort(function (a, b) { return (a.cur.landing / a.line) - (b.cur.landing / b.line); });
+  }
 
   const n = { ok: 0, close: 0, ng: 0 };
   rows.forEach(function (r) { n[trkPaceOf(r.cur.landing, r.line).key === 'none' ? 'ng' : trkPaceOf(r.cur.landing, r.line).key]++; });
@@ -7514,6 +7847,16 @@ function renderTrackerPage() {
      + '<span class="trk-sum-chip ok">到達ペース ' + n.ok + '</span>'
      + '<span class="trk-sum-chip close">あと少し ' + n.close + '</span>'
      + '<span class="trk-sum-chip ng">要対策 ' + n.ng + '</span></div>';
+
+  // その週全体のメモ（依頼50a）
+  const team = trkTeamMemoOf(month, weeks[wi].no);
+  h += '<div class="trk-team">'
+     + '<div class="trk-team-head">📝 第' + weeks[wi].no + '週のメモ（チーム全体）'
+     + '<button class="trk-edit" onclick="trkOpenTeamMemo()">書く</button></div>'
+     + '<div class="trk-team-body">' + (team['メモ'] ? escHtml(team['メモ'])
+         + '<span class="trk-by">' + escHtml(team['更新者'] || '') + ' '
+         + escHtml(String(team['更新日時'] || '').slice(0, 16)) + '</span>'
+       : '<span class="trk-team-empty">まだ書かれていません</span>') + '</div></div>';
 
   h += '<div class="trk-table-wrap"><table class="trk-table"><thead><tr>'
      + '<th>店舗</th><th>担当SV</th><th>週の売上</th><th>月累計</th><th>着地見込</th><th>進捗</th>'
@@ -7544,6 +7887,7 @@ function renderTrackerPage() {
        + '<td>' + (c.cum_new > 0 ? c.cum_rate + '<span class="it-unit">%</span>' : '—') + '</td>'
        + '<td class="trk-memo-cell">'
          + '<span class="trk-status trk-status-' + ['未着手','予定あり','実施中','完了'].indexOf(st) + '">' + escHtml(st) + '</span>'
+         + (m.carried ? '<span class="trk-carried">前月から引き継ぎ</span>' : '')
          + (od ? '<span class="trk-overdue">予定日を過ぎています</span>' : '')
          + '<button class="trk-edit" onclick="trkOpenMemo(\'' + r.store.replace(/'/g, "\\'") + '\')">書く</button>'
        + '</td></tr>';
@@ -7579,8 +7923,42 @@ function renderTrackerPage() {
   }
 }
 
+/** その週全体のメモを保存する */
+function trkSaveTeamMemo() {
+  const month = curMonth;
+  const weeks = trkWeeks(month);
+  const wi = (trkWeek < 0 || trkWeek >= weeks.length) ? trkCurrentWeek(month, weeks) : trkWeek;
+  const e = document.getElementById('trkTeamMemo');
+  const btn = document.getElementById('trkSaveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '保存しています…'; }
+  udSave('weekmemo', { month: month, week: weeks[wi].no, store: TRK_TEAM_STORE,
+                       memo: e ? e.value : '' })
+    .then(function () { return udLoadAll(); })
+    .then(function () { udToast('保存しました'); trkCloseMemo(); renderTrackerPage(); })
+    .catch(function (err) { udToast(err.message, true); })
+    .then(function () { if (btn) { btn.disabled = false; btn.textContent = '保存する'; } });
+}
+
 /* ===== 対策メモの入力 ===== */
 let trkEditing = '';
+let trkTeamEditing = false;
+
+/** その週全体のメモを書く（依頼50a） */
+function trkOpenTeamMemo() {
+  const month = curMonth;
+  const weeks = trkWeeks(month);
+  const wi = (trkWeek < 0 || trkWeek >= weeks.length) ? trkCurrentWeek(month, weeks) : trkWeek;
+  const t = trkTeamMemoOf(month, weeks[wi].no);
+  trkTeamEditing = true;
+  trkEditing = '';
+  document.getElementById('trkModalTitle').textContent = '第' + weeks[wi].no + '週のメモ（チーム全体）';
+  document.getElementById('trkModalSub').textContent =
+    (MONTH_MAP[month] || month) + ' ／ ' + weeks[wi].from + '〜' + weeks[wi].to + '　店に紐づかないメモです';
+  document.getElementById('trkModalBody').innerHTML =
+    '<label class="trk-f col"><span>今週のメモ</span>'
+    + '<textarea id="trkTeamMemo" rows="6">' + escHtml(t['メモ'] == null ? '' : String(t['メモ'])) + '</textarea></label>';
+  document.getElementById('trkModal').style.display = 'flex';
+}
 
 function trkOpenMemo(store) {
   trkEditing = store;
@@ -7618,9 +7996,11 @@ function trkOpenMemo(store) {
 function trkCloseMemo() {
   document.getElementById('trkModal').style.display = 'none';
   trkEditing = '';
+  trkTeamEditing = false;
 }
 
 function trkSaveMemo() {
+  if (trkTeamEditing) return trkSaveTeamMemo();
   if (!trkEditing) return;
   const store = trkEditing;
   const month = curMonth;

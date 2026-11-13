@@ -69,6 +69,8 @@ const UD_ACTION   = ['未着手', '実行中', '完了'];
 const UD_AD_MODE  = ['固定額', '売上比'];
 const UD_MAX_TEXT = 2000;     // メモの最大文字数
 const UD_MAX_ROWS = 20000;    // 1タブの上限（暴走したときの歯止め）
+// 店に紐づかない「その週全体のメモ」を入れるときの、店舗欄の決まった値
+const UD_TEAM_STORE = '（全体）';
 
 // ------------------------------------------------------------
 //  スプシを開く／作る
@@ -185,7 +187,11 @@ function udRowOf_(kind, rec, stores, email, now) {
   const store = udText_(rec.store, '店舗', 120);
   if (t.keys.indexOf('店舗') >= 0) {
     if (!store) udFail_('店舗がありません');
-    if (Object.keys(stores).length && !stores[store]) udFail_('店舗一覧にない店です: ' + store);
+    // 週メモだけは「（全体）」を使える（その週全体のメモ。店に紐づかない）
+    const isTeam = (kind === 'weekmemo' && store === UD_TEAM_STORE);
+    if (!isTeam && Object.keys(stores).length && !stores[store]) {
+      udFail_('店舗一覧にない店です: ' + store);
+    }
   }
   if (kind === 'memo') {
     return [udYm_(rec.month, '月'), store,
