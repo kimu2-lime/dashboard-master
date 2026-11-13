@@ -235,6 +235,19 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .detail-jump-btn{font-size:12px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
   border-radius:999px;padding:6px 14px;cursor:pointer;transition:.15s}
 .detail-jump-btn:hover{background:#e0e7ff;border-color:#a5b4fc}
+/* ▼ 入力データの保存先の状態と、保存の知らせ */
+.ud-status{font-size:12px;color:#55556b;background:#f7f7fc;border:1px solid #e4e4ef;border-radius:10px;
+  padding:10px 14px;margin-bottom:14px;line-height:1.7;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
+.ud-status-ok{background:#f0fdf6;border-color:#a7f3d0;color:#065f46}
+.ud-status-wait{background:#fffbeb;border-color:#fcd34d;color:#92400e}
+.ud-status-ng{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.ud-tabs{font-size:11px;color:#8a8aa0}
+.ud-who{font-size:11px;color:#8a8aa0}
+.ud-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+  background:#1a1a2e;color:#fff;font-size:13px;font-weight:700;padding:11px 22px;border-radius:999px;
+  box-shadow:0 8px 28px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.22s;z-index:9999}
+.ud-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.ud-toast.err{background:#b91c1c}
 /* ▼ 会計ルール整備中の店の断り */
 .detail-ref-note{font-size:12px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
   border-left:4px solid #6366f1;border-radius:10px;padding:9px 14px;margin:0 0 12px}
@@ -2000,6 +2013,7 @@ body.mobile .side-menu-overlay{display:block!important}
           <div class="page-meta" id="trackerMeta">週ごとの着地見込と、店舗ごとのロープレ・サロボ修正の予定と結果</div>
         </div>
       </div>
+      <div id="trackerUdStatus"></div>
       <div class="page-ph">
         <span class="page-ph-badge">段階5で中身が入ります</span>
         <p>週ごとの進捗は<strong>自動</strong>で、対策メモは<strong>この画面から書き込み</strong>ます（会社のスプシに保存）。</p>
@@ -2024,6 +2038,7 @@ body.mobile .side-menu-overlay{display:block!important}
           <div class="page-meta" id="paybackMeta">店舗ごとの投資回収の見通し。家賃・初期投資はこの画面から入力します</div>
         </div>
       </div>
+      <div id="paybackUdStatus"></div>
       <div class="page-ph">
         <span class="page-ph-badge">段階6で中身が入ります</span>
         <p>テスト版の投資回収ボードを、<strong>実データ</strong>で動くようにしてこのページに入れます。</p>
@@ -2388,6 +2403,131 @@ function loadDashboardJson(name){
   });
 }
 
+/* ============================================================
+ *  画面から入れたデータの保存・読込（依頼45の段階4）
+ *  ------------------------------------------------------------
+ *  保存先は会社のスプシ「ダッシュボード入力データ」。
+ *  Webアプリは「自分（デプロイした人）として実行」なので、
+ *  画面を見る人はスプシに権限が無くても保存できる。
+ *  → 家賃・初期投資が入るスプシの共有は広げない。
+ *
+ *  GASのWebアプリでないとき（ローカルで開いたときなど）は保存できない。
+ *  読み書きの入口はこの3つだけ。画面はここだけを使う。
+ * ============================================================ */
+const UD_KINDS = ['memo', 'weekmemo', 'finance', 'monthly', 'action'];
+let UD = {};              // 読み込んだものの置き場。UD.memo = {cols, rows, byKey}
+let udLoadedAt = null;
+
+function udCall(fn, args) {
+  if (!IS_GAS_WEBAPP) {
+    return Promise.reject(new Error('この画面では保存できません（会社のWebアプリから開いてください）'));
+  }
+  return new Promise(function(resolve, reject) {
+    const runner = google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(function(err) {
+        reject(new Error(err && err.message ? err.message : String(err)));
+      });
+    runner[fn].apply(runner, args || []);
+  });
+}
+
+/* 行の配列を、キーで引ける形に組み替える */
+function udIndex(kind, res) {
+  const out = { cols: (res && res.cols) || [], rows: (res && res.rows) || [], byKey: {} };
+  const keys = { memo:['月','店舗'], weekmemo:['月','週','店舗'], finance:['店舗'],
+                 monthly:['店舗','月'], action:['店舗','アクション'] }[kind] || [];
+  const idx = keys.map(function(k){ return out.cols.indexOf(k); });
+  out.rows.forEach(function(r) {
+    const k = idx.map(function(i){ return i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : ''; }).join('|');
+    const o = {};
+    out.cols.forEach(function(c, i){ o[c] = r[i]; });
+    out.byKey[k] = o;
+  });
+  return out;
+}
+
+/** 入力データをまとめて読む。store を渡すとその店だけ */
+function udLoadAll(store) {
+  if (!IS_GAS_WEBAPP) { UD = {}; return Promise.resolve(UD); }
+  return udCall('udReadAll', [store || '']).then(function(res) {
+    UD = {};
+    UD_KINDS.forEach(function(k) {
+      const r = (res && res[k]) || {};
+      if (r.ok) UD[k] = udIndex(k, r);
+      else { UD[k] = udIndex(k, {}); UD[k].error = r.error || '読めません'; }
+    });
+    udLoadedAt = new Date();
+    return UD;
+  });
+}
+
+/** 1件（または配列）を保存する。保存できたら手元の UD も更新する */
+function udSave(kind, recs) {
+  if (UD_KINDS.indexOf(kind) < 0) return Promise.reject(new Error('知らない種類です: ' + kind));
+  return udCall('udWrite', [kind, recs]).then(function(res) {
+    if (!res || !res.ok) throw new Error((res && res.error) || '保存できませんでした');
+    return res;
+  });
+}
+
+/** 入力済みかどうか（④の店舗一覧で薄く出す判定に使う） */
+function udHas(kind, key) {
+  return !!(UD[kind] && UD[kind].byKey && UD[kind].byKey[key]);
+}
+function udGet(kind, key) {
+  return (UD[kind] && UD[kind].byKey && UD[kind].byKey[key]) || null;
+}
+
+/* 保存のときに画面に出す短い知らせ */
+function udToast(msg, isError) {
+  let el = document.getElementById('udToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'udToast';
+    el.className = 'ud-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.className = 'ud-toast show' + (isError ? ' err' : '');
+  clearTimeout(window._udToastTimer);
+  window._udToastTimer = setTimeout(function(){ el.className = 'ud-toast'; }, isError ? 6000 : 2600);
+}
+
+/* ③④のページに出す「保存先の状態」 */
+function renderUdStatus(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!IS_GAS_WEBAPP) {
+    el.innerHTML = '<div class="ud-status ud-status-ng">この画面からは保存できません'
+      + '（会社のWebアプリのURLから開いてください）</div>';
+    return;
+  }
+  el.innerHTML = '<div class="ud-status">保存先を確認しています…</div>';
+  udCall('udStatus', []).then(function(r) {
+    if (!r || !r.ok) {
+      el.innerHTML = '<div class="ud-status ud-status-ng">保存先を確認できません：'
+        + escHtml((r && r.error) || '不明') + '</div>';
+      return;
+    }
+    if (!r.ready) {
+      el.innerHTML = '<div class="ud-status ud-status-wait">保存先はまだ作られていません。'
+        + '最初の保存のときに自動で作られます<span class="ud-who">ログイン中：'
+        + escHtml(r.by) + '</span></div>';
+      return;
+    }
+    const tabs = Object.keys(r.tabs || {}).map(function(t) {
+      return t + ' ' + (r.tabs[t] == null ? '—' : r.tabs[t] + '件');
+    }).join(' ／ ');
+    el.innerHTML = '<div class="ud-status ud-status-ok">✅ 保存先につながっています：<b>'
+      + escHtml(r.name) + '</b><span class="ud-tabs">' + escHtml(tabs) + '</span>'
+      + '<span class="ud-who">書き込みは <b>' + escHtml(r.by) + '</b> として記録されます</span></div>';
+  }).catch(function(e) {
+    el.innerHTML = '<div class="ud-status ud-status-ng">保存先を確認できません：'
+      + escHtml(e.message) + '</div>';
+  });
+}
+
 /* チャットの送信。Google版は公開の doPost を通さない。 */
 function askChat(question, history){
   if(IS_GAS_WEBAPP){
@@ -2512,6 +2652,8 @@ async function fetchData(){
     renderList();
     // ?store=... が付いていればその店を開く（店舗別リンクの下ごしらえ）
     try { applyStoreFromQuery(); } catch(e){ console.warn('store= を読めません', e); }
+    // 画面から入れた分（対策メモ・収支設定など）を読む。失敗しても画面は出す
+    udLoadAll().catch(function(e){ console.warn('入力データを読めません', e.message); });
     setTimeout(closeSettings, 1200);
   }catch(e){
     document.getElementById('fetchStatus').textContent = 'エラー: '+e.message;
@@ -5870,6 +6012,8 @@ function switchMainTab(tab, opts) {
   if (tab === 'ranking')  renderRanking();
   if (tab === 'analysis') renderAnalysis();
   if (tab === 'issues') { try { renderIssuesPage(); } catch(e){ console.warn('店舗の課題を出せません', e); } }
+  if (tab === 'tracker') { try { renderUdStatus('trackerUdStatus'); } catch(e){} }
+  if (tab === 'payback') { try { renderUdStatus('paybackUdStatus'); } catch(e){} }
   renderSubPage(tab);
   if (!(opts && opts.silent)) setRouteHash(MAIN_TABS[tab].hash);
   if (typeof syncSidePanelSections === 'function') syncSidePanelSections();
