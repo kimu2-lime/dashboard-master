@@ -235,6 +235,78 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .detail-jump-btn{font-size:12px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
   border-radius:999px;padding:6px 14px;cursor:pointer;transition:.15s}
 .detail-jump-btn:hover{background:#e0e7ff;border-color:#a5b4fc}
+/* ▼ ③週次の進捗・対策メモ */
+.trk-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.trk-weeks{display:flex;gap:6px;flex-wrap:wrap}
+.trk-week{background:#fff;border:1.5px solid #e4e4ef;border-radius:10px;padding:7px 13px;cursor:pointer;
+  font-size:12px;font-weight:700;color:#55556b;display:flex;flex-direction:column;align-items:center;gap:1px;transition:.15s}
+.trk-week:hover{border-color:#c7c7dd}
+.trk-week.active{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.trk-week.now::after{content:'いま';font-size:9px;font-weight:800;color:#4f46e5}
+.trk-week.active.now::after{color:#c7d2fe}
+.trk-week.future{opacity:.45}
+.trk-week-d{font-size:10px;font-weight:600;opacity:.8}
+.trk-scope{display:flex;gap:6px}
+.trk-scope-btn{background:#fff;border:1.5px solid #e4e4ef;border-radius:999px;padding:6px 14px;cursor:pointer;
+  font-size:12px;font-weight:700;color:#55556b}
+.trk-scope-btn.active{background:#1a1a2e;border-color:#1a1a2e;color:#fff}
+.trk-sum{font-size:12px;color:#55556b;background:#f7f7fc;border-radius:10px;padding:9px 14px;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trk-sum-chip{font-size:11px;font-weight:800;border-radius:999px;padding:2px 10px}
+.trk-sum-chip.ok{background:#dcfce7;color:#166534}
+.trk-sum-chip.close{background:#fef3c7;color:#92400e}
+.trk-sum-chip.ng{background:#fee2e2;color:#991b1b}
+.trk-table-wrap{overflow-x:auto;background:#fff;border:1px solid #ececf4;border-radius:12px;padding:6px 10px}
+.trk-table{width:100%;border-collapse:collapse;font-size:12px}
+.trk-table th{text-align:left;font-size:10.5px;font-weight:700;color:#8a8aa0;padding:7px 8px;
+  border-bottom:1px solid #ececf4;white-space:nowrap}
+.trk-table td{padding:7px 8px;border-bottom:1px solid #f4f4fa;white-space:nowrap;color:#55556b}
+.trk-name{font-weight:800;color:#1a1a2e}
+.trk-name span{cursor:pointer}
+.trk-name span:hover{text-decoration:underline}
+.trk-sv{color:#8a8aa0}
+.trk-land{font-weight:800}
+.trk-pace{font-size:11px;font-weight:800;border-radius:999px;padding:2px 10px}
+.trk-pace-ok{background:#dcfce7;color:#166534}
+.trk-pace-close{background:#fef3c7;color:#92400e}
+.trk-pace-ng{background:#fee2e2;color:#991b1b}
+.trk-pace-none{background:#f0f0f7;color:#8a8aa0}
+.trk-up{color:#38b06c;font-weight:800}
+.trk-down{color:#e74c3c;font-weight:800}
+.trk-memo-cell{display:flex;align-items:center;gap:7px}
+.trk-status{font-size:10.5px;font-weight:800;border-radius:6px;padding:2px 8px;background:#f0f0f7;color:#8a8aa0}
+.trk-status-1{background:#e0e7ff;color:#4338ca}
+.trk-status-2{background:#fef3c7;color:#92400e}
+.trk-status-3{background:#dcfce7;color:#166534}
+.trk-overdue{font-size:10px;font-weight:800;color:#b91c1c;background:#fee2e2;border-radius:6px;padding:2px 7px}
+.trk-edit{font-size:11px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
+  border-radius:7px;padding:3px 11px;cursor:pointer}
+.trk-edit:hover{background:#e0e7ff}
+.trk-memo-row td{background:#fafaff;font-size:11.5px;color:#55556b;white-space:normal;line-height:1.7}
+.trk-by{font-size:10px;color:#aaa;margin-left:10px}
+.trk-note{font-size:11px;color:#8a8aa0;margin-top:10px;line-height:1.7}
+/* 対策メモの入力 */
+.trk-modal{position:fixed;inset:0;background:rgba(20,20,40,.45);display:none;align-items:center;
+  justify-content:center;z-index:9000;padding:20px}
+.trk-modal-box{background:#fff;border-radius:16px;width:min(560px,100%);max-height:88vh;overflow:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.trk-modal-head{padding:18px 22px 10px;border-bottom:1px solid #ececf4}
+.trk-modal-title{font-size:15px;font-weight:800;color:#1a1a2e}
+.trk-modal-sub{font-size:11.5px;color:#8a8aa0;margin-top:3px}
+.trk-modal-body{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.trk-f{display:flex;align-items:center;gap:10px;font-size:12px;color:#55556b}
+.trk-f.col{flex-direction:column;align-items:stretch;gap:5px}
+.trk-f>span{font-weight:700;min-width:120px}
+.trk-f.col>span{min-width:0}
+.trk-f input[type=date],.trk-f select,.trk-f textarea{font:inherit;font-size:12.5px;color:#1a1a2e;
+  border:1px solid #e4e4ef;border-radius:8px;padding:7px 10px;background:#fff}
+.trk-f textarea{resize:vertical;width:100%;box-sizing:border-box}
+.trk-chk{font-style:normal;font-size:12px;display:flex;align-items:center;gap:4px}
+.trk-modal-foot{padding:12px 22px 18px;display:flex;justify-content:flex-end;gap:10px}
+.trk-btn{font-size:13px;font-weight:700;border-radius:9px;padding:9px 20px;cursor:pointer;border:1px solid #e4e4ef;
+  background:#fff;color:#55556b}
+.trk-btn.primary{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.trk-btn:disabled{opacity:.55;cursor:default}
 /* ▼ 入力データの保存先の状態と、保存の知らせ */
 .ud-status{font-size:12px;color:#55556b;background:#f7f7fc;border:1px solid #e4e4ef;border-radius:10px;
   padding:10px 14px;margin-bottom:14px;line-height:1.7;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
@@ -1424,6 +1496,20 @@ body.mobile .side-menu-overlay{display:block!important}
 <!-- Limeからの仕入れ（店名が合わない／今月まだ仕入れていない加盟店）のお知らせ -->
 <div id="shozaiBar" style="display:none"></div>
 <div id="keizokuMarkBar" style="display:none"></div>
+<!-- 対策メモの入力（③） -->
+<div class="trk-modal" id="trkModal">
+  <div class="trk-modal-box">
+    <div class="trk-modal-head">
+      <div class="trk-modal-title" id="trkModalTitle"></div>
+      <div class="trk-modal-sub" id="trkModalSub"></div>
+    </div>
+    <div class="trk-modal-body" id="trkModalBody"></div>
+    <div class="trk-modal-foot">
+      <button class="trk-btn" onclick="trkCloseMemo()">閉じる</button>
+      <button class="trk-btn primary" id="trkSaveBtn" onclick="trkSaveMemo()">保存する</button>
+    </div>
+  </div>
+</div>
 
 <!-- 設定モーダル -->
 <div class="modal-overlay" id="settingsModal">
@@ -2014,20 +2100,7 @@ body.mobile .side-menu-overlay{display:block!important}
         </div>
       </div>
       <div id="trackerUdStatus"></div>
-      <div class="page-ph">
-        <span class="page-ph-badge">段階5で中身が入ります</span>
-        <p>週ごとの進捗は<strong>自動</strong>で、対策メモは<strong>この画面から書き込み</strong>ます（会社のスプシに保存）。</p>
-        <h4>ここに出る予定のもの</h4>
-        <ul>
-          <li>週（日曜〜土曜）ごとの売上・月累計・着地見込と、先週からの増減</li>
-          <li>進捗の色分け（ライン以上＝緑／85%以上＝黄／未満＝赤）</li>
-          <li>週の新規数・新規契約数と、月累計の新規契約率</li>
-          <li>店ごとの状態（未着手／予定あり／実施中／完了）、ロープレ予定日、サロボ修正予定日と内容、メモ</li>
-          <li>予定日を過ぎて「済」が付いていないものは赤く表示</li>
-        </ul>
-        <div class="ph-note">移行が済むまでは、いまのスプレッドシートが正です。
-          <a href="https://claude.ai/artifact/RrvqSAWbFt9prR8dUD89u1" target="_blank" rel="noopener">未達店舗トラッカー 11月</a></div>
-      </div>
+      <div id="trackerBody"></div>
     </div>
 
     <!-- ④ 投資回収 -->
@@ -3008,6 +3081,7 @@ function applyKpiFilterChange(){
   if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
   if(document.getElementById('rankingView').style.display !=='none') renderRanking();
   if(issuesViewOpen()) { try { renderIssuesPage(); } catch(e){} }
+  if(trackerViewOpen()) { try { renderTrackerPage(); } catch(e){} }
 }
 /* サイドパネル内のチップ＋一覧ヘッダーの適用中チップを描画 */
 function renderKpiFilterChips(){
@@ -3058,6 +3132,7 @@ function selectBrand(k){
   if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
   if(document.getElementById('rankingView').style.display !=='none') renderRanking();
   if(issuesViewOpen()) { try { renderIssuesPage(); } catch(e){} }
+  if(trackerViewOpen()) { try { renderTrackerPage(); } catch(e){} }
   if(typeof syncSidePanelSections==='function') syncSidePanelSections();
 }
 
@@ -3082,6 +3157,7 @@ function selectPerson(p){
   if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
   if(document.getElementById('rankingView').style.display !=='none') renderRanking();
   if(issuesViewOpen()) { try { renderIssuesPage(); } catch(e){} }
+  if(trackerViewOpen()) { try { renderTrackerPage(); } catch(e){} }
 }
 function selectStoreType(t){
   curStoreType=t;
@@ -3095,6 +3171,7 @@ function selectStoreType(t){
   if(document.getElementById('analysisView').style.display!=='none') renderAnalysis();
   if(document.getElementById('rankingView').style.display !=='none') renderRanking();
   if(issuesViewOpen()) { try { renderIssuesPage(); } catch(e){} }
+  if(trackerViewOpen()) { try { renderTrackerPage(); } catch(e){} }
 }
 
 function fmt(v){return'¥'+Math.round(v).toLocaleString('ja-JP')}
@@ -6012,7 +6089,10 @@ function switchMainTab(tab, opts) {
   if (tab === 'ranking')  renderRanking();
   if (tab === 'analysis') renderAnalysis();
   if (tab === 'issues') { try { renderIssuesPage(); } catch(e){ console.warn('店舗の課題を出せません', e); } }
-  if (tab === 'tracker') { try { renderUdStatus('trackerUdStatus'); } catch(e){} }
+  if (tab === 'tracker') {
+    try { renderUdStatus('trackerUdStatus'); } catch(e){}
+    try { renderTrackerPage(); } catch(e){ console.warn('週次の進捗を出せません', e); }
+  }
   if (tab === 'payback') { try { renderUdStatus('paybackUdStatus'); } catch(e){} }
   renderSubPage(tab);
   if (!(opts && opts.silent)) setRouteHash(MAIN_TABS[tab].hash);
@@ -6021,8 +6101,8 @@ function switchMainTab(tab, opts) {
 
 /* ②③④⑤の中身。段階1では枠だけなので、絞り込みの表示だけ更新する */
 function renderSubPage(tab) {
-  if (tab === 'issues') return;   // renderIssuesPage が説明文まで書くので何もしない
-  const metaId = { tracker:'trackerMeta', payback:'paybackMeta' }[tab];
+  if (tab === 'issues' || tab === 'tracker') return;   // それぞれの描画が説明文まで書く
+  const metaId = { payback:'paybackMeta' }[tab];
   if (!metaId) return;
   const el = document.getElementById(metaId);
   if (!el) return;
@@ -6987,6 +7067,11 @@ function issueCell(v, r, suffix) {
          '<span class="issue-ratio">' + Math.round(r * 100) + '%</span></div>';
 }
 
+function trackerViewOpen() {
+  const v = document.getElementById('trackerView');
+  return !!v && v.style.display !== 'none';
+}
+
 function issuesViewOpen() {
   const v = document.getElementById('issuesView');
   return !!v && v.style.display !== 'none';
@@ -7227,6 +7312,341 @@ function renderStoreCompareHtml(store, month) {
   });
   h += '</tbody></table></div></div>';
   return h;
+}
+
+/* ============================================================
+ *  ③ 週次の進捗・対策メモ（依頼45の3章）
+ *  ------------------------------------------------------------
+ *  週は日曜〜土曜。月末の端数は最後の週に入れる（区切りは data.json の weeks）。
+ *  週の売上は daily_sales から、週の新規数・新規契約数は weekly_new から出す。
+ *  対策メモは段階4の仕組み（udSave / udLoadAll）でスプシに保存する。
+ * ============================================================ */
+const TRK_OK_RATIO    = 1.0;     // ライン以上 → 到達ペース
+const TRK_CLOSE_RATIO = 0.85;    // 85%以上 → あと少し
+let trkWeek  = -1;               // いま見ている週（-1 は「今の週」）
+let trkAll   = false;            // true なら全店、false なら②で出た店だけ
+
+/** その月の「今日までの日数」。過ぎた月は月末、先の月は0 */
+function trkElapsedDays(month) {
+  const y = parseInt(month.slice(0, 4), 10), m = parseInt(month.slice(4, 6), 10);
+  const dim = new Date(y, m, 0).getDate();
+  const now = new Date();
+  const cur = now.getFullYear() * 100 + (now.getMonth() + 1);
+  const tgt = y * 100 + m;
+  if (tgt < cur) return dim;
+  if (tgt > cur) return 0;
+  return now.getDate();
+}
+
+function trkWeeks(month) {
+  const w = (DATA.weeks && DATA.weeks[month]) ? DATA.weeks[month] : null;
+  if (w && w.length) return w;
+  // data.json にまだ weeks が無いときは、画面側で同じ決まりで作る
+  const y = parseInt(month.slice(0, 4), 10), m = parseInt(month.slice(4, 6), 10);
+  if (!y || !m) return [];
+  const last = new Date(y, m, 0).getDate();
+  const cuts = [1];
+  for (let d = 2; d <= last; d++) if (new Date(y, m - 1, d).getDay() === 0) cuts.push(d);
+  const out = [];
+  for (let i = 0; i < cuts.length; i++) {
+    out.push({ d1: cuts[i], d2: (i + 1 < cuts.length) ? cuts[i + 1] - 1 : last });
+  }
+  if (out.length > 1) {
+    const t = out[out.length - 1];
+    if (t.d2 - t.d1 + 1 < 7) { out[out.length - 2].d2 = t.d2; out.pop(); }
+  }
+  const pad = function (n) { return ('0' + n).slice(-2); };
+  return out.map(function (w2, i) {
+    return { no: i + 1, d1: w2.d1, d2: w2.d2,
+             from: y + '-' + pad(m) + '-' + pad(w2.d1), to: y + '-' + pad(m) + '-' + pad(w2.d2) };
+  });
+}
+
+/** いまが何週目か（0始まり）。過ぎた月は最後の週 */
+function trkCurrentWeek(month, weeks) {
+  const el = trkElapsedDays(month);
+  if (!el) return 0;
+  for (let i = 0; i < weeks.length; i++) if (el >= weeks[i].d1 && el <= weeks[i].d2) return i;
+  return weeks.length - 1;
+}
+
+/** 1店ぶんの週次。wi 週目の時点で見た数字 */
+function trkStoreWeek(store, month, weeks, wi) {
+  const d = (DATA.data[month] || {})[store] || {};
+  const daily = d.daily_sales || {};
+  const y = parseInt(month.slice(0, 4), 10), m = parseInt(month.slice(4, 6), 10);
+  const dim = new Date(y, m, 0).getDate();
+  const el  = trkElapsedDays(month);
+  const w   = weeks[wi];
+  if (!w) return null;
+  const endDay = Math.min(w.d2, el || dim);
+  const started = endDay >= w.d1;
+
+  const pad = function (n) { return ('0' + n).slice(-2); };
+  let weekSales = 0, monthSales = 0, hasDaily = false;
+  Object.keys(daily).forEach(function (k) {
+    if (k.slice(0, 7) !== y + '-' + pad(m)) return;
+    const day = parseInt(k.slice(8, 10), 10);
+    if (!day || day > endDay) return;
+    hasDaily = true;
+    monthSales += daily[k] || 0;
+    if (day >= w.d1) weekSales += daily[k] || 0;
+  });
+  // 日ごとの売上がまだ無い店は、月の合計だけ使う（週には割れない）
+  if (!hasDaily && (d.total_sales || 0) > 0 && endDay >= (el || dim)) {
+    monthSales = d.total_sales || 0;
+  }
+  const landing = endDay > 0 ? Math.round(monthSales / endDay * dim) : 0;
+
+  const wn  = d.weekly_new || [], wc = d.weekly_new_contract || [];
+  let cumN = 0, cumC = 0;
+  for (let i = 0; i <= wi; i++) { cumN += wn[i] || 0; cumC += wc[i] || 0; }
+
+  return { started: started, end_day: endDay, has_daily: hasDaily,
+           week_sales: weekSales, month_sales: monthSales, landing: landing,
+           week_new: wn[wi] == null ? null : wn[wi],
+           week_new_contract: wc[wi] == null ? null : wc[wi],
+           cum_new: cumN, cum_new_contract: cumC,
+           cum_rate: cumN > 0 ? Math.round(cumC / cumN * 1000) / 10 : 0 };
+}
+
+function trkPaceOf(landing, line) {
+  if (!line) return { key: 'none', label: '—', color: '#aaa' };
+  const r = landing / line;
+  if (r >= TRK_OK_RATIO)    return { key: 'ok',    label: '到達ペース', color: '#38b06c' };
+  if (r >= TRK_CLOSE_RATIO) return { key: 'close', label: 'あと少し',   color: '#d97706' };
+  return { key: 'ng', label: '要対策', color: '#e74c3c' };
+}
+
+/** 対策メモの1行を読む（無ければ空） */
+function trkMemoOf(month, store) {
+  return udGet('memo', month + '|' + store) || {};
+}
+function trkWeekMemoOf(month, week, store) {
+  return udGet('weekmemo', month + '|' + week + '|' + store) || {};
+}
+/** 予定日を過ぎて「済」が付いていないか */
+function trkOverdue(dateStr, done) {
+  if (!dateStr || done === '済') return false;
+  const a = String(dateStr).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(a)) return false;
+  const today = new Date();
+  const t = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);
+  return a < t;
+}
+
+/** 対象の店を決める。②で出た店（既定）か、全店か */
+function trkStores(month) {
+  let list;
+  if (trkAll) {
+    list = (DATA.stores || []).filter(function (s) {
+      if (!issueBrandOf(s)) return false;
+      const closed = DATA.store_closed_month && DATA.store_closed_month[s];
+      if (closed && String(month) > String(closed)) return false;
+      return !!(DATA.data[month] || {})[s];
+    });
+  } else {
+    let board;
+    try { board = buildIssueBoard(month); } catch (e) { board = { all: [] }; }
+    list = board.all.filter(function (x) { return x.stage2; }).map(function (x) { return x.store; });
+  }
+  return list.filter(function (s) {
+    if (curPerson !== '全店舗' && DATA.store_person && DATA.store_person[s] !== curPerson) return false;
+    if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[s] !== curStoreType) return false;
+    if (!matchBrand(s)) return false;
+    if (!matchKpiFilters(s)) return false;
+    if (focusStore && s !== focusStore) return false;
+    return true;
+  });
+}
+
+function trkSetWeek(i) { trkWeek = i; renderTrackerPage(); }
+function trkSetAll(v)  { trkAll = !!v; renderTrackerPage(); }
+
+function renderTrackerPage() {
+  const el = document.getElementById('trackerBody');
+  if (!el) return;
+  const month = curMonth;
+  const weeks = trkWeeks(month);
+  if (!weeks.length) { el.innerHTML = '<div class="page-ph"><p>この月の週を作れません。</p></div>'; return; }
+  const nowWi = trkCurrentWeek(month, weeks);
+  const wi = (trkWeek < 0 || trkWeek >= weeks.length) ? nowWi : trkWeek;
+  const stores = trkStores(month);
+  const mLabel = MONTH_MAP[month] || month;
+
+  let h = '';
+
+  // ── 週のタブ ──
+  h += '<div class="trk-bar"><div class="trk-weeks">';
+  weeks.forEach(function (w, i) {
+    const cls = (i === wi ? ' active' : '') + (i === nowWi ? ' now' : '') + (w.d1 > trkElapsedDays(month) ? ' future' : '');
+    h += '<button class="trk-week' + cls + '" onclick="trkSetWeek(' + i + ')">第' + w.no + '週'
+       + '<span class="trk-week-d">' + w.d1 + '〜' + w.d2 + '日</span></button>';
+  });
+  h += '</div><div class="trk-scope">'
+     + '<button class="trk-scope-btn' + (trkAll ? '' : ' active') + '" onclick="trkSetAll(false)">②の店だけ</button>'
+     + '<button class="trk-scope-btn' + (trkAll ? ' active' : '') + '" onclick="trkSetAll(true)">全店</button>'
+     + '</div></div>';
+
+  if (!stores.length) {
+    el.innerHTML = h + '<div class="page-ph"><p>この絞り込みでは対象の店がありません。</p></div>';
+    return;
+  }
+
+  // ── 表 ──
+  const rows = stores.map(function (s) {
+    const brand = issueBrandOf(s);
+    const line  = issueLineOf(brand);
+    const cur   = trkStoreWeek(s, month, weeks, wi);
+    const prev  = wi > 0 ? trkStoreWeek(s, month, weeks, wi - 1) : null;
+    return { store: s, line: line, cur: cur, prev: prev,
+             memo: trkMemoOf(month, s), wmemo: trkWeekMemoOf(month, weeks[wi].no, s),
+             person: (DATA.store_person && DATA.store_person[s]) || '' };
+  }).filter(function (r) { return r.cur; });
+  rows.sort(function (a, b) { return (a.cur.landing / a.line) - (b.cur.landing / b.line); });
+
+  const n = { ok: 0, close: 0, ng: 0 };
+  rows.forEach(function (r) { n[trkPaceOf(r.cur.landing, r.line).key === 'none' ? 'ng' : trkPaceOf(r.cur.landing, r.line).key]++; });
+  h += '<div class="trk-sum">' + mLabel + ' 第' + weeks[wi].no + '週（' + weeks[wi].from + '〜' + weeks[wi].to + '）'
+     + ' ／ ' + rows.length + '店'
+     + '<span class="trk-sum-chip ok">到達ペース ' + n.ok + '</span>'
+     + '<span class="trk-sum-chip close">あと少し ' + n.close + '</span>'
+     + '<span class="trk-sum-chip ng">要対策 ' + n.ng + '</span></div>';
+
+  h += '<div class="trk-table-wrap"><table class="trk-table"><thead><tr>'
+     + '<th>店舗</th><th>担当SV</th><th>週の売上</th><th>月累計</th><th>着地見込</th><th>進捗</th>'
+     + '<th>先週から</th><th>週の新規</th><th>週の新規契約</th><th>月の新規契約率</th><th>対策</th>'
+     + '</tr></thead><tbody>';
+
+  rows.forEach(function (r) {
+    const c = r.cur, p = r.prev;
+    const pace = trkPaceOf(c.landing, r.line);
+    const diff = p ? c.landing - p.landing : null;
+    const m = r.memo;
+    const od = trkOverdue(m['ロープレ予定日'], m['ロープレ済']) || trkOverdue(m['サロボ修正予定日'], m['サロボ修正済']);
+    const st = (m['状態'] || '未着手');
+    h += '<tr>'
+       + '<td class="trk-name"><span onclick="goToStoreDetail(\'' + r.store.replace(/'/g, "\\'") + '\')">'
+         + escHtml(dispName(r.store)) + '</span>'
+         + (issueIsRef(r.store) ? '<span class="it-flag it-flag-ref">会計ルール整備中のため参考値</span>' : '') + '</td>'
+       + '<td class="trk-sv">' + escHtml(r.person || '—') + '</td>'
+       + '<td>' + (c.started ? issueFmtMan(c.week_sales) : '—') + '</td>'
+       + '<td>' + issueFmtMan(c.month_sales) + '</td>'
+       + '<td class="trk-land" style="color:' + pace.color + '">' + issueFmtMan(c.landing)
+         + '<span class="it-line">／' + issueFmtMan(r.line) + '</span></td>'
+       + '<td><span class="trk-pace trk-pace-' + pace.key + '">' + pace.label + '</span></td>'
+       + '<td class="' + (diff == null ? '' : diff >= 0 ? 'trk-up' : 'trk-down') + '">'
+         + (diff == null ? '—' : (diff >= 0 ? '+' : '−') + issueFmtMan(Math.abs(diff))) + '</td>'
+       + '<td>' + (c.week_new == null ? '—' : c.week_new + '<span class="it-unit">人</span>') + '</td>'
+       + '<td>' + (c.week_new_contract == null ? '—' : c.week_new_contract + '<span class="it-unit">件</span>') + '</td>'
+       + '<td>' + (c.cum_new > 0 ? c.cum_rate + '<span class="it-unit">%</span>' : '—') + '</td>'
+       + '<td class="trk-memo-cell">'
+         + '<span class="trk-status trk-status-' + ['未着手','予定あり','実施中','完了'].indexOf(st) + '">' + escHtml(st) + '</span>'
+         + (od ? '<span class="trk-overdue">予定日を過ぎています</span>' : '')
+         + '<button class="trk-edit" onclick="trkOpenMemo(\'' + r.store.replace(/'/g, "\\'") + '\')">書く</button>'
+       + '</td></tr>';
+    // 対策メモの中身（入っているときだけ畳まずに出す）
+    const parts = [];
+    if (m['ロープレ予定日']) parts.push('ロープレ ' + String(m['ロープレ予定日']).slice(0, 10) + (m['ロープレ済'] === '済' ? ' ✅' : ''));
+    if (m['サロボ修正予定日']) parts.push('サロボ修正 ' + String(m['サロボ修正予定日']).slice(0, 10) + (m['サロボ修正済'] === '済' ? ' ✅' : ''));
+    if (m['サロボ修正内容']) parts.push('内容：' + m['サロボ修正内容']);
+    if (m['メモ']) parts.push('メモ：' + m['メモ']);
+    if (r.wmemo['メモ']) parts.push('今週：' + r.wmemo['メモ']);
+    if (parts.length) {
+      h += '<tr class="trk-memo-row"><td colspan="11">' + escHtml(parts.join('　／　'))
+         + '<span class="trk-by">' + escHtml(m['更新者'] || '') + ' ' + escHtml(String(m['更新日時'] || '').slice(0, 16)) + '</span></td></tr>';
+    }
+  });
+  h += '</tbody></table></div>';
+
+  if (!DATA.weeks) {
+    h += '<div class="trk-note">※ 週の区切りは画面側で作っています（data.json に入るのは次の更新から）</div>';
+  }
+  const noDaily = rows.filter(function (r) { return !r.cur.has_daily && r.cur.month_sales > 0; });
+  if (noDaily.length) {
+    h += '<div class="trk-note">※ ' + noDaily.length + '店は日ごとの売上がまだ無いので、週には割れていません'
+       + '（月累計と着地だけ出しています）。次のデータ更新から週ごとに出ます。</div>';
+  }
+  el.innerHTML = h;
+
+  const meta = document.getElementById('trackerMeta');
+  if (meta) {
+    meta.innerHTML = mLabel + ' 第' + weeks[wi].no + '週 ／ ' + (trkAll ? '全店' : '②の店だけ') + ' ' + rows.length + '店'
+      + (focusStore ? ' ／ <strong>' + escHtml(dispName(focusStore)) + '</strong>'
+          + ' <span style="cursor:pointer;text-decoration:underline" onclick="clearFocusStore()">（全店に戻す）</span>' : '');
+  }
+}
+
+/* ===== 対策メモの入力 ===== */
+let trkEditing = '';
+
+function trkOpenMemo(store) {
+  trkEditing = store;
+  const month = curMonth;
+  const weeks = trkWeeks(month);
+  const wi = (trkWeek < 0 || trkWeek >= weeks.length) ? trkCurrentWeek(month, weeks) : trkWeek;
+  const m = trkMemoOf(month, store);
+  const wm = trkWeekMemoOf(month, weeks[wi].no, store);
+  const v = function (x) { return escHtml(x == null ? '' : String(x)); };
+  const dv = function (x) { return v(String(x || '').slice(0, 10)); };
+  const sel = ['未着手', '予定あり', '実施中', '完了'].map(function (s) {
+    return '<option value="' + s + '"' + ((m['状態'] || '未着手') === s ? ' selected' : '') + '>' + s + '</option>';
+  }).join('');
+
+  document.getElementById('trkModalTitle').textContent = dispName(store) + ' の対策メモ';
+  document.getElementById('trkModalSub').textContent =
+    (MONTH_MAP[month] || month) + ' ／ 第' + weeks[wi].no + '週（' + weeks[wi].from + '〜' + weeks[wi].to + '）';
+  document.getElementById('trkModalBody').innerHTML =
+      '<label class="trk-f"><span>状態</span><select id="trkStatus">' + sel + '</select></label>'
+    + '<label class="trk-f"><span>ロープレ予定日</span>'
+      + '<input type="date" id="trkRpDate" value="' + dv(m['ロープレ予定日']) + '">'
+      + '<i class="trk-chk"><input type="checkbox" id="trkRpDone"' + (m['ロープレ済'] === '済' ? ' checked' : '') + '> 済</i></label>'
+    + '<label class="trk-f"><span>サロボ修正予定日</span>'
+      + '<input type="date" id="trkSbDate" value="' + dv(m['サロボ修正予定日']) + '">'
+      + '<i class="trk-chk"><input type="checkbox" id="trkSbDone"' + (m['サロボ修正済'] === '済' ? ' checked' : '') + '> 済</i></label>'
+    + '<label class="trk-f col"><span>サロボ修正内容</span>'
+      + '<textarea id="trkSbDetail" rows="2">' + v(m['サロボ修正内容']) + '</textarea></label>'
+    + '<label class="trk-f col"><span>メモ</span>'
+      + '<textarea id="trkMemo" rows="3">' + v(m['メモ']) + '</textarea></label>'
+    + '<label class="trk-f col"><span>今週のメモ（第' + weeks[wi].no + '週）</span>'
+      + '<textarea id="trkWeekMemo" rows="2">' + v(wm['メモ']) + '</textarea></label>';
+  document.getElementById('trkModal').style.display = 'flex';
+}
+
+function trkCloseMemo() {
+  document.getElementById('trkModal').style.display = 'none';
+  trkEditing = '';
+}
+
+function trkSaveMemo() {
+  if (!trkEditing) return;
+  const store = trkEditing;
+  const month = curMonth;
+  const weeks = trkWeeks(month);
+  const wi = (trkWeek < 0 || trkWeek >= weeks.length) ? trkCurrentWeek(month, weeks) : trkWeek;
+  const g = function (id) { const e = document.getElementById(id); return e ? e.value : ''; };
+  const ck = function (id) { const e = document.getElementById(id); return !!(e && e.checked); };
+  const btn = document.getElementById('trkSaveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '保存しています…'; }
+
+  const memo = { month: month, store: store, status: g('trkStatus'),
+                 roleplay_date: g('trkRpDate'), roleplay_done: ck('trkRpDone'),
+                 sb_date: g('trkSbDate'), sb_done: ck('trkSbDone'),
+                 sb_detail: g('trkSbDetail'), memo: g('trkMemo') };
+  const wmemo = { month: month, week: weeks[wi].no, store: store, memo: g('trkWeekMemo') };
+
+  udSave('memo', memo)
+    .then(function () { return udSave('weekmemo', wmemo); })
+    .then(function () { return udLoadAll(); })
+    .then(function () {
+      udToast('保存しました');
+      trkCloseMemo();
+      renderTrackerPage();
+    })
+    .catch(function (e) { udToast(e.message, true); })
+    .then(function () {
+      if (btn) { btn.disabled = false; btn.textContent = '保存する'; }
+    });
 }
 
 /* ── 任意店舗の詳細ビューへ遷移するヘルパー ── */

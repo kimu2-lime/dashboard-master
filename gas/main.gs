@@ -1365,6 +1365,8 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
           keizoku_shouka_count: 0,
           // ▼ 回数券売上（依頼42）
           kaisuken_contract_sales: 0, kaisuken_shouka_sales: 0,
+          // ▼ 日ごとの売上（2026-11-13：週次の進捗で使うのでBMも入れるようにした）
+          daily_sales: {},
           // ▼ 段階2で足した項目
           keizoku_add_count: 0, option_count: 0,
           reappo_count: 0, reappo_contract_count: 0, reappo_contract_sales: 0,
@@ -1397,6 +1399,13 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       // ▼ 回数券売上（契約時／消化時）
       sm.kaisuken_contract_sales += kaisukenContAmt;
       sm.kaisuken_shouka_sales   += kaisukenUseAmt;
+      // ▼ 日ごとの売上。BMの来店日はゼロ埋めされていないので accYmd_ で読む
+      const ymdB = accYmd_(firstRow[iDateBM]);
+      if (ymdB) {
+        const padB = function (n) { return ('0' + n).slice(-2); };
+        const keyB = ymdB[0] + '-' + padB(ymdB[1]) + '-' + padB(ymdB[2]);
+        sm.daily_sales[keyB] = (sm.daily_sales[keyB] || 0) + totalAmt;
+      }
       // ▼ 新規売上／再来売上（SBと同じ考え方。会計まるごと振り分ける）
       if (shinki === '新規')      sm.new_sales    += totalAmt;
       else if (shinki === '再来') sm.repeat_sales += totalAmt;
@@ -1485,8 +1494,14 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         option_sales:            0,
         buppan_sales:            0,
         other_sales:             Math.round(sm.total_sales) - Math.round(sm.contract_sales),
-        // ▼ 日次売上（BMは未取得 — 空オブジェクト）
-        daily_sales:             {},
+        // ▼ 日次売上（2026-11-13：BMも来店日から作るようにした）
+        daily_sales:             (function () {
+                                   const o = {};
+                                   Object.keys(sm.daily_sales).forEach(function (k) {
+                                     o[k] = Math.round(sm.daily_sales[k]);
+                                   });
+                                   return o;
+                                 })(),
         // ▼ 再アポ（2026-11-12 依頼45b：BMもお客様名の履歴から数えるようにした）
         reappo_count:                sm.reappo_count,
         reappo_contract_count:       sm.reappo_contract_count,
