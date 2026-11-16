@@ -563,6 +563,7 @@ function buildData(since, targetsOnly) {
           sb.keizoku_add_count       = (sb.keizoku_add_count||0)       + (bm.keizoku_add_count||0);
           sb.staff_count             = (sb.staff_count||0)             + (bm.staff_count||0);
           sb.reappo_visit_count      = (sb.reappo_visit_count||0)      + (bm.reappo_visit_count||0);
+          sb.reappo_recover_count    = (sb.reappo_recover_count||0)    + (bm.reappo_recover_count||0);
           sb.reappo_nameless_count   = (sb.reappo_nameless_count||0)   + (bm.reappo_nameless_count||0);
           sb.weekly_new              = addArrays_(sb.weekly_new, bm.weekly_new);
           sb.weekly_new_contract     = addArrays_(sb.weekly_new_contract, bm.weekly_new_contract);
@@ -598,7 +599,7 @@ function buildData(since, targetsOnly) {
           sb.keizoku_rate               = _ke > 0 ? Math.round(_kc/_ke*1000)/10 : 0;
           sb.dropout_count              = Math.max(0, _ke - _kc);
           sb.dropout_rate               = _ke > 0 ? Math.round(sb.dropout_count/_ke*1000)/10 : 0;
-          sb.reappo_recovery_rate       = _newLost > 0 ? Math.round(_rcc/_newLost*1000)/10 : 0;
+          sb.reappo_recover_rate        = _newLost > 0 ? Math.round(sb.reappo_recover_count/_newLost*1000)/10 : 0;
           sb.kaisuken_contract_count    = totalContracts + _rcc + _kc;
           sb.reappo_visit_rate          = _newLost > 0 ? Math.round(sb.reappo_visit_count/_newLost*1000)/10 : 0;
           if (bm.staff_data) {
@@ -657,7 +658,7 @@ function buildData(since, targetsOnly) {
       'keizoku_shouka_count',
       // ▼ 段階2で足した項目
       'repeat_count','option_count','keizoku_add_count','staff_count',
-      'reappo_visit_count','reappo_nameless_count',
+      'reappo_visit_count','reappo_recover_count','reappo_nameless_count',
       // ▼ 回数券売上（依頼42）
       'kaisuken_contract_sales','kaisuken_shouka_sales',
       // ▼ 売上内訳（円グラフ用）
@@ -692,7 +693,7 @@ function buildData(since, targetsOnly) {
     merged.keizoku_rate               = ke > 0 ? Math.round(kc/ke*1000)/10 : 0;
     merged.dropout_count              = Math.max(0, ke - kc);
     merged.dropout_rate               = ke > 0 ? Math.round(merged.dropout_count/ke*1000)/10 : 0;
-    merged.reappo_recovery_rate       = newLost > 0 ? Math.round(rcc/newLost*1000)/10 : 0;
+    merged.reappo_recover_rate        = newLost > 0 ? Math.round((merged.reappo_recover_count||0)/newLost*1000)/10 : 0;
     // onda/peelingも合算
     if (a.onda && b.onda) {
       merged.onda = mergeStoreData(a.onda, b.onda);
@@ -1137,6 +1138,7 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
   // ▼ 再アポ判定用の履歴（依頼45b）。SBと同じ考え方。BMは項目名で判定する
   const custStateBM  = {};
   const reappoVisitBM = {};
+  const reappoRecoverBM = {};   // 取り返し（依頼51a）
 
   function isValidStaffName(name) {
     if (!name || name.toString().trim() === '') return false;
@@ -1337,7 +1339,7 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       if (custKeyB && accDateB) {
         if (shinki === '新規') {
           custStateBM[stKeyB] = { newDate: accDateB, newYm: month,
-                                  contracted: isContract, counted: false };
+                                  contracted: isContract, counted: false, recovered: false };
         } else {
           const stb = custStateBM[stKeyB];
           if (stb) {
@@ -1345,6 +1347,11 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
               stb.counted = true;
               if (!reappoVisitBM[stb.newYm]) reappoVisitBM[stb.newYm] = {};
               reappoVisitBM[stb.newYm][storeName] = (reappoVisitBM[stb.newYm][storeName] || 0) + 1;
+            }
+            if (bmIsReappoContract && !stb.recovered) {
+              stb.recovered = true;
+              if (!reappoRecoverBM[stb.newYm]) reappoRecoverBM[stb.newYm] = {};
+              reappoRecoverBM[stb.newYm][storeName] = (reappoRecoverBM[stb.newYm][storeName] || 0) + 1;
             }
             if (isContract || bmCont || bmEnd || bmUse) stb.contracted = true;
           }
@@ -1510,6 +1517,8 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         reappo_contract_unit_price:  sm.reappo_contract_count > 0 ? Math.round(sm.reappo_contract_sales / sm.reappo_contract_count) : 0,
         reappo_visit_count:          0,     // あとで reappoVisitBM から入れる
         reappo_visit_rate:           0,
+        reappo_recover_count:        0,     // 依頼51a
+        reappo_recover_rate:         0,
         reappo_nameless_count:       sm.reappo_nameless_count,
         // ▼ 段階2で足した項目
         repeat_count:                Math.max(0, sm.total_treatments - sm.new_count),
@@ -1534,7 +1543,6 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         keizoku_rate:                sm.keizoku_end_count > 0 ? Math.round((sm.keizoku_continue_count / sm.keizoku_end_count) * 1000) / 10 : 0,
         dropout_count:               Math.max(0, sm.keizoku_end_count - sm.keizoku_continue_count),
         dropout_rate:                sm.keizoku_end_count > 0 ? Math.round((Math.max(0, sm.keizoku_end_count - sm.keizoku_continue_count) / sm.keizoku_end_count) * 1000) / 10 : 0,
-        reappo_recovery_rate:        0,
         last_date:               lastDateBMStr,
         onda: {
           total_sales:             Math.round(sm.onda_total_sales),
@@ -1568,6 +1576,16 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       d.reappo_visit_rate = lost > 0 ? Math.round(d.reappo_visit_count / lost * 1000) / 10 : 0;
     });
   });
+  Object.keys(reappoRecoverBM).forEach(function (ym) {
+    if (!actual_data[ym]) return;
+    Object.keys(reappoRecoverBM[ym]).forEach(function (st) {
+      const d = actual_data[ym][st];
+      if (!d) return;
+      d.reappo_recover_count = reappoRecoverBM[ym][st];
+      const lost = Math.max(0, (d.new_count || 0) - (d.new_contract_count || 0));
+      d.reappo_recover_rate = lost > 0 ? Math.round(d.reappo_recover_count / lost * 1000) / 10 : 0;
+    });
+  });
 
   return actual_data;
 }
@@ -1594,6 +1612,10 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
   //   会計日の早い順に見ていけば「その時点までの履歴」だけで判定できる。
   const custState  = {};   // 'お店名|お客様キー' -> { newDate, newYm, contracted, counted }
   const reappoVisit = {};  // 新規の月 -> { お店名 -> 90日以内に再来した人数 }
+  // ▼ 取り返し（依頼51a）。新規で契約しなかった人のうち、90日以内の再来で契約した人数。
+  //   これまでの「再アポ回収率」は、今月の再アポ契約 ÷ 今月の新規未契約 と、
+  //   別の人どうしを割っていて意味がはっきりしなかったので作り直した。
+  const reappoRecover = {};
 
   TARGET_MONTHS.forEach(function(month) {
     if (since && month < since) return;
@@ -1823,7 +1845,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       if (custKey && accDate && !isCancelled) {
         if (shinki === '新規') {
           custState[stKey] = { newDate: accDate, newYm: month,
-                               contracted: isNewContract, counted: false };
+                               contracted: isNewContract, counted: false, recovered: false };
         } else {
           const st = custState[stKey];
           if (st) {
@@ -1832,6 +1854,12 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
               st.counted = true;
               if (!reappoVisit[st.newYm]) reappoVisit[st.newYm] = {};
               reappoVisit[st.newYm][storeName] = (reappoVisit[st.newYm][storeName] || 0) + 1;
+            }
+            // ▼ 取り返し：その再来で契約したら、新規の月に1人ぶん足す
+            if (isReappoContract && !st.recovered) {
+              st.recovered = true;
+              if (!reappoRecover[st.newYm]) reappoRecover[st.newYm] = {};
+              reappoRecover[st.newYm][storeName] = (reappoRecover[st.newYm][storeName] || 0) + 1;
             }
             if (newReappoSignal || svcCont || svcEnd || svcUse) st.contracted = true;
           }
@@ -2132,6 +2160,8 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
         // ▼ 再アポ（依頼45b）
         reappo_visit_count:          0,     // あとで reappoVisit から入れる
         reappo_visit_rate:           0,
+        reappo_recover_count:        0,     // あとで reappoRecover から入れる（依頼51a）
+        reappo_recover_rate:         0,
         reappo_nameless_count:       sm.reappo_nameless_count,
         // ▼ 回数券売上（依頼42）
         kaisuken_contract_sales:     Math.round(sm.kaisuken_contract_sales),
@@ -2143,7 +2173,6 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
         keizoku_rate:                keizokuEnd > 0 ? Math.round((keizokuCont / keizokuEnd) * 1000) / 10 : 0,  // ⑩
         dropout_count:               dropoutCount,                                                              // ⑪
         dropout_rate:                keizokuEnd > 0 ? Math.round((dropoutCount / keizokuEnd) * 1000) / 10 : 0,  // ⑫
-        reappo_recovery_rate:        newLost > 0 ? Math.round((reappoContCount / newLost) * 1000) / 10 : 0,    // 再アポ回収率
         last_date:               lastDateStr,
         staff_data:              sm.staff_data
       };
@@ -2161,6 +2190,17 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       d.reappo_visit_count = reappoVisit[ym][st];
       const lost = Math.max(0, (d.new_count || 0) - (d.new_contract_count || 0));
       d.reappo_visit_rate = lost > 0 ? Math.round(d.reappo_visit_count / lost * 1000) / 10 : 0;
+    });
+  });
+  // ▼ 取り返し率（依頼51a）。分母は「その月の新規で契約しなかった人」
+  Object.keys(reappoRecover).forEach(function (ym) {
+    if (!actual_data[ym]) return;
+    Object.keys(reappoRecover[ym]).forEach(function (st) {
+      const d = actual_data[ym][st];
+      if (!d) return;
+      d.reappo_recover_count = reappoRecover[ym][st];
+      const lost = Math.max(0, (d.new_count || 0) - (d.new_contract_count || 0));
+      d.reappo_recover_rate = lost > 0 ? Math.round(d.reappo_recover_count / lost * 1000) / 10 : 0;
     });
   });
 
