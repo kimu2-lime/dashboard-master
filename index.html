@@ -208,6 +208,10 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .staff-phase-row .v.good{color:#38b06c}
 .staff-phase-row .v.mid {color:#d97706}
 .staff-phase-row .v.low {color:#e74c3c}
+.kz-alert{background:#fff7ed;border:1.5px solid #fdba74;border-radius:12px;padding:12px 14px;margin:10px 0 16px}
+.kz-alert-title{font-size:13px;font-weight:800;color:#c2410c;margin-bottom:4px}
+.kz-alert-body{font-size:12.5px;color:#7c2d12;line-height:1.7}
+.kz-alert-meta{font-size:11px;color:#9a3412;margin-top:6px;line-height:1.7}
 .staff-few{font-size:9px;font-weight:700;color:#d97706;background:#fef3c7;border-radius:4px;
   padding:1px 4px;margin-left:4px}
 /* ▼ スタッフカードの回数券売上（依頼42） */
@@ -1703,7 +1707,7 @@ body.mobile .side-menu-overlay{display:block!important}
       <button class="type-btn"        id="kbRate"     onclick="setKpiSort('new_contract_rate')">📈 契約率</button>
       <!-- ▼ フェーズ別KPI -->
       <button class="type-btn"        id="kbTotalRate" onclick="setKpiSort('total_contract_rate')">🎯 初回契約率</button>
-      <button class="type-btn"        id="kbRecovery" onclick="setKpiSort('reappo_recover_rate')">🎯 取り返し率</button>
+      <button class="type-btn"        id="kbRecovery" onclick="setKpiSort('reappo_contract_rate')">🔁 再アポ契約率</button>
       <button class="type-btn"        id="kbKeizoku"  onclick="setKpiSort('keizoku_rate')">🔄 継続率</button>
       <button class="type-btn"        id="kbDropout"  onclick="setKpiSort('dropout_rate')">⚠️ 離脱率</button>
       <!-- Phase 1: 優先度ソート（改善余地×売上インパクト×HQ利益弾性で算出） -->
@@ -1784,7 +1788,46 @@ body.mobile .side-menu-overlay{display:block!important}
       <!-- ブランド別の内訳。1店舗に複数ブランドのHPB掲載がある店舗だけ出す -->
       <div id="dBrandBreakdown" style="display:none"></div>
 
-      <div class="phase-label acquisition">📊 獲得フェーズ<span class="phase-sub">新規来店 → 当日契約</span></div>
+      <div class="phase-label" style="color:#1a1a2e">① 全体<span class="phase-sub">お店全体の売上と契約</span></div>
+      <div class="detail-kpis-5">
+        <div class="dkpi new">
+          <div class="dkpi-icon">💰</div><div class="dkpi-label">店舗売上</div>
+          <div class="dkpi-sublabel">全部の会計の合計</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dG1Sales"></span></div>
+        </div>
+        <div class="dkpi visit">
+          <div class="dkpi-icon">🧾</div><div class="dkpi-label">施術数</div>
+          <div class="dkpi-sublabel">会計の数</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dG1Treat"></span><span class="dkpi-dunit">件</span></div>
+        </div>
+        <div class="dkpi new">
+          <div class="dkpi-icon">🆕</div><div class="dkpi-label">新規売上</div>
+          <div class="dkpi-sublabel">新規の会計の全部の金額</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dG1NewSales"></span></div>
+        </div>
+        <div class="dkpi reappo">
+          <div class="dkpi-icon">🔁</div><div class="dkpi-label">再来売上</div>
+          <div class="dkpi-sublabel">再アポ＋回数券消化の会計</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dG1RepeatSales"></span></div>
+        </div>
+        <div class="dkpi contract">
+          <div class="dkpi-icon">📋</div><div class="dkpi-label">総契約数</div>
+          <div class="dkpi-sublabel">新規＋再アポ＋継続</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dG1Contracts"></span><span class="dkpi-dunit">件</span></div>
+        </div>
+        <div class="dkpi royalty">
+          <div class="dkpi-icon">🎟</div><div class="dkpi-label">回数券契約時売上</div>
+          <div class="dkpi-sublabel">契約売上（新規＋再アポ＋継続）</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dG1KeiyakuSales"></span></div>
+        </div>
+        <div class="dkpi retention">
+          <div class="dkpi-icon">🎫</div><div class="dkpi-label">回数券全体売上</div>
+          <div class="dkpi-sublabel">契約時＋消化時</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dG1KaisukenAll"></span></div>
+        </div>
+      </div>
+
+      <div class="phase-label acquisition">② 新規<span class="phase-sub">新規再来＝「新規」の会計</span></div>
       <div class="detail-kpis-5">
         <div class="dkpi new">
           <div class="dkpi-icon">👤</div><div class="dkpi-label">新規数</div>
@@ -1800,6 +1843,16 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-proj-rate" id="dNewProjRate"></span>
           </div>
         </div>
+        <div class="dkpi new">
+          <div class="dkpi-icon">🎟</div><div class="dkpi-label">新規クーポン売上</div>
+          <div class="dkpi-sublabel">クーポン行の金額</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dNewCoupon"></span></div>
+        </div>
+        <div class="dkpi new">
+          <div class="dkpi-icon">💴</div><div class="dkpi-label">新規クーポン単価</div>
+          <div class="dkpi-sublabel">新規クーポン売上 ÷ 新規数</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dNewCouponUp"></span></div>
+        </div>
         <div class="dkpi contract">
           <div class="dkpi-icon">📋</div><div class="dkpi-label">新規契約数</div>
           <div class="dkpi-row">
@@ -1814,36 +1867,35 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-proj-rate" id="dContractProjRate"></span>
           </div>
         </div>
-        <div class="dkpi price">
-          <div class="dkpi-icon">💴</div><div class="dkpi-label">新規契約単価</div>
-          <div class="dkpi-sublabel">※0円除外</div>
-          <div class="dkpi-row">
-            <span class="dkpi-actual" id="dPrice"></span>
-            <span class="dkpi-vs" id="dPriceVs"></span>
-            <span class="dkpi-target" id="dPriceTgt"></span>
-          </div>
-        </div>
         <div class="dkpi rate">
           <div class="dkpi-icon">📈</div><div class="dkpi-label">新規契約率</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dRate"></span><span class="dkpi-dunit">%</span>
             <span class="dkpi-vs" id="dRateVs"></span>
             <span class="dkpi-target" id="dRateTgt"></span><span class="dkpi-tunit" id="dRateTgtU"></span>
+            <span class="dkpi-prog prog-none" id="dRateProg"></span>
           </div>
         </div>
         <div class="dkpi cs-new">
-          <div class="dkpi-icon">🆕</div><div class="dkpi-label">新規契約売上</div>
-          <div class="dkpi-sublabel">初回契約分</div>
+          <div class="dkpi-icon">💰</div><div class="dkpi-label">契約売上（新規）</div>
+          <div class="dkpi-sublabel">新規契約の「契約」行</div>
           <div class="dkpi-row"><span class="dkpi-actual" id="dCsNew"></span></div>
+        </div>
+        <div class="dkpi price">
+          <div class="dkpi-icon">💴</div><div class="dkpi-label">新規契約単価</div>
+          <div class="dkpi-sublabel">契約売上（新規）÷ 新規契約数</div>
+          <div class="dkpi-row">
+            <span class="dkpi-actual" id="dPrice"></span>
+            <span class="dkpi-vs" id="dPriceVs"></span>
+            <span class="dkpi-target" id="dPriceTgt"></span>
+          </div>
         </div>
       </div>
 
-      <!-- ▼ 育成（再アポ）フェーズ -->
-      <div class="phase-label nurture">🎯 育成フェーズ<span class="phase-sub">再来 → 再アポで契約化</span><span class="keizoku-fixnote">11/12に計算を修正（それ以前の表示は低く出ていました）</span></div>
+      <div class="phase-label nurture">③ 再アポ<span class="phase-sub">再来で、消化が1つも無い会計（回数券を持っていない人）</span><span class="keizoku-fixnote">11/17に数え方を変更（再来・消化なしの会計）</span></div>
       <div class="detail-kpis-5">
         <div class="dkpi nurture-count">
           <div class="dkpi-icon">🔁</div><div class="dkpi-label">再アポ数</div>
-          <div class="dkpi-sublabel">新規から90日以内・未契約の再来</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dReappo"></span><span class="dkpi-dunit">人</span>
             <span class="dkpi-vs" id="dReappoVs"></span>
@@ -1856,9 +1908,18 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-proj-rate" id="dReappoProjRate"></span>
           </div>
         </div>
+        <div class="dkpi nurture-count">
+          <div class="dkpi-icon">🎟</div><div class="dkpi-label">再アポクーポン売上</div>
+          <div class="dkpi-sublabel">クーポン行の金額</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoCoupon"></span></div>
+        </div>
+        <div class="dkpi nurture-count">
+          <div class="dkpi-icon">💴</div><div class="dkpi-label">再アポクーポン単価</div>
+          <div class="dkpi-sublabel">再アポクーポン売上 ÷ 再アポ数</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoCouponUp"></span></div>
+        </div>
         <div class="dkpi nurture-contract">
           <div class="dkpi-icon">✍️</div><div class="dkpi-label">再アポ契約数</div>
-          <div class="dkpi-sublabel">再来時に初回契約</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dReappoContract"></span><span class="dkpi-dunit">件</span>
             <span class="dkpi-vs" id="dReappoContractVs"></span>
@@ -1873,7 +1934,7 @@ body.mobile .side-menu-overlay{display:block!important}
         </div>
         <div class="dkpi nurture-rate">
           <div class="dkpi-icon">📈</div><div class="dkpi-label">再アポ契約率</div>
-          <div class="dkpi-sublabel" id="dReappoRateSub">再アポで来た人のうち契約した割合</div>
+          <div class="dkpi-sublabel" id="dReappoRateSub">再アポ契約数 ÷ 再アポ数</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dReappoRate"></span><span class="dkpi-dunit">%</span>
             <span class="dkpi-vs" id="dReappoRateVs"></span>
@@ -1882,42 +1943,30 @@ body.mobile .side-menu-overlay{display:block!important}
           </div>
         </div>
         <div class="dkpi nurture-price">
+          <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#c026d3">契約売上（再アポ）</div>
+          <div class="dkpi-sublabel">再アポ契約の「契約」行</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoSales" style="color:#c026d3"></span></div>
+        </div>
+        <div class="dkpi nurture-price">
           <div class="dkpi-icon">💴</div><div class="dkpi-label">再アポ契約単価</div>
-          <div class="dkpi-sublabel">売上 ÷ 件数</div>
+          <div class="dkpi-sublabel">契約売上（再アポ）÷ 再アポ契約数</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dReappoPrice"></span>
             <span class="dkpi-vs" id="dReappoPriceVs"></span>
             <span class="dkpi-target" id="dReappoPriceTgt"></span>
           </div>
         </div>
-        <div class="dkpi" style="border-top:3px solid #c026d3"><span style="display:none"></span>
-          <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#c026d3">再アポ契約売上</div>
-          <div class="dkpi-sublabel">「契約」行の金額合計</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoSales" style="color:#c026d3"></span></div>
-        </div>
-        <div class="dkpi nurture-count">
-          <div class="dkpi-icon">🚶</div><div class="dkpi-label">再アポ来店数</div>
-          <div class="dkpi-sublabel">新規で契約しなかった人が90日以内に再来（人数）<br><span style="color:#d97706">※新規の月に足すので、直近の月はあとから増えます</span></div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoVisit"></span><span class="dkpi-dunit">人</span></div>
-        </div>
-        <div class="dkpi nurture-rate">
-          <div class="dkpi-icon">🎯</div><div class="dkpi-label">取り返し率</div>
-          <div class="dkpi-sublabel" id="dReappoRecoverSub">新規で契約しなかった人が90日以内に再来して契約した割合</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoRecover"></span><span class="dkpi-dunit">%</span></div>
-        </div>
-        <div class="dkpi nurture-rate">
-          <div class="dkpi-icon">📊</div><div class="dkpi-label">再アポ来店率</div>
-          <div class="dkpi-sublabel">再アポ来店数 ÷ 新規未契約数<br><span style="color:#d97706">※直近の月は低く出ます（90日かけて増える）</span></div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dReappoVisitRate"></span><span class="dkpi-dunit">%</span></div>
-        </div>
       </div>
 
-      <!-- ▼ 継続フェーズ -->
-      <div class="phase-label retention">🔄 継続フェーズ<span class="phase-sub">終了・継続・追加で継続意思を評価</span><span class="keizoku-fixnote">11/5に計算を修正（それ以前の表示は高く出ていました）</span></div>
+      <div class="phase-label retention">④ 継続<span class="phase-sub">再来で、消化がある会計（回数券を持っている人）</span><span class="keizoku-fixnote">11/5に継続契約率を修正／11/17に継続契約数を追加</span></div>
       <div class="detail-kpis-5">
         <div class="dkpi retention-end">
-          <div class="dkpi-icon">⌛</div><div class="dkpi-label">継続対象数</div>
-          <div class="dkpi-sublabel">終了+継続+追加（会計IDユニーク）</div>
+          <div class="dkpi-icon">🎫</div><div class="dkpi-label">回数券消化数</div>
+          <div class="dkpi-sublabel">回数券消化の会計の数</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuShouka"></span><span class="dkpi-dunit">件</span></div>
+        </div>
+        <div class="dkpi retention-end">
+          <div class="dkpi-icon">⌛</div><div class="dkpi-label">回数券終了数</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dKeizokuEnd"></span><span class="dkpi-dunit">件</span>
             <span class="dkpi-vs" id="dKeizokuEndVs"></span>
@@ -1930,45 +1979,47 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-proj-rate" id="dKeizokuEndProjRate"></span>
           </div>
         </div>
+        <div class="dkpi retention-end">
+          <div class="dkpi-icon">➕</div><div class="dkpi-label">うち追加購入数</div>
+          <div class="dkpi-sublabel">「追加」の目印がある会計</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuAdd"></span><span class="dkpi-dunit">件</span></div>
+        </div>
         <div class="dkpi retention-cont">
-          <div class="dkpi-icon">🔄</div><div class="dkpi-label">継続成功数</div>
-          <div class="dkpi-sublabel">継続 or 追加で再購入</div>
-          <div class="dkpi-row">
-            <span class="dkpi-actual" id="dKeizokuCont"></span><span class="dkpi-dunit">件</span>
-            <span class="dkpi-vs" id="dKeizokuContVs"></span>
-            <span class="dkpi-target" id="dKeizokuContTgt"></span><span class="dkpi-tunit" id="dKeizokuContTgtU"></span>
-            <span class="dkpi-prog prog-none" id="dKeizokuContProg"></span>
-          </div>
-          <div class="dkpi-proj-row" id="dKeizokuContProjRow" style="display:none">
-            <span class="dkpi-proj-label">着地見込</span>
-            <span class="dkpi-proj-val" id="dKeizokuContProjVal"></span><span class="dkpi-dunit">件</span>
-            <span class="dkpi-proj-rate" id="dKeizokuContProjRate"></span>
-          </div>
+          <div class="dkpi-icon">🔄</div><div class="dkpi-label">継続契約数</div>
+          <div class="dkpi-sublabel">消化の会計のうち契約の印があるもの</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuContract"></span><span class="dkpi-dunit">件</span></div>
         </div>
         <div class="dkpi retention-rate">
-          <div class="dkpi-icon">📈</div><div class="dkpi-label">継続率</div>
-          <div class="dkpi-sublabel">成功 ÷ 対象</div>
+          <div class="dkpi-icon">📈</div><div class="dkpi-label">継続契約率</div>
+          <div class="dkpi-sublabel" id="dKeizokuRateSub">目印ベース</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dKeizokuRate"></span><span class="dkpi-dunit">%</span>
             <span class="dkpi-vs" id="dKeizokuRateVs"></span>
             <span class="dkpi-target" id="dKeizokuRateTgt"></span><span class="dkpi-tunit" id="dKeizokuRateTgtU"></span>
+            <span class="dkpi-prog prog-none" id="dKeizokuRateProg"></span>
           </div>
         </div>
-        <div class="dkpi" style="border-top:3px solid #0d9488">
-          <div class="dkpi-icon">💴</div><div class="dkpi-label" style="color:#0d9488">継続契約単価</div>
-          <div class="dkpi-sublabel">継続契約売上 ÷ 継続成功数</div>
+        <div class="dkpi retention-cont">
+          <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#047857">契約売上（継続）</div>
+          <div class="dkpi-sublabel">継続契約の「契約」行</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuContractSales" style="color:#047857"></span></div>
+        </div>
+        <div class="dkpi retention-rate">
+          <div class="dkpi-icon">💴</div><div class="dkpi-label">継続契約単価</div>
+          <div class="dkpi-sublabel">契約売上（継続）÷ 継続契約数</div>
           <div class="dkpi-row">
-            <span class="dkpi-actual" id="dKeizokuPrice" style="color:#0d9488"></span>
-            <span class="dkpi-vs" id="dKeizokuPriceVs"></span>
-            <span class="dkpi-target" id="dKeizokuPriceTgt"></span>
+            <span class="dkpi-actual" id="dKeizokuContractPrice"></span>
+            <span class="dkpi-vs" id="dKeizokuContractPriceVs"></span>
+            <span class="dkpi-target" id="dKeizokuContractPriceTgt"></span>
           </div>
         </div>
-        <div class="dkpi" style="border-top:3px solid #047857">
-          <div class="dkpi-icon">💰</div><div class="dkpi-label" style="color:#047857">継続契約売上</div>
-          <div class="dkpi-sublabel">継続/追加 会計IDの「契約」行合計</div>
-          <div class="dkpi-row"><span class="dkpi-actual" id="dKeizokuSales" style="color:#047857"></span></div>
+        <div class="dkpi retention-end">
+          <div class="dkpi-icon">🎟</div><div class="dkpi-label">回数券消化時売上</div>
+          <div class="dkpi-sublabel">メニュー名に「消化」の行</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dKaisukenUse"></span></div>
         </div>
       </div>
+      <div id="dKeizokuAlert" style="display:none"></div>
 
       <!-- ⚠️ 離脱警告 -->
       <div class="dropout-alert" id="dDropoutAlert" style="display:none">
@@ -1986,12 +2037,10 @@ body.mobile .side-menu-overlay{display:block!important}
         </div>
       </div>
 
-      <!-- 初回契約サマリ（獲得＋育成の合算＝本当の決定力） -->
-      <div class="phase-label" style="color:#1a1a2e">🎯 初回契約サマリ<span class="phase-sub">新規＋再アポ＝店舗の本当の決定力</span></div>
+      <div class="phase-label" style="color:#1a1a2e">⑤ 新規＋再アポ<span class="phase-sub">2回目までに決められたか</span></div>
       <div class="detail-kpis-2">
-        <div class="dkpi" style="border-top:3px solid #1a1a2e">
+        <div class="dkpi new">
           <div class="dkpi-icon">👥</div><div class="dkpi-label">新規＋再アポ数</div>
-          <div class="dkpi-sublabel">新規 + 再アポ</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dTotalVisits"></span><span class="dkpi-dunit">人</span>
             <span class="dkpi-vs" id="dTotalVisitsVs"></span>
@@ -1999,9 +2048,8 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-prog prog-none" id="dTotalVisitsProg"></span>
           </div>
         </div>
-        <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">📋</div><div class="dkpi-label">新規契約数＋再アポ契約数</div>
-          <div class="dkpi-sublabel">新規契約 + 再アポ契約</div>
+        <div class="dkpi contract">
+          <div class="dkpi-icon">📋</div><div class="dkpi-label">新規＋再アポ契約数</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dTotalContract"></span><span class="dkpi-dunit">件</span>
             <span class="dkpi-vs" id="dTotalContractVs"></span>
@@ -2009,15 +2057,28 @@ body.mobile .side-menu-overlay{display:block!important}
             <span class="dkpi-prog prog-none" id="dTotalContractProg"></span>
           </div>
         </div>
-        <div class="dkpi" style="border-top:3px solid #1a1a2e">
-          <div class="dkpi-icon">📈</div><div class="dkpi-label">契約率</div>
-          <div class="dkpi-sublabel">2回目までに決められたか</div>
+        <div class="dkpi rate">
+          <div class="dkpi-icon">📈</div><div class="dkpi-label">新規＋再アポ契約率</div>
           <div class="dkpi-row">
             <span class="dkpi-actual" id="dTotalRate"></span><span class="dkpi-dunit">%</span>
             <span class="dkpi-vs" id="dTotalRateVs"></span>
             <span class="dkpi-target" id="dTotalRateTgt"></span><span class="dkpi-tunit" id="dTotalRateTgtU"></span>
             <span class="dkpi-prog prog-none" id="dTotalRateProg"></span>
           </div>
+        </div>
+      </div>
+
+      <div class="phase-label" style="color:#0d9488">⑥ その他の売上<span class="phase-sub">オプション・物販</span></div>
+      <div class="detail-kpis-2">
+        <div class="dkpi retention">
+          <div class="dkpi-icon">✨</div><div class="dkpi-label">オプション売上</div>
+          <div class="dkpi-sublabel">カテゴリ「オプション」の行</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dOptionSales"></span></div>
+        </div>
+        <div class="dkpi retention">
+          <div class="dkpi-icon">🛍</div><div class="dkpi-label">物販売上</div>
+          <div class="dkpi-sublabel">区分「店販」の行</div>
+          <div class="dkpi-row"><span class="dkpi-actual" id="dBuppanSales"></span></div>
         </div>
       </div>
 
@@ -3980,18 +4041,21 @@ function renderMainKpiRow(fstores, md, month){
 
   // ===== セクション2：店舗KPI（売上／新規＋再アポ／新規／再アポ／継続の5グループ）=====
 
-  // ── ① 売上 ──
-  //   新規売上・再来売上・物販売上は目標が無いので「目標 —」になる（依頼35）。
-  //   新規売上＋再来売上＝店舗総合売上（新規再来が空の会計があればその分だけ足りなくなる）。
-  const gSales =
-      valCard('sales','店舗総合売上合計', sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true})
-    + valCard('lime', '店舗売上平均',     sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true, avg:true})
-    + valCard('new',  '新規売上合計',     sumA(md,'new_sales'),    0, sumA(mdPrev,'new_sales'),    {yen:true})
-    + valCard('new',  '新規売上平均',     sumA(md,'new_sales'),    0, sumA(mdPrev,'new_sales'),    {yen:true, avg:true})
-    + valCard('reappo','再来売上合計',    sumA(md,'repeat_sales'), 0, sumA(mdPrev,'repeat_sales'), {yen:true})
-    + valCard('reappo','再来売上平均',    sumA(md,'repeat_sales'), 0, sumA(mdPrev,'repeat_sales'), {yen:true, avg:true})
-    + valCard('retention','物販売上合計', sumA(md,'buppan_sales'), 0, sumA(mdPrev,'buppan_sales'), {yen:true})
-    + valCard('retention','物販売上平均', sumA(md,'buppan_sales'), 0, sumA(mdPrev,'buppan_sales'), {yen:true, avg:true});
+  // ============================================================
+  //  店舗KPI（依頼52a：6グループ）
+  //   ① 全体 ② 新規 ③ 再アポ ④ 継続 ⑤ 新規＋再アポ ⑥ その他の売上
+  // ============================================================
+  // 古いデータ（52a前の data.json）でも動くように、新しい項目が無ければ足し算で代用する
+  const keiyakuA = function(mm){
+    const v = sumA(mm,'keiyaku_contract_sales');
+    return v > 0 ? v : (sumA(mm,'new_contract_sales') + sumA(mm,'reappo_contract_sales') + sumA(mm,'keizoku_contract_sales'));
+  };
+  const contracts3A = function(mm){
+    const v = sumA(mm,'kaisuken_contract_count');
+    return v > 0 ? v : (sumA(mm,'new_contract_count') + sumA(mm,'reappo_contract_count') + sumA(mm,'keizoku_contract_count'));
+  };
+  const ksUse  = sumA(md,'kaisuken_shouka_sales'), ksUseP = sumA(mdPrev,'kaisuken_shouka_sales');
+  const keiyakuCur = keiyakuA(md), keiyakuPrev = keiyakuA(mdPrev);
 
   // ── ①-2 Limeからの仕入れ（BASE発注管理。店舗の売上ではなく「お店が買った額」）──
   //   区分は店舗一覧スプシの「商材区分」タブそのまま（物販専用／兼用／業務用／値引き）。
@@ -4019,61 +4083,76 @@ function renderMainKpiRow(fstores, md, month){
     + (shozaiMib>0 ? cntCard('reappo','うち未分類', shozaiMib, shozaiA(prevMonth,'未分類'), '円', '商材区分タブが空の商品') : '')
     + cntCard('new','仕入れが止まっている加盟店', noBuyStores.length, null, '店', '先月も今月も0円＋施術あり');
 
-  // ── ② 新規＋再アポ（初回契約＝店舗の決定力）──
-  const curRate=rateOf(aNRc,aNR), tgtRate=rateOf(tNRc,tNR), prvRate=rateOf(pNRc,pNR);
-  const gNR =
-      valCard('new',  '（新規＋再アポ）数平均', aNR, tNR, pNR, {avg:true, unit:'人'})
-    + rateCard('rate','（新規＋再アポ）契約率平均', curRate, tgtRate, prvRate)
-    + valCard('new',  '（新規＋再アポ）契約数平均', aNRc, tNRc, pNRc, {avg:true, unit:'件'})
-    + priceCard('royalty','（新規＋再アポ）契約単価平均', aNRs, aNRc, tNRs, tNRc);
+  // ▼ 会計の入れ方アラート（依頼52aの3章）
+  const bookingAlerts = (typeof keizokuBookingAlertStores === 'function') ? keizokuBookingAlertStores(month) : [];
 
-  // ── ③ 新規のみ ──
+  // ── ① 全体 ──
+  const gTotal =
+      valCard('sales','店舗売上合計', sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true})
+    + valCard('lime', '店舗売上平均',  sumA(md,'total_sales'), tK('total_sales'), sumA(mdPrev,'total_sales'), {yen:true, avg:true})
+    + cntCard('visit','施術数合計', sumA(md,'total_treatments'), sumA(mdPrev,'total_treatments'), '件', '会計の数')
+    + valCard('new',  '新規売上合計',  sumA(md,'new_sales'),    0, sumA(mdPrev,'new_sales'),    {yen:true})
+    + valCard('reappo','再来売上合計', sumA(md,'repeat_sales'), 0, sumA(mdPrev,'repeat_sales'), {yen:true})
+    + cntCard('new',  '総契約数', contracts3A(md), contracts3A(mdPrev), '件', '新規＋再アポ＋継続')
+    + valCard('royalty','回数券契約時売上', keiyakuCur, 0, keiyakuPrev, {yen:true})
+    + valCard('retention','回数券全体売上', keiyakuCur + ksUse, 0, keiyakuPrev + ksUseP, {yen:true});
+
+  // ── ② 新規 ──
   const gNew =
       valCard('new','新規数平均', sumA(md,'new_count'), tK('new_count'), sumA(mdPrev,'new_count'), {avg:true, unit:'人'})
+    + valCard('new','新規クーポン売上合計', sumA(md,'new_coupon_sales'), 0, sumA(mdPrev,'new_coupon_sales'), {yen:true})
+    + priceCard('new','新規クーポン単価', sumA(md,'new_coupon_sales'), sumA(md,'new_count'), 0, 0)
+    + valCard('new','新規契約数平均', sumA(md,'new_contract_count'), tK('new_contract_count'), sumA(mdPrev,'new_contract_count'), {avg:true, unit:'件'})
     + rateCard('rate','新規契約率平均',
         rateOf(sumA(md,'new_contract_count'), sumA(md,'new_count')),
         tKPair('new_contract_count','new_count'),
         rateOf(sumA(mdPrev,'new_contract_count'), sumA(mdPrev,'new_count')))
-    + valCard('new','新規契約数平均', sumA(md,'new_contract_count'), tK('new_contract_count'), sumA(mdPrev,'new_contract_count'), {avg:true, unit:'件'})
+    + valCard('new','契約売上（新規）合計', sumA(md,'new_contract_sales'), 0, sumA(mdPrev,'new_contract_sales'), {yen:true})
     + priceCard('royalty','新規契約単価平均', sumA(md,'new_contract_sales'), sumA(md,'new_contract_count'), tK('new_contract_sales'), tK('new_contract_count'));
 
-  // ── ④ 再アポのみ ──
+  // ── ③ 再アポ ──
   const gReappo =
       valCard('reappo','再アポ数平均', sumA(md,'reappo_count'), tK('reappo_count'), sumA(mdPrev,'reappo_count'), {avg:true, unit:'人'})
+    + valCard('reappo','再アポクーポン売上合計', sumA(md,'reappo_coupon_sales'), 0, sumA(mdPrev,'reappo_coupon_sales'), {yen:true})
+    + priceCard('reappo','再アポクーポン単価', sumA(md,'reappo_coupon_sales'), sumA(md,'reappo_count'), 0, 0)
+    + valCard('reappo','再アポ契約数平均', sumA(md,'reappo_contract_count'), tK('reappo_contract_count'), sumA(mdPrev,'reappo_contract_count'), {avg:true, unit:'件'})
     + rateCard('rate','再アポ契約率平均',
         rateOf(sumA(md,'reappo_contract_count'), sumA(md,'reappo_count')),
         tKPair('reappo_contract_count','reappo_count'),
         rateOf(sumA(mdPrev,'reappo_contract_count'), sumA(mdPrev,'reappo_count')))
-    + valCard('reappo','再アポ契約数平均', sumA(md,'reappo_contract_count'), tK('reappo_contract_count'), sumA(mdPrev,'reappo_contract_count'), {avg:true, unit:'件'})
-    + priceCard('royalty','再アポ契約単価平均', sumA(md,'reappo_contract_sales'), sumA(md,'reappo_contract_count'), tK('reappo_contract_sales'), tK('reappo_contract_count'))
-    + valCard('reappo','再アポ来店数平均', sumA(md,'reappo_visit_count'), 0, sumA(mdPrev,'reappo_visit_count'), {avg:true, unit:'人'})
-    + rateCard('rate','再アポ来店率平均（直近月は低め）',
-        rateOf(sumA(md,'reappo_visit_count'), Math.max(0, sumA(md,'new_count') - sumA(md,'new_contract_count'))),
-        0,
-        rateOf(sumA(mdPrev,'reappo_visit_count'), Math.max(0, sumA(mdPrev,'new_count') - sumA(mdPrev,'new_contract_count'))));
+    + valCard('reappo','契約売上（再アポ）合計', sumA(md,'reappo_contract_sales'), 0, sumA(mdPrev,'reappo_contract_sales'), {yen:true})
+    + priceCard('royalty','再アポ契約単価平均', sumA(md,'reappo_contract_sales'), sumA(md,'reappo_contract_count'), tK('reappo_contract_sales'), tK('reappo_contract_count'));
 
-  // ── ⑤ 継続のみ（継続率＝継続成功数 ÷ 継続対象数）──
+  // ── ④ 継続 ──
   const gKeizoku =
-      valCard('retention','継続対象数平均', sumA(md,'keizoku_end_count'), tK('keizoku_end_count'), sumA(mdPrev,'keizoku_end_count'), {avg:true, unit:'件'})
-    + rateCard('retention','継続契約率平均',
+      valCard('retention','回数券消化数平均', sumA(md,'keizoku_shouka_count'), 0, sumA(mdPrev,'keizoku_shouka_count'), {avg:true, unit:'件'})
+    + valCard('retention','回数券終了数平均', sumA(md,'keizoku_end_count'), tK('keizoku_end_count'), sumA(mdPrev,'keizoku_end_count'), {avg:true, unit:'件'})
+    + cntCard('retention','うち追加購入数', sumA(md,'keizoku_add_count'), sumA(mdPrev,'keizoku_add_count'), '件', '「追加」の目印がある会計')
+    + valCard('retention','継続契約数平均', sumA(md,'keizoku_contract_count'), 0, sumA(mdPrev,'keizoku_contract_count'), {avg:true, unit:'件'})
+    + rateCard('retention','継続契約率平均（目印ベース）',
         rateOf(sumA(md,'keizoku_continue_count'), sumA(md,'keizoku_end_count')),
         tKPair('keizoku_continue_count','keizoku_end_count'),
         rateOf(sumA(mdPrev,'keizoku_continue_count'), sumA(mdPrev,'keizoku_end_count')))
-    + valCard('retention','継続契約数平均', sumA(md,'keizoku_continue_count'), tK('keizoku_continue_count'), sumA(mdPrev,'keizoku_continue_count'), {avg:true, unit:'件'})
-    + priceCard('retention','継続契約単価平均', sumA(md,'keizoku_continue_sales'), sumA(md,'keizoku_continue_count'), tK('keizoku_continue_sales'), tK('keizoku_continue_count'))
+    + valCard('retention','契約売上（継続）合計', sumA(md,'keizoku_contract_sales'), 0, sumA(mdPrev,'keizoku_contract_sales'), {yen:true})
+    + priceCard('retention','継続契約単価', sumA(md,'keizoku_contract_sales'), sumA(md,'keizoku_contract_count'), tK('keizoku_continue_sales'), tK('keizoku_continue_count'))
+    + valCard('sales','回数券消化時売上合計', ksUse, 0, ksUseP, {yen:true})
     + cntCard('new','目印が入っていない店', markMissing.length, null, '店', '消化はあるのに終了/継続が0')
-    + cntCard('new','目印が1件もない店', markNone.length, null, '店', '回数券は売っているのに目印0');
+    + cntCard('new','目印が1件もない店', markNone.length, null, '店', '回数券は売っているのに目印0')
+    + cntCard('new','会計の入れ方アラート', bookingAlerts.length, null, '店', '消化の売上を契約で会計の疑い');
 
-  // ── ⑥ 回数券売上（依頼42）：いつ払われたかで2つに分ける ──
-  //   ①契約時＝メニューに「契約」を含む行　②消化時＝「消化」を含む行（オプションは除く）
-  const ksCont = sumA(md,'kaisuken_contract_sales'), ksUse = sumA(md,'kaisuken_shouka_sales');
-  const ksContP = sumA(mdPrev,'kaisuken_contract_sales'), ksUseP = sumA(mdPrev,'kaisuken_shouka_sales');
-  const gKaisuken =
-      valCard('royalty','回数券売上（契約時）合計', ksCont, 0, ksContP, {yen:true})
-    + valCard('sales',  '回数券売上（消化時）合計', ksUse,  0, ksUseP,  {yen:true})
-    + valCard('retention','回数券売上 合計',        ksCont+ksUse, 0, ksContP+ksUseP, {yen:true})
-    + valCard('royalty','回数券売上（契約時）平均', ksCont, 0, ksContP, {yen:true, avg:true})
-    + valCard('sales',  '回数券売上（消化時）平均', ksUse,  0, ksUseP,  {yen:true, avg:true});
+  // ── ⑤ 新規＋再アポ ──
+  const curRate=rateOf(aNRc,aNR), tgtRate=rateOf(tNRc,tNR), prvRate=rateOf(pNRc,pNR);
+  const gNR =
+      valCard('new',  '（新規＋再アポ）数平均', aNR, tNR, pNR, {avg:true, unit:'人'})
+    + valCard('new',  '（新規＋再アポ）契約数平均', aNRc, tNRc, pNRc, {avg:true, unit:'件'})
+    + rateCard('rate','（新規＋再アポ）契約率平均', curRate, tgtRate, prvRate);
+
+  // ── ⑥ その他の売上 ──
+  const gOther =
+      valCard('retention','オプション売上合計', sumA(md,'option_sales'), 0, sumA(mdPrev,'option_sales'), {yen:true})
+    + valCard('retention','オプション売上平均', sumA(md,'option_sales'), 0, sumA(mdPrev,'option_sales'), {yen:true, avg:true})
+    + valCard('retention','物販売上合計', sumA(md,'buppan_sales'), 0, sumA(mdPrev,'buppan_sales'), {yen:true})
+    + valCard('retention','物販売上平均', sumA(md,'buppan_sales'), 0, sumA(mdPrev,'buppan_sales'), {yen:true, avg:true});
 
   // グループ（見出しクリックで個別に開閉。状態はlocalStorageに保存される）
   const grp = function(key, cls, title, note, cards){
@@ -4092,13 +4171,13 @@ function renderMainKpiRow(fstores, md, month){
     '<div class="mk-section">'+
       mkCollapseHead('store','店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span>')+
       '<div class="mk-collapse-body"'+mkBodyAttr('store')+'>'+
-        grp('store-sales',  'g-sales',  '💰 売上',          '8指標', gSales)+
+        grp('store-total',  'g-sales',  '① 全体',          '8指標', gTotal)+
+        grp('store-new',    'g-new',    '② 新規',          '7指標', gNew)+
+        grp('store-reappo', 'g-reappo', '③ 再アポ<span class="keizoku-fixnote">11/17に数え方を変更（再来・消化なしの会計）</span>', '7指標', gReappo)+
+        grp('store-keizoku','g-keizoku','④ 継続<span class="keizoku-fixnote">11/5に計算を修正（それ以前の継続率は高く出ていました）／11/17に継続契約数を追加（目印が無くても数える）</span>', '11指標', gKeizoku)+
+        grp('store-nr',     'g-nr',     '⑤ 新規＋再アポ',  '3指標', gNR)+
+        grp('store-other',  'g-sales',  '⑥ その他の売上',  '4指標', gOther)+
         grp('store-shozai', 'g-nr',     '📦 Limeからの仕入れ', (shozaiMib>0?'7指標':'6指標'), gShozai)+
-        grp('store-nr',     'g-nr',     '🎯 新規＋再アポ',  '4指標', gNR)+
-        grp('store-new',    'g-new',    '🆕 新規のみ',      '4指標', gNew)+
-        grp('store-reappo', 'g-reappo', '🔁 再アポのみ<span class="keizoku-fixnote">11/12に計算を修正（それ以前の表示は低く出ていました）</span>', '6指標', gReappo)+
-        grp('store-keizoku','g-keizoku','🔄 継続のみ<span class="keizoku-fixnote">11/5に計算を修正（それ以前の表示は高く出ていました）</span>', '6指標', gKeizoku)+
-        grp('store-kaisuken','g-sales',  '🎟 回数券売上（契約時／消化時）', '5指標', gKaisuken)+
       '</div>'+
     '</div>';
 }
@@ -4525,7 +4604,7 @@ function renderList(){
     if (curKpi === 'new_contract_rate') return md[s].new_contract_rate || 0;
     // ▼ フェーズ別KPI
     if (curKpi === 'total_contract_rate') return md[s].total_contract_rate || 0;
-    if (curKpi === 'reappo_recover_rate') return md[s].reappo_recover_rate || 0;
+    if (curKpi === 'reappo_contract_rate') return md[s].reappo_contract_rate || 0;
     if (curKpi === 'keizoku_rate') {
       // 終了数=0 の店舗は除外（-1で末尾に）
       return (md[s].keizoku_end_count || 0) > 0 ? (md[s].keizoku_rate || 0) : -1;
@@ -4622,7 +4701,7 @@ function renderList(){
           new_contract_rate:       { label:'新規契約率', unit:'%', getValue: d=>d.new_contract_rate, getTgt: t=>t&&t.new_contract_rate, fmt: v=>v, isYen: false },
           // ▼ フェーズ別KPI（目標は未設定の店舗が多いので getTgt は null 返し）
           total_contract_rate:     { label:'初回契約率', unit:'%', getValue: d=>d.total_contract_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
-          reappo_recover_rate:     { label:'取り返し率', unit:'%', getValue: d=>d.reappo_recover_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
+          reappo_contract_rate:    { label:'再アポ契約率', unit:'%', getValue: d=>d.reappo_contract_rate, getTgt: t=>t&&t.reappo_contract_rate, fmt: v=>v, isYen: false },
           keizoku_rate:            { label:'継続率',     unit:'%', getValue: d=>d.keizoku_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
           dropout_rate:            { label:'離脱率',     unit:'%', getValue: d=>d.dropout_rate, getTgt: t=>null, fmt: v=>v, isYen: false },
         };
@@ -5183,6 +5262,121 @@ function renderTargetNameIssues(){
  *  直営はBASEで買っていないので②③の対象外（GAS側で外している）。
  * ============================================================ */
 /* ============================================================
+ *  ④継続のアラート（依頼52aの3章）
+ *   「消化の売上を契約で会計していませんか？」
+ *   直近3か月の合計で、継続契約が3件以上ある店だけを見る。
+ *     ・単価が低すぎる … 継続契約単価が2万円未満
+ *     ・件数が多すぎる … 継続契約数÷回数券消化数が20%超、かつ単価4万円未満
+ *     ・0円の契約     … 継続契約の会計で、契約行の金額が0円のものがある
+ *   基準値は毎月の全店の分布から出し直せるようにしてある（KZA_DYNAMIC を true に）。
+ *   いまは依頼どおり固定値。画面のⓘ欄には、その月の実際の分布も並べて出す。
+ * ============================================================ */
+const KZA_MIN_COUNT  = 3;       // 対象にする継続契約数（直近3か月の合計）
+const KZA_UNIT_LOW   = 20000;   // 単価が低すぎる
+const KZA_UNIT_MID   = 40000;   // 件数が多すぎる の単価条件
+const KZA_RATIO_HIGH = 20;      // 件数が多すぎる の割合（%）
+const KZA_DYNAMIC    = false;   // true にすると、その月の分布から基準値を出し直す
+
+function kzaMonths(month){
+  const m1 = getPrevMonth(month), m2 = getPrevMonth(m1);
+  return [month, m1, m2];
+}
+/* 店ごとの直近3か月の合計 */
+function keizokuAlertStats(store, month){
+  const out = { count:0, sales:0, shouka:0, zero:0 };
+  kzaMonths(month).forEach(function(m){
+    const d = (DATA.data && DATA.data[m] && DATA.data[m][store]) ? DATA.data[m][store] : null;
+    if (!d) return;
+    out.count  += d.keizoku_contract_count || 0;
+    out.sales  += d.keizoku_contract_sales || 0;
+    out.shouka += d.keizoku_shouka_count   || 0;
+    out.zero   += d.keizoku_contract_zero_count || 0;
+  });
+  out.unit  = out.count  > 0 ? Math.round(out.sales / out.count) : 0;
+  out.ratio = out.shouka > 0 ? Math.round(out.count / out.shouka * 1000) / 10 : 0;
+  return out;
+}
+/* その月の全店の分布（継続契約が3件以上ある店だけ） */
+function keizokuAlertDist(month){
+  const md = (DATA.data && DATA.data[month]) ? DATA.data[month] : {};
+  const units = [], ratios = [];
+  Object.keys(md).forEach(function(st){
+    const d = md[st] || {};
+    const c = d.keizoku_contract_count || 0;
+    if (c < KZA_MIN_COUNT) return;
+    units.push(Math.round((d.keizoku_contract_sales || 0) / c));
+    if ((d.keizoku_shouka_count || 0) > 0) ratios.push(Math.round(c / d.keizoku_shouka_count * 1000) / 10);
+  });
+  const p = function(arr, q){
+    if (!arr.length) return 0;
+    const a = arr.slice().sort(function(x,y){ return x - y; });
+    return a[Math.min(a.length - 1, Math.max(0, Math.round((a.length - 1) * q)))];
+  };
+  return { n: units.length, unitP20: p(units,0.2), unitP50: p(units,0.5),
+           ratioP50: p(ratios,0.5), ratioP90: p(ratios,0.9) };
+}
+/* 使う基準値 */
+function keizokuAlertThresholds(month){
+  const dist = keizokuAlertDist(month);
+  if (!KZA_DYNAMIC || dist.n < 10) {
+    return { unitLow: KZA_UNIT_LOW, unitMid: KZA_UNIT_MID, ratioHigh: KZA_RATIO_HIGH, dist: dist, fixed: true };
+  }
+  const clamp = function(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); };
+  return {
+    unitLow:   clamp(Math.round(dist.unitP20 / 1000) * 1000, 15000, 25000),
+    unitMid:   KZA_UNIT_MID,
+    ratioHigh: clamp(Math.ceil(dist.ratioP90), 15, 30),
+    dist: dist, fixed: false
+  };
+}
+/* 店ごとの判定。当たらなければ null */
+function keizokuBookingAlert(store, month){
+  const st = keizokuAlertStats(store, month);
+  if (st.count < KZA_MIN_COUNT) return null;
+  const th = keizokuAlertThresholds(month);
+  const tags = [];
+  if (st.unit > 0 && st.unit < th.unitLow) tags.push('単価が低すぎる');
+  if (st.ratio > th.ratioHigh && st.unit < th.unitMid) tags.push('件数が多すぎる');
+  if (st.zero > 0) tags.push('0円の契約');
+  if (!tags.length) return null;
+  return { store: store, tags: tags, stats: st, th: th };
+}
+/* 当たった店の一覧（その月） */
+function keizokuBookingAlertStores(month){
+  const md = (DATA.data && DATA.data[month]) ? DATA.data[month] : {};
+  const out = [];
+  Object.keys(md).forEach(function(st){
+    const closed = DATA.store_closed_month && DATA.store_closed_month[st];
+    if (closed && String(month) > String(closed)) return;
+    const a = keizokuBookingAlert(st, month);
+    if (a) out.push(a);
+  });
+  out.sort(function(x,y){ return x.stats.unit - y.stats.unit; });
+  return out;
+}
+/* 店舗詳細に出すHTML */
+function keizokuBookingAlertHtml(store, month){
+  const a = keizokuBookingAlert(store, month);
+  if (!a) return '';
+  const st = a.stats, th = a.th;
+  const man = function(v){ return (Math.round(v / 1000) / 10) + '万円'; };
+  const parts = [];
+  if (a.tags.indexOf('単価が低すぎる') >= 0) parts.push('継続契約の単価が' + man(st.unit) + 'と低く');
+  if (a.tags.indexOf('件数が多すぎる') >= 0) parts.push('件数も消化の' + st.ratio + '%と多め');
+  if (a.tags.indexOf('0円の契約') >= 0)      parts.push('契約行が0円の会計が' + st.zero + '件あり');
+  const head = parts.join('、') + 'です。';
+  return '<div class="kz-alert">' +
+    '<div class="kz-alert-title">⚠️ 消化の売上を「契約」で会計していませんか？</div>' +
+    '<div class="kz-alert-body">' + head +
+      '消化の日の都度払いや残金を「契約」メニューで会計していないか確認してください。</div>' +
+    '<div class="kz-alert-meta">直近3か月の合計：継続契約 ' + st.count + '件 ／ 回数券消化 ' + st.shouka + '件 ／ ' +
+      '継続契約単価 ' + fmt(st.unit) + '円 ／ 0円の契約 ' + st.zero + '件' +
+      '<br>基準：単価 ' + fmt(th.unitLow) + '円未満／件数 ' + th.ratioHigh + '%超かつ単価 ' + fmt(th.unitMid) + '円未満／0円の契約あり' +
+      '（継続契約が' + KZA_MIN_COUNT + '件以上の店だけ判定）</div>' +
+  '</div>';
+}
+
+/* ============================================================
  *  回数券の目印の入力もれアラート（依頼38-3）
  *  「消化」の目印は入れているのに、「終了／継続／追加」の目印が0件の店。
  *  この状態だと継続率が出ないので、担当者が分かるように出す。
@@ -5194,8 +5388,11 @@ function keizokuMarkMissingStores(month){
     const d = md[st] || {};
     const closed = DATA.store_closed_month && DATA.store_closed_month[st];
     if (closed && String(month) > String(closed)) return;
-    if ((d.keizoku_shouka_count || 0) > 0 && (d.keizoku_end_count || 0) === 0) {
-      out.push({ store: st, shouka: d.keizoku_shouka_count || 0,
+    // ▼ 依頼52aで keizoku_shouka_count は「回数券消化の会計数」に変わったので、
+    //   目印の入力もれは「消化の目印がある会計数」で見る（古いデータは元の項目で代用）。
+    const markShouka = (d.keizoku_mark_shouka_count != null) ? d.keizoku_mark_shouka_count : (d.keizoku_shouka_count || 0);
+    if (markShouka > 0 && (d.keizoku_end_count || 0) === 0) {
+      out.push({ store: st, shouka: markShouka,
                  person: (DATA.store_person && DATA.store_person[st]) || '担当者未設定' });
     }
   });
@@ -5216,8 +5413,9 @@ function keizokuNoMarkStores(month){
     const closed = DATA.store_closed_month && DATA.store_closed_month[st];
     if (closed && String(month) > String(closed)) return;
     // 目印が1件もない（消化の目印も、終了/継続/追加の目印も無い）
-    if ((d.keizoku_shouka_count || 0) !== 0) return;
-    if ((d.keizoku_end_count    || 0) !== 0) return;
+    const markShouka2 = (d.keizoku_mark_shouka_count != null) ? d.keizoku_mark_shouka_count : (d.keizoku_shouka_count || 0);
+    if (markShouka2 !== 0) return;
+    if ((d.keizoku_end_count || 0) !== 0) return;
     // 直近3か月に回数券の契約があるか
     let sales = 0;
     months.forEach(function(m){
@@ -5558,19 +5756,39 @@ function showDetail(store,d,tgt){
     }
   }
 
-  // 新規数
-  setEl('dNew',d.new_count);
-  setVsTarget('dNew','dNewVs','dNewTgt','dNewTgtU','dNewProg',d.new_count,tgt?tgt.new_count:null,'人');
-  // 新規契約数
-  setVsTarget('dContract','dContractVs','dContractTgt','dContractTgtU','dContractProg',d.new_contract_count,tgt?tgt.new_contract_count:null,'件');
-  // 新規契約単価
-  setEl('dPrice',(d.new_contract_count>0&&d.new_contract_unit_price>0)?fmt(d.new_contract_unit_price):'—');
-  if(tgt&&tgt.new_contract_unit_price>0){setEl('dPriceVs','/');setEl('dPriceTgt',fmt(tgt.new_contract_unit_price))}
-  else{setEl('dPriceVs','');setEl('dPriceTgt','')}
-  // 新規契約率
-  setEl('dRate',d.new_contract_rate);
-  if(tgt){setEl('dRateVs','/');setEl('dRateTgt',tgt.new_contract_rate);setEl('dRateTgtU','%')}
-  else{setEl('dRateVs','');setEl('dRateTgt','—');setEl('dRateTgtU','')}
+  // ============================================================
+  //  店舗詳細のKPI（依頼52a：6グループ）
+  //   ① 全体 ② 新規 ③ 再アポ ④ 継続 ⑤ 新規＋再アポ ⑥ その他の売上
+  //   会計は「新規／再アポ（再来で消化なし）／回数券消化（再来で消化あり）」の3つに分かれる。
+  // ============================================================
+  const _kNew = d.new_contract_sales    || 0;
+  const _kRea = d.reappo_contract_sales || 0;
+  const _kKei = d.keizoku_contract_sales || 0;
+  const _keiyaku = (d.keiyaku_contract_sales != null) ? d.keiyaku_contract_sales : (_kNew + _kRea + _kKei);
+  const _ksUse   = d.kaisuken_shouka_sales || 0;
+  const _contracts3 = (d.kaisuken_contract_count != null)
+    ? d.kaisuken_contract_count
+    : ((d.new_contract_count || 0) + (d.reappo_contract_count || 0) + (d.keizoku_contract_count || 0));
+
+  // ── ① 全体 ───────────────────────────────────
+  setEl('dG1Sales',        fmt(d.total_sales || 0));
+  setEl('dG1Treat',        d.total_treatments || 0);
+  setEl('dG1NewSales',     fmt(d.new_sales || 0));
+  setEl('dG1RepeatSales',  fmt(d.repeat_sales || 0));
+  setEl('dG1Contracts',    _contracts3);
+  setEl('dG1KeiyakuSales', _keiyaku > 0 ? fmt(_keiyaku) : '—');
+  setEl('dG1KaisukenAll',  (_keiyaku + _ksUse) > 0 ? fmt(_keiyaku + _ksUse) : '—');
+
+  // ── ② 新規 ───────────────────────────────────
+  setVsTarget('dNew','dNewVs','dNewTgt','dNewTgtU','dNewProg', d.new_count || 0, tgt?tgt.new_count:null, '人');
+  setVsTarget('dContract','dContractVs','dContractTgt','dContractTgtU','dContractProg', d.new_contract_count || 0, tgt?tgt.new_contract_count:null, '件');
+  setVsTarget('dRate','dRateVs','dRateTgt','dRateTgtU','dRateProg', d.new_contract_rate || 0, tgt?tgt.new_contract_rate:null, '%');
+  setEl('dNewCoupon',   (d.new_coupon_sales > 0) ? fmt(d.new_coupon_sales) : '—');
+  setEl('dNewCouponUp', (d.new_coupon_unit_price > 0) ? fmt(d.new_coupon_unit_price) : '—');
+  setEl('dCsNew', (_kNew > 0) ? fmt(_kNew) : '—');
+  setEl('dPrice', (d.new_contract_count > 0 && d.new_contract_unit_price > 0) ? fmt(d.new_contract_unit_price) : '—');
+  if (tgt && tgt.new_contract_unit_price > 0) { setEl('dPriceVs','/'); setEl('dPriceTgt', fmt(tgt.new_contract_unit_price)); }
+  else { setEl('dPriceVs',''); setEl('dPriceTgt',''); }
 
   // ── 各KPI内の着地見込行を更新 ───────────────────────────
   const projBase = calcProjection(d.total_sales, d.last_date, curMonth, tgt ? tgt.total_sales : 0);
@@ -5603,53 +5821,46 @@ function showDetail(store,d,tgt){
   setProjRow('dReappoProjRow',       'dReappoProjVal',       'dReappoProjRate',       d.reappo_count,         tgt ? tgt.reappo_count : null);
   setProjRow('dReappoContractProjRow','dReappoContractProjVal','dReappoContractProjRate', d.reappo_contract_count, tgt ? tgt.reappo_contract_count : null);
   setProjRow('dKeizokuEndProjRow',   'dKeizokuEndProjVal',   'dKeizokuEndProjRate',   d.keizoku_end_count,    tgt ? tgt.keizoku_end_count : null);
-  setProjRow('dKeizokuContProjRow',  'dKeizokuContProjVal',  'dKeizokuContProjRate',  d.keizoku_continue_count, tgt ? tgt.keizoku_continue_count : null);
 
-  setEl('dCsNew',fmt(d.new_contract_sales));
-
-  // ── 育成フェーズ（再アポ）──────────────────────────
+  // ── ③ 再アポ ─────────────────────────────────
   setVsTarget('dReappo','dReappoVs','dReappoTgt','dReappoTgtU','dReappoProg', d.reappo_count || 0, tgt?tgt.reappo_count:null, '人');
   setVsTarget('dReappoContract','dReappoContractVs','dReappoContractTgt','dReappoContractTgtU','dReappoContractProg', d.reappo_contract_count || 0, tgt?tgt.reappo_contract_count:null, '件');
-  // 再アポ契約率（依頼51a。これまで出していた「再アポ回収率」は別の人どうしを割っていた）
   setVsTarget('dReappoRate','dReappoRateVs','dReappoRateTgt','dReappoRateTgtU','dReappoRateProg',
               d.reappo_contract_rate || 0, tgt?tgt.reappo_contract_rate:null, '%');
   const rcSub = document.getElementById('dReappoRateSub');
   if (rcSub) {
     const rn = d.reappo_count || 0, rc = d.reappo_contract_count || 0;
     rcSub.innerHTML = rn > 0
-      ? '再アポで来た人のうち契約した割合（' + rc + ' / ' + rn + '）'
+      ? '再アポ契約数 ÷ 再アポ数（' + rc + ' / ' + rn + '）'
         + (rn < 5 ? '<br><span style="color:#d97706">件数が少ないので参考</span>' : '')
-      : '再アポで来た人のうち契約した割合';
+      : '再アポ契約数 ÷ 再アポ数';
   }
-  // 取り返し率（依頼51a）
-  setEl('dReappoRecover',     (d.reappo_recover_count > 0) ? (d.reappo_recover_rate || 0) : '—');
-  const rvSub = document.getElementById('dReappoRecoverSub');
-  if (rvSub) {
-    const lost = Math.max(0, (d.new_count || 0) - (d.new_contract_count || 0));
-    rvSub.innerHTML = '新規で契約しなかった人が90日以内に再来して契約した割合'
-      + (lost > 0 ? '（' + (d.reappo_recover_count || 0) + ' / ' + lost + '）' : '')
-      + '<br><span style="color:#d97706">※直近の月は低く出ます（90日かけて増える）</span>';
-  }
-  // 再アポ契約単価（0は「—」／目標は再アポ契約単価）
-  setEl('dReappoPrice', (d.reappo_contract_unit_price > 0) ? fmt(d.reappo_contract_unit_price) : '—');
+  setEl('dReappoCoupon',   (d.reappo_coupon_sales > 0) ? fmt(d.reappo_coupon_sales) : '—');
+  setEl('dReappoCouponUp', (d.reappo_coupon_unit_price > 0) ? fmt(d.reappo_coupon_unit_price) : '—');
+  setEl('dReappoSales',    (_kRea > 0) ? fmt(_kRea) : '—');
+  setEl('dReappoPrice',    (d.reappo_contract_unit_price > 0) ? fmt(d.reappo_contract_unit_price) : '—');
   if (tgt && tgt.reappo_contract_unit_price > 0) { setEl('dReappoPriceVs','/'); setEl('dReappoPriceTgt', fmt(tgt.reappo_contract_unit_price)); }
   else { setEl('dReappoPriceVs',''); setEl('dReappoPriceTgt',''); }
-  setEl('dReappoSales',   (d.reappo_contract_sales > 0)    ? fmt(d.reappo_contract_sales)    : '—');
-  // ▼ 再アポ来店数・来店率（依頼45b）。新規の月に足すので、直近月は後から増える
-  setEl('dReappoVisit',     (d.reappo_visit_count  > 0) ? d.reappo_visit_count  : '—');
-  setEl('dReappoVisitRate', (d.reappo_visit_rate   > 0) ? d.reappo_visit_rate   : '—');
 
-  // ── 継続フェーズ ────────────────────────────────
+  // ── ④ 継続 ───────────────────────────────────
+  setEl('dKeizokuShouka', d.keizoku_shouka_count || 0);
   setVsTarget('dKeizokuEnd','dKeizokuEndVs','dKeizokuEndTgt','dKeizokuEndTgtU','dKeizokuEndProg', d.keizoku_end_count || 0, tgt?tgt.keizoku_end_count:null, '件');
-  setVsTarget('dKeizokuCont','dKeizokuContVs','dKeizokuContTgt','dKeizokuContTgtU','dKeizokuContProg', d.keizoku_continue_count || 0, tgt?tgt.keizoku_continue_count:null, '件');
-  setEl('dKeizokuRate', (d.keizoku_end_count > 0) ? (d.keizoku_rate || 0) : '—');
-  // 継続率の目標は「継続契約率」目標
-  if (tgt && tgt.keizoku_rate > 0) { setEl('dKeizokuRateVs','/'); setEl('dKeizokuRateTgt', tgt.keizoku_rate); setEl('dKeizokuRateTgtU','%'); }
-  else { setEl('dKeizokuRateVs',''); setEl('dKeizokuRateTgt',''); setEl('dKeizokuRateTgtU',''); }
-  setEl('dKeizokuPrice', (d.keizoku_continue_unit_price > 0) ? fmt(d.keizoku_continue_unit_price) : '—');
-  if (tgt && tgt.keizoku_continue_unit_price > 0) { setEl('dKeizokuPriceVs','/'); setEl('dKeizokuPriceTgt', fmt(tgt.keizoku_continue_unit_price)); }
-  else { setEl('dKeizokuPriceVs',''); setEl('dKeizokuPriceTgt',''); }
-  setEl('dKeizokuSales', (d.keizoku_continue_sales > 0)      ? fmt(d.keizoku_continue_sales)      : '—');
+  setEl('dKeizokuAdd',      d.keizoku_add_count || 0);
+  setEl('dKeizokuContract', d.keizoku_contract_count || 0);
+  setVsTarget('dKeizokuRate','dKeizokuRateVs','dKeizokuRateTgt','dKeizokuRateTgtU','dKeizokuRateProg',
+              (d.keizoku_end_count > 0) ? (d.keizoku_rate || 0) : 0, tgt?tgt.keizoku_rate:null, '%');
+  const kzSub = document.getElementById('dKeizokuRateSub');
+  if (kzSub) {
+    kzSub.innerHTML = (d.keizoku_end_count > 0)
+      ? '目印ベース（継続・追加 ' + (d.keizoku_continue_count || 0) + ' / 回数券終了 ' + (d.keizoku_end_count || 0) + '）'
+      : '<span style="color:#d97706">目印不足（終了・継続の目印が0件なので出せません）</span>';
+  }
+  if ((d.keizoku_end_count || 0) === 0) setEl('dKeizokuRate', '—');
+  setEl('dKeizokuContractSales', (_kKei > 0) ? fmt(_kKei) : '—');
+  setEl('dKeizokuContractPrice', (d.keizoku_contract_unit_price > 0) ? fmt(d.keizoku_contract_unit_price) : '—');
+  if (tgt && tgt.keizoku_continue_unit_price > 0) { setEl('dKeizokuContractPriceVs','/'); setEl('dKeizokuContractPriceTgt', fmt(tgt.keizoku_continue_unit_price)); }
+  else { setEl('dKeizokuContractPriceVs',''); setEl('dKeizokuContractPriceTgt',''); }
+  setEl('dKaisukenUse', (_ksUse > 0) ? fmt(_ksUse) : '—');
   // 終了数=0 のときは率の単位 % を消す
   (function(){
     const el = document.getElementById('dKeizokuRate');
@@ -5658,6 +5869,14 @@ function showDetail(store,d,tgt){
       if (unit) unit.style.display = (el.textContent === '—') ? 'none' : '';
     }
   })();
+  // 「消化の売上を契約で会計していませんか？」のアラート（依頼52aの3章）
+  const kzAlert = document.getElementById('dKeizokuAlert');
+  if (kzAlert) {
+    let html = '';
+    try { html = keizokuBookingAlertHtml(store, curMonth); } catch(e){ html = ''; }
+    kzAlert.innerHTML = html;
+    kzAlert.style.display = html ? '' : 'none';
+  }
 
   // ── 離脱警告（終了数 > 0 のときのみ表示）──────────
   const dropoutAlert = document.getElementById('dDropoutAlert');
@@ -5677,13 +5896,17 @@ function showDetail(store,d,tgt){
     }
   }
 
-  // ── 初回契約サマリ（新規＋再アポ）──────────────
+  // ── ⑤ 新規＋再アポ ───────────────────────────
   const totalVisits = (d.new_count || 0) + (d.reappo_count || 0);
   // 新規＋再アポ数の目標 = 新規数目標 ＋ 再アポ数目標（スプシに合算欄が無いため足し算）
   const tTotalVisits = tgt ? ((tgt.new_count || 0) + (tgt.reappo_count || 0)) : 0;
   setVsTarget('dTotalVisits','dTotalVisitsVs','dTotalVisitsTgt','dTotalVisitsTgtU','dTotalVisitsProg', totalVisits, tTotalVisits > 0 ? tTotalVisits : null, '人');
   setVsTarget('dTotalContract','dTotalContractVs','dTotalContractTgt','dTotalContractTgtU','dTotalContractProg', d.total_contract_count || 0, tgt?tgt.total_contract_count:null, '件');
   setVsTarget('dTotalRate','dTotalRateVs','dTotalRateTgt','dTotalRateTgtU','dTotalRateProg', (totalVisits > 0) ? (d.total_contract_rate || 0) : 0, tgt?tgt.total_contract_rate:null, '%');
+
+  // ── ⑥ その他の売上 ───────────────────────────
+  setEl('dOptionSales', (d.option_sales > 0) ? fmt(d.option_sales) : '—');
+  setEl('dBuppanSales', (d.buppan_sales > 0) ? fmt(d.buppan_sales) : '—');
 
   // ── メニュー別内訳（直営店のみ・onda/peelingデータがある場合）────
   const menuBreakSection = document.getElementById('dMenuBreakSection');
@@ -5869,14 +6092,15 @@ function showDetail(store,d,tgt){
           '<div class="staff-phase-row"><span>再アポ単価</span>' + vYen(s.reappo_contract_unit_price) + '</div>' +
         '</div>';
 
-      // 継続フェーズ
+      // 継続フェーズ（依頼52a：回数券消化／継続契約／継続契約率（目印ベース）／継続契約単価）
       const retention =
         '<div class="staff-phase-block retention">' +
           '<div class="staff-phase-title">🔄 継続</div>' +
-          '<div class="staff-phase-row"><span>継続対象</span>' + vNum(s.keizoku_end_count, '件') + '</div>' +
-          '<div class="staff-phase-row"><span>継続成功</span>'   + vNum(s.keizoku_continue_count, '件') + '</div>' +
-          '<div class="staff-phase-row"><span>継続率</span>'     + vRate(s.keizoku_rate, 60, 40) + '</div>' +
-          '<div class="staff-phase-row"><span>継続単価</span>'   + vYen(s.keizoku_continue_unit_price) + '</div>' +
+          '<div class="staff-phase-row"><span>回数券消化</span>' + vNum(s.keizoku_shouka_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>回数券終了</span>' + vNum(s.keizoku_end_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>継続契約</span>'   + vNum(s.keizoku_contract_count, '件') + '</div>' +
+          '<div class="staff-phase-row"><span>継続契約率</span>' + vRate(s.keizoku_rate, 60, 40) + '</div>' +
+          '<div class="staff-phase-row"><span>継続単価</span>'   + vYen(s.keizoku_contract_unit_price) + '</div>' +
         '</div>';
 
       // 回数券売上（依頼42）：①契約時の入金／②消化時の入金
@@ -6090,7 +6314,7 @@ function setKpiSort(kpi) {
     new_contract_unit_price: 'kbPrice',
     new_contract_rate: 'kbRate',
     total_contract_rate: 'kbTotalRate',
-    reappo_recover_rate: 'kbRecovery',
+    reappo_contract_rate: 'kbRecovery',
     keizoku_rate: 'kbKeizoku',
     dropout_rate: 'kbDropout',
     priority: 'kbPriority'  // Phase 1: 優先度ソート
@@ -6106,7 +6330,7 @@ function setKpiSort(kpi) {
     new_contract_unit_price: '💎 契約単価',
     new_contract_rate: '📈 契約率',
     total_contract_rate: '🎯 初回契約率',
-    reappo_recover_rate: '🎯 取り返し率',
+    reappo_contract_rate: '🔁 再アポ契約率',
     keizoku_rate: '🔄 継続率',
     dropout_rate: '⚠️ 離脱率',
     priority: '🚨 優先度'    // Phase 1: 優先度ソート
@@ -6966,7 +7190,7 @@ const ISSUE_TODO = {
            '再アポの2回目で契約を提案する流れを決める',
            '消化し終わりのお客様への継続提案を漏らさない',
            'そのうえで、新規数と契約率のどちらか効きやすい方を1つ選んで手を打つ'],
-    next: '再アポ数・再アポ契約数、再アポ来店率、継続率'
+    next: '再アポ数・再アポ契約数、継続契約数、継続契約率'
   },
   price: {
     what: '契約の件数はあるのに、1件あたりの金額が小さい。',
@@ -7615,20 +7839,62 @@ function renderManualPage() {
      + (board ? issueCriteriaInner(board) : '<div class="crit-sec">計算できませんでした</div>') + '</div>';
   h += '<div class="crit-page-sec"><div class="crit-page-title">📅 週次の進捗（③）</div>'
      + trkCriteriaInner(month, weeks) + '</div>';
-  h += '<div class="crit-page-sec"><div class="crit-page-title">🎯 再アポの3つの数字（依頼51a）</div>'
+  h += '<div class="crit-page-sec"><div class="crit-page-title">🧾 会計の分け方（依頼52a）</div>'
      + '<table class="crit-table crit-formula"><tbody>'
-     + '<tr><td>再アポ契約率</td><td>再アポ契約数 ÷ 再アポ数</td>'
-       + '<td>再アポで来た人のうち、その場で契約した割合</td></tr>'
-     + '<tr><td>再アポ来店率</td><td>再アポ来店数 ÷ その月の新規未契約数</td>'
-       + '<td>新規で契約しなかった人のうち、90日以内にまた来た割合（人数）</td></tr>'
-     + '<tr><td>取り返し率</td><td>取り返し数 ÷ その月の新規未契約数</td>'
-       + '<td>新規で契約しなかった人のうち、90日以内に再来して<b>契約した</b>割合</td></tr>'
+     + '<tr><td>新規</td><td>新規再来＝「新規」</td><td>—</td></tr>'
+     + '<tr><td>再アポ</td><td>新規再来＝「再来」で、<b>「消化」が1つも無い</b></td>'
+       + '<td>回数券を持っていない人</td></tr>'
+     + '<tr><td>回数券消化</td><td>新規再来＝「再来」で、<b>「消化」がある</b></td>'
+       + '<td>回数券を持っている人</td></tr>'
      + '</tbody></table>'
-     + '<div class="crit-sec crit-note">再アポ数は「同じ店で新規から90日以内・まだ契約していない・'
-     + '消化の印が無い再来」です（2026-11-12に直しました）。<br>'
-     + '来店率と取り返し率は<b>新規の月に足す</b>ので、直近の月は後から増えます。<br>'
-     + '以前あった「再アポ回収率」は、今月の再アポ契約と今月の新規未契約という'
-     + '<b>別の人どうしを割っていた</b>ので、取り返し率に作り直しました。</div></div>';
+     + '<div class="crit-sec crit-note">「消化」の判定は、サービス行の目印「消化」'
+     + '<b>または</b>メニュー名に「消化」を含む行（カテゴリは問わない）。'
+     + 'BMは項目名に「消化」を含む行と、来店ステータス「回数券消化中」。<br>'
+     + '<b>どの契約も必ずどれか1つに入ります</b>（新規再来が空の会計だけ、どれにも入りません）。<br>'
+     + '契約の印：サービス行に「新規／初回／初めて契約／初めて購入／継続／再購入／追加」のどれか、'
+     + 'またはカテゴリがフェイシャル・ボディ・その他でメニュー名に「契約」。<br>'
+     + '契約行の金額：カテゴリがフェイシャル・ボディ・その他で、メニュー名に「契約」を含む行の金額。<br>'
+     + '取り消し会計は、件数を−1、金額はそのまま足します。</div></div>';
+  h += '<div class="crit-page-sec"><div class="crit-page-title">📊 6つのグループの計算（依頼52a）</div>'
+     + '<table class="crit-table crit-formula"><tbody>'
+     + '<tr><td>① 全体</td><td>総契約数＝新規契約数＋再アポ契約数＋継続契約数</td>'
+       + '<td>回数券契約時売上＝契約売上（新規＋再アポ＋継続）。回数券全体売上＝それ＋回数券消化時売上</td></tr>'
+     + '<tr><td>② 新規</td><td>新規契約率＝新規契約数 ÷ 新規数</td>'
+       + '<td>新規クーポン単価＝新規クーポン売上 ÷ 新規数。新規契約単価＝契約売上（新規）÷ 新規契約数</td></tr>'
+     + '<tr><td>③ 再アポ</td><td>再アポ契約率＝再アポ契約数 ÷ 再アポ数</td>'
+       + '<td>再アポクーポン単価＝再アポクーポン売上 ÷ 再アポ数。再アポ契約単価＝契約売上（再アポ）÷ 再アポ契約数</td></tr>'
+     + '<tr><td>④ 継続</td><td>継続契約率＝継続・追加の目印がある会計 ÷ 回数券終了数</td>'
+       + '<td>継続契約数は<b>目印が無くても数える</b>（消化の会計で契約の印があるもの）ので、率とは数え方が違います</td></tr>'
+     + '<tr><td>⑤ 新規＋再アポ</td><td>（新規契約数＋再アポ契約数）÷（新規数＋再アポ数）</td>'
+       + '<td>2回目までに決められたか</td></tr>'
+     + '<tr><td>⑥ その他の売上</td><td>オプション＝カテゴリ「オプション」／物販＝区分「店販」</td>'
+       + '<td>サロボの区分列は「物販」ではなく「店販」</td></tr>'
+     + '</tbody></table>'
+     + '<div class="crit-sec crit-note">回数券終了数は、サービス行に「終了／継続／追加」の目印がある会計です'
+     + '（「継続購入なし」の文言は先に消します。2026-11-05の修正）。<br>'
+     + '<b>再アポ来店数・再アポ来店率・取り返し率は画面から外しました</b>'
+     + '（計算は残してあり、投資回収ボードで使います）。</div></div>';
+  h += (function(){
+    const th = (typeof keizokuAlertThresholds === 'function') ? keizokuAlertThresholds(month) : null;
+    const hit = (typeof keizokuBookingAlertStores === 'function') ? keizokuBookingAlertStores(month) : [];
+    if (!th) return '';
+    const d = th.dist || {};
+    return '<div class="crit-page-sec"><div class="crit-page-title">⚠️ 会計の入れ方のアラート（④継続）</div>'
+     + '<table class="crit-table crit-formula"><tbody>'
+     + '<tr><td>対象</td><td>直近3か月の合計で、継続契約が' + KZA_MIN_COUNT + '件以上ある店</td><td>—</td></tr>'
+     + '<tr><td>単価が低すぎる</td><td>継続契約単価が ' + fmt(th.unitLow) + '円未満</td>'
+       + '<td>今月の分布：下から2割 ' + fmt(d.unitP20 || 0) + '円／真ん中 ' + fmt(d.unitP50 || 0) + '円（対象 ' + (d.n || 0) + '店）</td></tr>'
+     + '<tr><td>件数が多すぎる</td><td>継続契約数 ÷ 回数券消化数 が ' + th.ratioHigh + '%超、かつ単価 ' + fmt(th.unitMid) + '円未満</td>'
+       + '<td>今月の分布：真ん中 ' + (d.ratioP50 || 0) + '%／上から1割 ' + (d.ratioP90 || 0) + '%</td></tr>'
+     + '<tr><td>0円の契約</td><td>継続契約の会計で、契約行の金額が0円のものがある</td>'
+       + '<td>消化の日の都度払いや残金を「契約」で会計している疑い</td></tr>'
+     + '</tbody></table>'
+     + '<div class="crit-sec crit-note">いまの基準値は<b>' + (th.fixed ? '固定値' : 'その月の分布から出し直した値') + '</b>です。'
+     + '毎月の分布から出し直す作りにしてあります（コードの KZA_DYNAMIC）。<br>'
+     + '今月当たっている店：<b>' + hit.length + '店</b>'
+     + (hit.length ? '（' + hit.slice(0, 8).map(function(x){ return x.store; }).join('、') + (hit.length > 8 ? ' ほか' : '') + '）' : '')
+     + '</div></div>';
+  })();
   h += '<div class="crit-page-sec"><div class="crit-page-title">📐 ブランド平均との比較（店舗詳細）</div>'
      + '<div class="crit-sec">店舗詳細を開くと、その店のグループで実際に何店と比べているかが出ます。'
      + '弱みは<b>平均より10%以上低いもの</b>、注力箇所は<b>差が大きい順に1〜2個</b>です。</div></div>';

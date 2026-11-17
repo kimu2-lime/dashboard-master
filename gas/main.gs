@@ -557,6 +557,14 @@ function buildData(since, targetsOnly) {
           sb.keizoku_continue_count  = (sb.keizoku_continue_count||0)  + (bm.keizoku_continue_count||0);
           sb.keizoku_continue_sales  = (sb.keizoku_continue_sales||0)  + (bm.keizoku_continue_sales||0);
           sb.keizoku_shouka_count    = (sb.keizoku_shouka_count||0)    + (bm.keizoku_shouka_count||0);
+          // ▼ 依頼52a
+          sb.keizoku_mark_shouka_count = (sb.keizoku_mark_shouka_count||0) + (bm.keizoku_mark_shouka_count||0);
+          sb.keizoku_contract_count    = (sb.keizoku_contract_count||0)    + (bm.keizoku_contract_count||0);
+          sb.keizoku_contract_sales    = (sb.keizoku_contract_sales||0)    + (bm.keizoku_contract_sales||0);
+          sb.keizoku_contract_zero_count = (sb.keizoku_contract_zero_count||0) + (bm.keizoku_contract_zero_count||0);
+          sb.new_coupon_sales        = (sb.new_coupon_sales||0)        + (bm.new_coupon_sales||0);
+          sb.reappo_coupon_sales     = (sb.reappo_coupon_sales||0)     + (bm.reappo_coupon_sales||0);
+          sb.all_contract_line_sales = (sb.all_contract_line_sales||0) + (bm.all_contract_line_sales||0);
           // ▼ 段階2で足した項目
           sb.repeat_count            = (sb.repeat_count||0)            + (bm.repeat_count||0);
           sb.option_count            = (sb.option_count||0)            + (bm.option_count||0);
@@ -600,7 +608,13 @@ function buildData(since, targetsOnly) {
           sb.dropout_count              = Math.max(0, _ke - _kc);
           sb.dropout_rate               = _ke > 0 ? Math.round(sb.dropout_count/_ke*1000)/10 : 0;
           sb.reappo_recover_rate        = _newLost > 0 ? Math.round(sb.reappo_recover_count/_newLost*1000)/10 : 0;
-          sb.kaisuken_contract_count    = totalContracts + _rcc + _kc;
+          // ▼ 依頼52a：総契約数＝新規契約＋再アポ契約＋継続契約
+          const _kcc = sb.keizoku_contract_count || 0;
+          sb.kaisuken_contract_count    = totalContracts + _rcc + _kcc;
+          sb.keizoku_contract_unit_price = _kcc > 0 ? Math.round(sb.keizoku_contract_sales/_kcc) : 0;
+          sb.new_coupon_unit_price       = totalNew > 0 ? Math.round(sb.new_coupon_sales/totalNew) : 0;
+          sb.reappo_coupon_unit_price    = _rc > 0 ? Math.round(sb.reappo_coupon_sales/_rc) : 0;
+          sb.keiyaku_contract_sales      = (sb.new_contract_sales||0) + (sb.reappo_contract_sales||0) + (sb.keizoku_contract_sales||0);
           sb.reappo_visit_rate          = _newLost > 0 ? Math.round(sb.reappo_visit_count/_newLost*1000)/10 : 0;
           if (bm.staff_data) {
             if (!sb.staff_data) sb.staff_data = {};
@@ -655,7 +669,9 @@ function buildData(since, targetsOnly) {
       // ▼ 再来系KPI（実数）
       'reappo_count','reappo_contract_count','reappo_contract_sales',
       'keizoku_end_count','keizoku_continue_count','keizoku_continue_sales',
-      'keizoku_shouka_count',
+      'keizoku_shouka_count','keizoku_mark_shouka_count',
+      'keizoku_contract_count','keizoku_contract_sales','keizoku_contract_zero_count',
+      'new_coupon_sales','reappo_coupon_sales','all_contract_line_sales',
       // ▼ 段階2で足した項目
       'repeat_count','option_count','keizoku_add_count','staff_count',
       'reappo_visit_count','reappo_recover_count','reappo_nameless_count',
@@ -684,7 +700,13 @@ function buildData(since, targetsOnly) {
     merged.reappo_contract_unit_price  = rcc > 0 ? Math.round(merged.reappo_contract_sales/rcc) : 0;
     merged.keizoku_continue_unit_price = kc > 0  ? Math.round(merged.keizoku_continue_sales/kc) : 0;
     merged.kaisuken_total_sales        = (merged.kaisuken_contract_sales||0) + (merged.kaisuken_shouka_sales||0);
-    merged.kaisuken_contract_count     = nc + rcc + kc;
+    // ▼ 依頼52a
+    const kcc = merged.keizoku_contract_count || 0;
+    merged.kaisuken_contract_count     = nc + rcc + kcc;
+    merged.keizoku_contract_unit_price = kcc > 0 ? Math.round(merged.keizoku_contract_sales/kcc) : 0;
+    merged.new_coupon_unit_price       = merged.new_count > 0 ? Math.round((merged.new_coupon_sales||0)/merged.new_count) : 0;
+    merged.reappo_coupon_unit_price    = rc > 0 ? Math.round((merged.reappo_coupon_sales||0)/rc) : 0;
+    merged.keiyaku_contract_sales      = (merged.new_contract_sales||0) + (merged.reappo_contract_sales||0) + (merged.keizoku_contract_sales||0);
     merged.reappo_visit_rate           = newLost > 0 ? Math.round((merged.reappo_visit_count||0)/newLost*1000)/10 : 0;
     merged.weekly_new                  = addArrays_(a.weekly_new, b.weekly_new);
     merged.weekly_new_contract         = addArrays_(a.weekly_new_contract, b.weekly_new_contract);
@@ -1290,6 +1312,8 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       // ▼ 回数券フェーズ（SBのサービス行と同じ考え方。BMは項目名で判定）
       let bmEnd = false, bmCont = false, bmAdd = false, bmUse = false;
       let bmUseWide = false;        // 広い意味の「消化に来た」（依頼45b。来店ステータスも使う）
+      // ▼ 依頼52a：項目名に「消化」を含む行（来店ステータス「回数券消化中」もここに入る）
+      let bmShoukaRow = false;
       let bmHasOptionAmt = false;   // オプションの行に金額がある（option追加人数）
       // ▼ 回数券売上（依頼42）
       let kaisukenContAmt = 0, kaisukenUseAmt = 0;
@@ -1304,6 +1328,7 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         if (bmMark_(item, '追加')) bmAdd  = true;
         if (bmMark_(item, '消化')) bmUse  = true;
         if (/消化|回数券をお持ち|コースをお持ち|利用/.test(item)) bmUseWide = true;
+        if (/消化/.test(item)) bmShoukaRow = true;   // 依頼52a
         if ((categoryBM === 'オプション' || /オプション|option/i.test(item)) && amt !== 0) bmHasOptionAmt = true;
         if (!bmSkipKaisuken_(item, categoryBM)) {
           if (/契約/.test(item))      kaisukenContAmt += amt;
@@ -1315,24 +1340,36 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       const bmKeizokuSuccess = bmKeizokuTarget && (bmCont || bmAdd);
       const bmKeizokuAdd     = bmKeizokuSuccess && bmAdd;
 
+      // ▼ 依頼52a：SBと同じ3分け。再アポ＝再来で消化が1つも無い会計
+      const bmHasShouka52  = bmUse || bmShoukaRow;
+      const isShoukaAccBM  = (shinki === '再来') &&  bmHasShouka52;
+      const isReappoAccBM  = (shinki === '再来') && !bmHasShouka52;
+      // ▼ 継続契約（依頼52a）：回数券消化の会計のうち、契約の印があるもの
+      const isKeizokuContractBM  = isShoukaAccBM && (isContract || bmCont || bmAdd);
+      const keizokuContractAmtBM = isKeizokuContractBM ? contractAmt : 0;
+
       // ▼ 再アポ（依頼45b）。SBと同じく、お客様名の履歴で「本当の再アポ」を決める。
       //   これまでBMは再アポを1件も数えていなかった（0固定）。
       const custKeyB = custKeyOf_(firstRow[iNameBM], iKanaBM !== null ? firstRow[iKanaBM] : '');
       const accDateB = accDateOf_(firstRow[iDateBM]);
       const stKeyB   = storeName + '|' + custKeyB;
       const bmShouka = bmUse || bmUseWide;
-      let bmIsReappo = false;
+      let bmIsReappoNamed = false;   // 再アポ来店数・取り返し数だけに使う（依頼52a）
       let bmNameless = false;
       if (!custKeyB || !accDateB) {
-        bmNameless = true;   // 名前が分からない会計は再アポに数えない（BMは旧ルールが無い）
+        bmNameless = true;   // 名前が分からない会計
       } else {
         const stb = custStateBM[stKeyB];
         if (shinki === '再来' && stb && stb.newDate && !stb.contracted && !bmShouka
             && dayDiff_(stb.newDate, accDateB) >= 0
             && dayDiff_(stb.newDate, accDateB) <= REAPPO_DAYS) {
-          bmIsReappo = true;
+          bmIsReappoNamed = true;
         }
       }
+      const bmIsReappoNamedContract = bmIsReappoNamed && isContract;
+
+      // ▼ 画面に出す再アポ（依頼52a）
+      const bmIsReappo         = isReappoAccBM;
       const bmIsReappoContract = bmIsReappo && isContract;
       const bmReappoAmt        = bmIsReappoContract ? contractAmt : 0;
 
@@ -1343,12 +1380,12 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         } else {
           const stb = custStateBM[stKeyB];
           if (stb) {
-            if (bmIsReappo && !stb.counted) {
+            if (bmIsReappoNamed && !stb.counted) {
               stb.counted = true;
               if (!reappoVisitBM[stb.newYm]) reappoVisitBM[stb.newYm] = {};
               reappoVisitBM[stb.newYm][storeName] = (reappoVisitBM[stb.newYm][storeName] || 0) + 1;
             }
-            if (bmIsReappoContract && !stb.recovered) {
+            if (bmIsReappoNamedContract && !stb.recovered) {
               stb.recovered = true;
               if (!reappoRecoverBM[stb.newYm]) reappoRecoverBM[stb.newYm] = {};
               reappoRecoverBM[stb.newYm][storeName] = (reappoRecoverBM[stb.newYm][storeName] || 0) + 1;
@@ -1370,6 +1407,10 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
           // ▼ 継続フェーズ（2026-11-05 追加）
           keizoku_end_count: 0, keizoku_continue_count: 0, keizoku_continue_sales: 0,
           keizoku_shouka_count: 0,
+          // ▼ 依頼52a
+          keizoku_mark_shouka_count: 0,
+          keizoku_contract_count: 0, keizoku_contract_sales: 0, keizoku_contract_zero_count: 0,
+          all_contract_line_sales: 0,
           // ▼ 回数券売上（依頼42）
           kaisuken_contract_sales: 0, kaisuken_shouka_sales: 0,
           // ▼ 日ごとの売上（2026-11-13：週次の進捗で使うのでBMも入れるようにした）
@@ -1388,7 +1429,14 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       sm.contract_sales   += contractAmt;
       // ▼ 継続フェーズ（BMは取り消し会計が明細に出ないため +1 のみ）
       if (bmKeizokuTarget)  sm.keizoku_end_count    += 1;
-      if (bmUse)            sm.keizoku_shouka_count += 1;
+      if (isShoukaAccBM)    sm.keizoku_shouka_count += 1;
+      if (bmUse)            sm.keizoku_mark_shouka_count += 1;
+      if (isKeizokuContractBM) {
+        sm.keizoku_contract_count += 1;
+        sm.keizoku_contract_sales += keizokuContractAmtBM;
+        if (keizokuContractAmtBM === 0) sm.keizoku_contract_zero_count += 1;
+      }
+      sm.all_contract_line_sales += contractAmt;
       if (bmKeizokuAdd)     sm.keizoku_add_count    += 1;
       if (bmHasOptionAmt)   sm.option_count         += 1;
       if (bmNameless)       sm.reappo_nameless_count += 1;
@@ -1437,6 +1485,7 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       if (!sm.staff_data[staffName]) {
         sm.staff_data[staffName] = { total_sales: 0, new_count: 0, new_contract_count: 0, new_contract_rate: 0,
           keizoku_end_count: 0, keizoku_continue_count: 0, keizoku_continue_sales: 0,
+          keizoku_shouka_count: 0, keizoku_contract_count: 0, keizoku_contract_sales: 0,
           kaisuken_contract_sales: 0, kaisuken_shouka_sales: 0 };
       }
       const sd = sm.staff_data[staffName];
@@ -1447,6 +1496,11 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
       }
       // ▼ 継続・回数券売上（BMは施術担当者に寄せる）
       if (bmKeizokuTarget) sd.keizoku_end_count += 1;
+      if (isShoukaAccBM)   sd.keizoku_shouka_count += 1;
+      if (isKeizokuContractBM) {
+        sd.keizoku_contract_count += 1;
+        sd.keizoku_contract_sales += keizokuContractAmtBM;
+      }
       if (bmKeizokuSuccess) {
         sd.keizoku_continue_count += 1;
         sd.keizoku_continue_sales += contractAmt;
@@ -1464,6 +1518,8 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         sd.new_contract_unit_price = sd.new_contract_count > 0 ? Math.round(sd.new_contract_sales / sd.new_contract_count) : 0;
         sd.keizoku_rate            = sd.keizoku_end_count > 0 ? Math.round((sd.keizoku_continue_count / sd.keizoku_end_count) * 1000) / 10 : 0;
         sd.keizoku_continue_unit_price = sd.keizoku_continue_count > 0 ? Math.round(sd.keizoku_continue_sales / sd.keizoku_continue_count) : 0;
+        sd.keizoku_contract_sales      = Math.round(sd.keizoku_contract_sales || 0);
+        sd.keizoku_contract_unit_price = sd.keizoku_contract_count > 0 ? Math.round(sd.keizoku_contract_sales / sd.keizoku_contract_count) : 0;
         sd.kaisuken_contract_sales = Math.round(sd.kaisuken_contract_sales || 0);
         sd.kaisuken_shouka_sales   = Math.round(sd.kaisuken_shouka_sales || 0);
         sd.kaisuken_total_sales    = sd.kaisuken_contract_sales + sd.kaisuken_shouka_sales;
@@ -1524,7 +1580,7 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         repeat_count:                Math.max(0, sm.total_treatments - sm.new_count),
         option_count:                sm.option_count,
         keizoku_add_count:           sm.keizoku_add_count,
-        kaisuken_contract_count:     sm.new_contract_count + sm.reappo_contract_count + sm.keizoku_continue_count,
+        kaisuken_contract_count:     sm.new_contract_count + sm.reappo_contract_count + sm.keizoku_contract_count,  // 総契約数（依頼52a）
         staff_count:                 staffCountBM,
         weekly_new:                  sm.weekly_new.slice(),
         weekly_new_contract:         sm.weekly_new_contract.slice(),
@@ -1534,12 +1590,26 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
         keizoku_continue_sales:      Math.round(sm.keizoku_continue_sales),
         keizoku_continue_unit_price: sm.keizoku_continue_count > 0 ? Math.round(sm.keizoku_continue_sales / sm.keizoku_continue_count) : 0,
         keizoku_shouka_count:        sm.keizoku_shouka_count,
+        keizoku_mark_shouka_count:   sm.keizoku_mark_shouka_count,
+        // ▼ 継続契約（依頼52a）
+        keizoku_contract_count:      sm.keizoku_contract_count,
+        keizoku_contract_sales:      Math.round(sm.keizoku_contract_sales),
+        keizoku_contract_unit_price: sm.keizoku_contract_count > 0 ? Math.round(sm.keizoku_contract_sales / sm.keizoku_contract_count) : 0,
+        keizoku_contract_zero_count: sm.keizoku_contract_zero_count,
+        // ▼ クーポン売上（依頼52a）。BMの明細にはクーポンの区分が無いので0のまま
+        new_coupon_sales:            0,
+        new_coupon_unit_price:       0,
+        reappo_coupon_sales:         0,
+        reappo_coupon_unit_price:    0,
+        // ▼ 回数券契約時売上＝3フェーズの契約売上の合計（依頼52a）
+        keiyaku_contract_sales:      Math.round(sm.new_contract_sales) + Math.round(sm.reappo_contract_sales) + Math.round(sm.keizoku_contract_sales),
+        all_contract_line_sales:     Math.round(sm.all_contract_line_sales),
         // ▼ 回数券売上（依頼42）
         kaisuken_contract_sales:     Math.round(sm.kaisuken_contract_sales),
         kaisuken_shouka_sales:       Math.round(sm.kaisuken_shouka_sales),
         kaisuken_total_sales:        Math.round(sm.kaisuken_contract_sales) + Math.round(sm.kaisuken_shouka_sales),
-        total_contract_count:        sm.new_contract_count,
-        total_contract_rate:         sm.new_count > 0 ? Math.round((sm.new_contract_count / sm.new_count) * 1000) / 10 : 0,
+        total_contract_count:        sm.new_contract_count + sm.reappo_contract_count,
+        total_contract_rate:         (sm.new_count + sm.reappo_count) > 0 ? Math.round(((sm.new_contract_count + sm.reappo_contract_count) / (sm.new_count + sm.reappo_count)) * 1000) / 10 : 0,
         keizoku_rate:                sm.keizoku_end_count > 0 ? Math.round((sm.keizoku_continue_count / sm.keizoku_end_count) * 1000) / 10 : 0,
         dropout_count:               Math.max(0, sm.keizoku_end_count - sm.keizoku_continue_count),
         dropout_rate:                sm.keizoku_end_count > 0 ? Math.round((Math.max(0, sm.keizoku_end_count - sm.keizoku_continue_count) / sm.keizoku_end_count) * 1000) / 10 : 0,
@@ -1753,6 +1823,10 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       let svcUse  = false;
       let svcAdd  = false;   // 回数券（追加）＝消化中の買い足し。継続成功の内訳として数える
       let useWide = false;   // 広い意味の「消化に来た」判定（依頼45b。再アポの分母から外す）
+      // ▼ 依頼52a：メニュー名に「消化」を含む行があるか（カテゴリは問わない）。
+      //   サービス行の目印「消化」と合わせて「回数券を持っている人」の判定に使う。
+      let shoukaRow = false;
+      let couponAmt = 0;     // この会計のクーポン行の金額（新規／再アポに振り分ける）
       let hasOptionAmt = false;  // オプションの行に金額がある（option追加人数）
       let facContract = false;   // フェイシャル/ボディ/その他 × 「契約」＝サービス行忘れ対策のフォールバック
 
@@ -1788,6 +1862,10 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
 
         // ▼ 広い意味の「消化に来た」（依頼45b）。目印を入れていない店でも拾えるようにする
         if (/消化|回数券をお持ち|コースをお持ち|利用/.test(menu)) useWide = true;
+        // ▼ 依頼52a：メニュー名に「消化」を含む行（カテゴリ問わず）
+        if (/消化/.test(menu)) shoukaRow = true;
+        // ▼ 依頼52a：クーポン行の金額（カテゴリ=メニュー付クーポン、契約/消化/回数券/利用を含まない）
+        if (category === 'メニュー付クーポン' && !/契約|消化|回数券|利用/.test(menu)) couponAmt += amt;
 
         // ▼ サービス行ラベル（回数券フェーズ）
         if (category === 'サービス') {
@@ -1806,6 +1884,15 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       // 既存契約状態（すでに回数券契約中の客）＝ 消化 or 継続/追加 or 終了
       const hasExistingContract = svcUse || svcCont || svcEnd;
 
+      // ▼ 依頼52a：すべての会計を3つに分ける。どの契約も必ずどれか1つに入る。
+      //     新規       … 新規再来＝「新規」
+      //     再アポ     … 再来で、消化が1つも無い（回数券を持っていない人）
+      //     回数券消化 … 再来で、消化がある（回数券を持っている人）
+      //   新規再来が空の会計はどれにも入らない（店舗売上と施術数には入る）。
+      const hasShouka52 = svcUse || shoukaRow;
+      const isShoukaAcc = (shinki === '再来') &&  hasShouka52;
+      const isReappoAcc = (shinki === '再来') && !hasShouka52;
+
       // ▼ 契約シグナル：サービス行ラベル OR フェイシャル契約フォールバック（どちらか一致で契約）
       const newReappoSignal      = svcNew  || facContract;   // 新規契約・再アポ契約
       const keizokuSuccessSignal = svcCont || facContract;   // 継続成功
@@ -1814,30 +1901,30 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       const isNewContract  = (shinki === '新規') && newReappoSignal;
       const newContractAmt = isNewContract ? allContractAmt : 0;
 
-      // ▼ 再アポ（育成）：お客様名の履歴で「本当の再アポ」を決める（依頼45b）
-      //   分母＝①同じ店で新規から REAPPO_DAYS 日以内 ②その新規以降まだ契約していない
-      //         ③今回の会計に消化の印が無い（広い意味の消化も見る）
-      //   名前もフリガナも空のときだけ、これまでの判定（目印が無い再来）に落とす。
+      // ▼ 再アポ来店数のための「お客様名の履歴で見た再アポ」（依頼45b）。
+      //   依頼52aで、画面に出す再アポ数はこの判定を使わなくなった。
+      //   名前での突き合わせは、再アポ来店数・取り返し数（投資回収ボード用）だけに残す。
       const custKey  = custKeyOf_(gs(firstRow, 'お客様名'), gs(firstRow, 'お客様名（フリガナ）'));
       const accDate  = accDateOf_(g(firstRow, '会計日'));
       const stKey    = storeName + '|' + custKey;
       const hasShouka = svcUse || useWide;
-      let isReappo = false;
+      let isReappoNamed = false;
       let namelessFallback = false;
 
       if (!custKey || !accDate) {
-        // 名前が分からない会計は、これまでのルールで判定する（数を報告に出す）
-        namelessFallback = true;
-        isReappo = (shinki === '再来') && !hasExistingContract;
+        namelessFallback = true;   // 名前が分からない会計（数だけ報告に出す）
       } else {
         const st = custState[stKey];
         if (shinki === '再来' && st && st.newDate && !st.contracted && !hasShouka
             && dayDiff_(st.newDate, accDate) >= 0
             && dayDiff_(st.newDate, accDate) <= REAPPO_DAYS) {
-          isReappo = true;
+          isReappoNamed = true;
         }
       }
+      const isReappoNamedContract = isReappoNamed && newReappoSignal;
 
+      // ▼ 画面に出す再アポ（依頼52a）＝「再来で、消化が1つも無い会計」
+      const isReappo          = isReappoAcc;
       const isReappoContract  = isReappo && newReappoSignal;
       const reappoContractAmt = isReappoContract ? allContractAmt : 0;
 
@@ -1850,13 +1937,13 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
           const st = custState[stKey];
           if (st) {
             // 再アポ来店数（人数）＝新規で契約しなかった人が90日以内に再来した数。新規の月に足す
-            if (isReappo && !st.counted) {
+            if (isReappoNamed && !st.counted) {
               st.counted = true;
               if (!reappoVisit[st.newYm]) reappoVisit[st.newYm] = {};
               reappoVisit[st.newYm][storeName] = (reappoVisit[st.newYm][storeName] || 0) + 1;
             }
             // ▼ 取り返し：その再来で契約したら、新規の月に1人ぶん足す
-            if (isReappoContract && !st.recovered) {
+            if (isReappoNamedContract && !st.recovered) {
               st.recovered = true;
               if (!reappoRecover[st.newYm]) reappoRecover[st.newYm] = {};
               reappoRecover[st.newYm][storeName] = (reappoRecover[st.newYm][storeName] || 0) + 1;
@@ -1873,6 +1960,12 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       // 継続成功の内訳：「追加」の目印がある会計（消化中の買い足し）
       const isKeizokuAdd       = isKeizokuSuccess && svcAdd;
 
+      // ▼ 継続契約（依頼52a）：回数券消化の会計のうち、契約の印があるもの。
+      //   目印（終了/継続/追加）が無くても数える。継続契約率（目印ベース）とは数え方が違う。
+      const keizokuContractSignal = svcNew || svcCont || facContract;
+      const isKeizokuContract  = isShoukaAcc && keizokuContractSignal;
+      const keizokuContractAmt = isKeizokuContract ? allContractAmt : 0;
+
       if (!storeMap[storeName]) {
         storeMap[storeName] = {
           total_sales: 0, new_count: 0, new_contract_count: 0,
@@ -1886,8 +1979,19 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
           keizoku_end_count: 0,
           keizoku_continue_count: 0,
           keizoku_continue_sales: 0,
-          // ▼ 消化の目印がある会計数（目印の入力率アラート用）
+          // ▼ 回数券消化の会計数（依頼52a。再来で消化がある会計）
           keizoku_shouka_count: 0,
+          // ▼ 消化の「目印」がある会計数（目印の入力率アラート用。依頼52aで分けた）
+          keizoku_mark_shouka_count: 0,
+          // ▼ 継続契約（依頼52a）
+          keizoku_contract_count: 0,
+          keizoku_contract_sales: 0,
+          keizoku_contract_zero_count: 0,
+          // ▼ クーポン売上の内訳（依頼52a）
+          new_coupon_sales: 0,
+          reappo_coupon_sales: 0,
+          // ▼ 契約行の金額の合計（検算用。3フェーズの契約売上の合計と合うはず）
+          all_contract_line_sales: 0,
           // ▼ 継続成功のうち「追加」（依頼45の段階2）
           keizoku_add_count: 0,
           // ▼ オプションの行に金額がある会計数（option追加人数）
@@ -1985,7 +2089,16 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       // ▼ 継続フェーズ集計（会計IDユニーク・shinki不問）
       //   同一会計ID内で hasEnd / hasCont / hasAdd が複数立っても二重計上しない
       if (isKeizokuTarget)  sm.keizoku_end_count      += isCancelled ? -1 : 1;
-      if (svcUse)           sm.keizoku_shouka_count   += isCancelled ? -1 : 1;
+      if (isShoukaAcc)      sm.keizoku_shouka_count   += isCancelled ? -1 : 1;
+      if (svcUse)           sm.keizoku_mark_shouka_count += isCancelled ? -1 : 1;
+      if (isKeizokuContract) {
+        sm.keizoku_contract_count += isCancelled ? -1 : 1;
+        sm.keizoku_contract_sales += keizokuContractAmt;
+        if (keizokuContractAmt === 0) sm.keizoku_contract_zero_count += isCancelled ? -1 : 1;
+      }
+      sm.all_contract_line_sales += allContractAmt;
+      if (shinki === '新規')  sm.new_coupon_sales    += couponAmt;
+      else if (isReappoAcc)   sm.reappo_coupon_sales += couponAmt;
       if (isKeizokuAdd)     sm.keizoku_add_count      += isCancelled ? -1 : 1;
       if (hasOptionAmt)     sm.option_count           += isCancelled ? -1 : 1;
       if (namelessFallback) sm.reappo_nameless_count  += 1;
@@ -2006,6 +2119,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
             new_contract_rate: 0, new_contract_sales: 0, new_contract_unit_price: 0,
             reappo_count: 0, reappo_contract_count: 0, reappo_contract_sales: 0,
             keizoku_end_count: 0, keizoku_continue_count: 0, keizoku_continue_sales: 0,
+            keizoku_shouka_count: 0, keizoku_contract_count: 0, keizoku_contract_sales: 0,
             kaisuken_contract_sales: 0, kaisuken_shouka_sales: 0
           };
         }
@@ -2053,6 +2167,11 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
         }
       }
       if (isKeizokuTarget)  sdRep.keizoku_end_count += isCancelled ? -1 : 1;
+      if (isShoukaAcc)      sdRep.keizoku_shouka_count += isCancelled ? -1 : 1;
+      if (isKeizokuContract) {
+        sdRep.keizoku_contract_count += isCancelled ? -1 : 1;
+        sdRep.keizoku_contract_sales += keizokuContractAmt;
+      }
       if (isKeizokuSuccess) {
         sdRep.keizoku_continue_count += isCancelled ? -1 : 1;
         sdRep.keizoku_continue_sales += keizokuContinueAmt;
@@ -2070,6 +2189,9 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
         sd.reappo_contract_rate        = sd.reappo_count > 0 ? Math.round((sd.reappo_contract_count / sd.reappo_count) * 1000) / 10 : 0;
         sd.reappo_contract_unit_price  = sd.reappo_contract_count > 0 ? Math.round(sd.reappo_contract_sales / sd.reappo_contract_count) : 0;
         sd.keizoku_continue_unit_price = sd.keizoku_continue_count > 0 ? Math.round(sd.keizoku_continue_sales / sd.keizoku_continue_count) : 0;
+        // ▼ 継続契約（依頼52a）
+        sd.keizoku_contract_sales      = Math.round(sd.keizoku_contract_sales || 0);
+        sd.keizoku_contract_unit_price = sd.keizoku_contract_count > 0 ? Math.round(sd.keizoku_contract_sales / sd.keizoku_contract_count) : 0;
         // ▼ 回数券売上（依頼42）
         sd.kaisuken_contract_sales     = Math.round(sd.kaisuken_contract_sales || 0);
         sd.kaisuken_shouka_sales       = Math.round(sd.kaisuken_shouka_sales || 0);
@@ -2098,6 +2220,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
       const reappoContCount = Math.max(0, sm.reappo_contract_count);
       const keizokuEnd    = Math.max(0, sm.keizoku_end_count);
       const keizokuCont   = Math.max(0, sm.keizoku_continue_count);
+      const keizokuContract = Math.max(0, sm.keizoku_contract_count);   // 継続契約数（依頼52a）
       const dropoutCount  = Math.max(0, keizokuEnd - keizokuCont);
       const totalContractCount = newContCount + reappoContCount;
       const totalVisits        = newCount + reappoCount;
@@ -2147,13 +2270,27 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
         keizoku_continue_count:      keizokuCont,
         keizoku_continue_sales:      Math.round(sm.keizoku_continue_sales),
         keizoku_continue_unit_price: keizokuCont > 0 ? Math.round(sm.keizoku_continue_sales / keizokuCont) : 0,
-        // ▼ 消化の目印がある会計数（目印の入力率アラート用）
+        // ▼ 回数券消化数（依頼52a）と、消化の目印がある会計数（目印の入力率アラート用）
         keizoku_shouka_count:        Math.max(0, sm.keizoku_shouka_count),
+        keizoku_mark_shouka_count:   Math.max(0, sm.keizoku_mark_shouka_count),
+        // ▼ 継続契約（依頼52a）
+        keizoku_contract_count:      keizokuContract,
+        keizoku_contract_sales:      Math.round(sm.keizoku_contract_sales),
+        keizoku_contract_unit_price: keizokuContract > 0 ? Math.round(sm.keizoku_contract_sales / keizokuContract) : 0,
+        keizoku_contract_zero_count: Math.max(0, sm.keizoku_contract_zero_count),
+        // ▼ クーポン売上（依頼52a）
+        new_coupon_sales:            Math.round(sm.new_coupon_sales),
+        new_coupon_unit_price:       newCount > 0 ? Math.round(sm.new_coupon_sales / newCount) : 0,
+        reappo_coupon_sales:         Math.round(sm.reappo_coupon_sales),
+        reappo_coupon_unit_price:    reappoCount > 0 ? Math.round(sm.reappo_coupon_sales / reappoCount) : 0,
+        // ▼ 回数券契約時売上＝3フェーズの契約売上の合計（依頼52a）と、検算用の契約行合計
+        keiyaku_contract_sales:      Math.round(sm.new_contract_sales) + Math.round(sm.reappo_contract_sales) + Math.round(sm.keizoku_contract_sales),
+        all_contract_line_sales:     Math.round(sm.all_contract_line_sales),
         // ▼ 段階2で足した項目（投資回収ボード・週次の進捗で使う）
         repeat_count:                Math.max(0, Math.max(0, sm.total_treatments) - newCount),
         option_count:                Math.max(0, sm.option_count),
         keizoku_add_count:           Math.max(0, sm.keizoku_add_count),
-        kaisuken_contract_count:     newContCount + reappoContCount + keizokuCont,
+        kaisuken_contract_count:     newContCount + reappoContCount + keizokuContract,   // 総契約数（依頼52a）
         staff_count:                 staffCount,
         weekly_new:                  sm.weekly_new.slice(),
         weekly_new_contract:         sm.weekly_new_contract.slice(),
