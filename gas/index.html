@@ -210,6 +210,104 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .staff-phase-row .v.good{color:#38b06c}
 .staff-phase-row .v.mid {color:#d97706}
 .staff-phase-row .v.low {color:#e74c3c}
+/* ============================================================
+ *  ④投資回収ボード（45_資料/store_board.html から移植。段階6）
+ *   もとのCSSをそのまま使えるように、#paybackView の中だけに効かせている
+ * ============================================================ */
+#paybackView{--bg:#f5f7f6; --surface:#ffffff; --fg:#1d2522; --muted:#5d6b66; --line:#d9e0dd; --soft:#eef3f1;
+  --accent:#2f7d5b; --accent-soft:#e3f1ea; --belle:#b8466f; --lift:#2a6fb5;
+  --good:#2f9e44; --warn:#c98a0b; --bad:#d64545;
+  --band1:#f1f5f3; --band2:#e8efec;
+  --font: "Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --num: "Inter","Noto Sans JP",system-ui,sans-serif;}
+
+#paybackView .wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+#paybackView h1{font-size:22px;font-weight:700;text-wrap:balance;margin:0}
+#paybackView h2{font-size:17px;font-weight:700;margin:0 0 4px;text-wrap:balance}
+#paybackView h3{font-size:14px;font-weight:700;margin:0}
+#paybackView p{margin:0}
+#paybackView .lead{color:var(--muted);max-width:68ch}
+#paybackView .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+#paybackView .top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+#paybackView .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+#paybackView .seg button{border:0;background:none;font:inherit;font-weight:700;padding:6px 16px;border-radius:999px;color:var(--muted);cursor:pointer}
+#paybackView .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+#paybackView .seg button:focus-visible, #paybackView button:focus-visible, #paybackView input:focus-visible, #paybackView summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#paybackView .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+#paybackView .kpi{background:var(--soft);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+#paybackView .kpi .l{font-size:12px;color:var(--muted)}
+#paybackView .kpi .v{font-family:var(--num);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+#paybackView .kpi .v small{font-size:13px;font-weight:500;margin-left:2px}
+#paybackView .kpi .s{font-size:12px;color:var(--muted)}
+#paybackView .kpi.hero .v{color:var(--accent)}
+#paybackView .chart{width:100%;height:auto;display:block}
+#paybackView .chart text{fill:var(--muted);font-family:var(--num);font-size:11px}
+#paybackView .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+#paybackView .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+#paybackView .scroll{overflow-x:auto;min-width:0}
+#paybackView table{border-collapse:collapse;width:100%;font-size:13px}
+#paybackView th, #paybackView td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+#paybackView th{font-size:12px;color:var(--muted);font-weight:700;background:var(--soft);white-space:nowrap}
+#paybackView td.n, #paybackView th.n{text-align:right;font-family:var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+#paybackView .ledger td, #paybackView .ledger th{padding:6px 8px;white-space:nowrap}
+#paybackView .ledger tr.phase-start td{border-top:2px solid var(--fg)}
+#paybackView .ledger tr.payback td{background:var(--accent-soft);font-weight:700}
+#paybackView .chip{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;white-space:nowrap}
+#paybackView .chip.good{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+#paybackView .chip.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+#paybackView .chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+#paybackView .chip.neutral{background:var(--soft);color:var(--muted)}
+#paybackView .phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+#paybackView .ph{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#paybackView .ph .when{font-size:12px;color:var(--muted);font-family:var(--num)}
+#paybackView .ph .tag{font-size:11.5px;font-weight:700;color:var(--accent)}
+#paybackView .ph ul{margin:0;padding-left:18px}
+#paybackView .ph li{margin:2px 0}
+#paybackView .ph .sec{font-size:11.5px;color:var(--muted);font-weight:700;letter-spacing:.04em}
+#paybackView .ph .bench{background:var(--soft);border-radius:8px;padding:8px;font-size:12.5px;font-family:var(--num);font-variant-numeric:tabular-nums}
+#paybackView .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+#paybackView label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+#paybackView input[type=number]{font:inherit;font-family:var(--num);font-size:15px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:100%;box-sizing:border-box}
+#paybackView .diag{display:flex;flex-direction:column;gap:8px}
+#paybackView .gap{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:start;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+#paybackView .gap .name{font-weight:700}
+#paybackView .gap .delay{font-family:var(--num);font-size:13px}
+@media (max-width:560px){#paybackView .gap{grid-template-columns:1fr}}
+#paybackView details{border-top:1px solid var(--line);padding-top:10px}
+#paybackView summary{cursor:pointer;font-weight:700}
+#paybackView .assume{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:10px}
+#paybackView .note{font-size:12px;color:var(--muted)}
+#paybackView .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+#paybackView .list{margin:0;padding-left:18px}
+#paybackView .list li{margin:3px 0}
+#paybackView .brand-belle{--brand:var(--belle)}
+#paybackView .brand-lift{--brand:var(--lift)}
+#paybackView .brandname{color:var(--brand);font-weight:700}
+#paybackView .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+#paybackView .tabs button{border:0;background:none;font:inherit;font-weight:700;color:var(--muted);padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+#paybackView .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+#paybackView .view{display:flex;flex-direction:column;gap:18px}
+#paybackView .view[hidden]{display:none!important}
+#paybackView table.clickable tr[data-id]{cursor:pointer}
+#paybackView table.clickable tr[data-id]:hover td{background:var(--soft)}
+#paybackView select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+#paybackView input.mini{width:64px;padding:4px 6px;font-size:13px}
+#paybackView .seg{flex-wrap:wrap}
+#paybackView .df{font-family:var(--num);font-weight:700}
+#paybackView .df.pos{color:var(--good)}
+#paybackView .df.neg{color:var(--bad)}
+#paybackView table.hz th.rowh{position:sticky;left:0;background:var(--surface);z-index:1;text-align:left;font-weight:500;color:var(--fg);min-width:190px;font-size:12.5px}
+#paybackView table.hz tr.sec th, #paybackView table.hz tr.sec td{background:var(--soft);color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.04em}
+#paybackView table.hz td.fc, #paybackView table.hz th.fc{background:color-mix(in srgb,var(--warn) 8%,transparent)}
+#paybackView table.hz td.muted{color:var(--muted)}
+#paybackView table.hz td.negv{color:var(--bad)}
+#paybackView .pb-notice{background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#92400e;line-height:1.8}
+#paybackView .pb-assume-box{border-top:0;margin-top:10px}
+#paybackView tr.pb-noinput td{opacity:.62}
+#paybackView .pbtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+#paybackView .pbtabs button{border:0;background:none;font:inherit;font-weight:700;color:var(--muted);padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+#paybackView .pbtabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+#paybackView{display:block}
 .kz-alert{background:#fff7ed;border:1.5px solid #fdba74;border-radius:12px;padding:12px 14px;margin:10px 0 16px}
 .kz-alert-title{font-size:13px;font-weight:800;color:#c2410c;margin-bottom:4px}
 .kz-alert-body{font-size:12.5px;color:#7c2d12;line-height:1.7}
@@ -2247,20 +2345,203 @@ body.mobile .side-menu-overlay{display:block!important}
         </div>
       </div>
       <div id="paybackUdStatus"></div>
-      <div class="page-ph">
-        <span class="page-ph-badge">段階6で中身が入ります</span>
-        <p>テスト版の投資回収ボードを、<strong>実データ</strong>で動くようにしてこのページに入れます。</p>
-        <h4>ここに出る予定のもの</h4>
-        <ul>
-          <li>店舗ごとの累計利益と回収の見通し（回収期限は既定36か月）</li>
-          <li>家賃・初期投資・オープン年月・スタッフ数などの入力欄（店舗ごと）</li>
-          <li>ロイヤリティは店ごとの実際の額を使う（直営は0）</li>
-          <li>判定は前月までの確定月で行い、今月は着地見込として別に見せる</li>
+      <div id="pbNotice"></div>
+  <nav class="pbtabs" role="tablist" aria-label="表示">
+    <button role="tab" data-pbview="list" aria-selected="true">店舗一覧</button>
+    <button role="tab" data-pbview="store" aria-selected="false">店舗詳細</button>
+    <button role="tab" data-pbview="sim" aria-selected="false">シミュレーター</button>
+  </nav>
+
+  <div id="pb-list" class="view">
+    <section class="panel">
+      <div class="top" style="align-items:flex-end">
+        <div><h2>全店の進み具合（<span id="pbAsOf"></span>時点）</h2><p class="note">目標はブランドの計画の同じ経過月の値。差がマイナスなら目標に対するビハインド、プラスなら上回りです。行を押すと店舗詳細を開きます。</p></div>
+        <div class="kpis" id="pbListSummary" style="flex:1;min-width:280px"></div>
+      </div>
+      <div class="scroll"><table id="pbStoreTable" class="clickable"></table></div>
+    </section>
+    <section class="panel">
+      <h2>追加投資の提案タイミング</h2>
+      <p class="note">2人目のマシン（約270万円）と、回収後の2店舗目・3人目の2種類を、数字の根拠と一緒に出します。</p>
+      <div id="pbInvestList" class="diag"></div>
+    </section>
+  </div>
+
+  <div id="pb-store" class="view" hidden>
+    <section class="panel">
+      <div class="top">
+        <div class="seg" id="pbStoreSeg" role="group" aria-label="店舗"></div>
+        <span class="note" id="pbStoreMeta"></span>
+      </div>
+      <div class="kpis" id="pbStoreKpis"></div>
+    </section>
+
+    <section class="panel">
+      <h2>今月の売上ライン</h2>
+      <p class="note">バーが現状（直近3か月の平均月商）。縦線は、左から「努力値ライン」「回収期限に必要な売上」「計画の目標」です。努力値ラインは、各KPIを現状と目標の中間まで上げた場合の月商で、スタッフの今の力で狙う現実的な目標です。</p>
+      <div class="scroll"><svg class="chart" id="pbLineBullet" viewBox="0 0 960 150" role="img" aria-label="月商の現状と3つの目標ライン"></svg></div>
+      <div class="scroll"><table id="pbLineTable"></table></div>
+    </section>
+
+    <div class="two">
+      <section class="panel">
+        <h2>回収までの道のり</h2>
+        <p class="note">実線が累計利益の実績、破線がこのままのペース。黒の点線が回収ライン、縦線が回収期限です。</p>
+        <svg class="chart" id="pbPathChart" viewBox="0 0 520 300" role="img" aria-label="累計利益と回収ライン"></svg>
+      </section>
+      <section class="panel">
+        <h2>頑張り方ごとの回収月</h2>
+        <p class="note">同じ店舗で、KPIをどこまで上げるかによって回収月がどう変わるかです。</p>
+        <svg class="chart" id="pbScenChart" viewBox="0 0 520 300" role="img" aria-label="シナリオ別の回収月"></svg>
+      </section>
+    </div>
+
+    <div class="view">
+      <section class="panel">
+        <h2>KPIの現状と目標</h2>
+        <p class="note">現状は直近3か月の値。努力値は現状と目標の中間で、今月スタッフが狙うラインです。</p>
+        <div class="scroll"><table id="pbKpiTable"></table></div>
+      </section>
+      <section class="panel">
+        <h2>注力ポイント</h2>
+        <p class="note">そのKPIだけを目標まで上げたとき、回収が何か月早まるかの大きい順です。</p>
+        <div id="pbFocusList" class="diag"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>今月のアクション</h2>
+      <p class="note">注力ポイントの上位から作っています。だれがやり、だれが確認し、いつまでに終え、いつ数字に出るかまで決めます。状態はこの画面上で切り替えられます。</p>
+      <div class="scroll"><table id="pbActionTable"></table></div>
+    </section>
+
+    <section class="panel">
+      <h2>月次の収支表</h2>
+      <p class="note">横が年月、縦が項目です。<span class="chip neutral">自動</span> はダッシュボードから取る想定（今はダミー）、<span class="chip warn">手入力</span> の行は書き換えると全体が計算し直されます。色の付いた列は今後6か月の見込み（このままのペース）。単位は万円。</p>
+      <div class="scroll"><table class="ledger hz" id="pbMonthTable"></table></div>
+      <details>
+        <summary>店舗の固定設定（変わらないもの）</summary>
+        <div class="assume" id="pbStoreSettings"></div>
+      </details>
+    </section>
+  </div>
+
+  <div id="pb-sim" class="view" hidden>
+  <div class="top"><div><h2>シミュレーター（ブランドの基本ケース）</h2><p class="lead">店舗ボードの「目安」はこの基本ケースから出しています。前提を変えて回収月の動きを確かめられます。</p></div>
+    <div class="seg" role="group" aria-label="ブランド">
+      <button id="pbBBelle" aria-pressed="true">Belle系</button>
+      <button id="pbBLift" aria-pressed="false">Lift</button>
+    </div>
+  </div>
+  <section class="panel">
+    <div class="kpis" id="pbKpis"></div>
+  </section>
+
+  <section class="panel">
+    <h2>回収予測</h2>
+    <p class="note">累計利益が回収ライン（初期投資＋2人目の追加投資）を超えた月が回収月です。背景の帯はフェーズです。</p>
+    <div class="scroll"><svg class="chart" id="pbChartCum" viewBox="0 0 960 300" role="img" aria-label="累計利益と回収ライン"></svg></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>累計利益</span><span><i style="background:var(--fg)"></i>回収ライン（累計投資）</span></div>
+    <div class="scroll"><svg class="chart" id="pbChartMonth" viewBox="0 0 960 220" role="img" aria-label="月商と月の利益"></svg></div>
+    <div class="legend"><span><i style="background:var(--brand,var(--muted));height:8px"></i>月商（入金）</span><span><i style="background:var(--accent)"></i>月の利益</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>フェーズ別の注力と進捗の目安</h2>
+    <p class="note">「目安」は基本ケースの各フェーズ最終月の値です。85%以上なら順調、70〜85%は注意、70%未満は対策が必要と見ます。</p>
+    <div class="phases" id="pbPhases"></div>
+  </section>
+
+  <section class="panel">
+    <h2>足りないときにどこへ注力するか</h2>
+    <p class="note">店舗の今月の実績を入れると、目安との差と、その差が回収を何か月遅らせるかを大きい順に並べます。</p>
+    <div class="form">
+      <label for="pbDMonth">オープンから何か月目<input id="pbDMonth" type="number" min="1" max="48" value="5"></label>
+      <label for="pbDNew">新規数（人）<input id="pbDNew" type="number" min="0" step="1" value="16"></label>
+      <label for="pbDRate">新規契約率（%）<input id="pbDRate" type="number" min="0" max="100" step="1" value="22"></label>
+      <label for="pbDReapo">再アポ来店率（%）<input id="pbDReapo" type="number" min="0" max="100" step="1" value="30"></label>
+      <label for="pbDCont">継続率（%）<input id="pbDCont" type="number" min="0" max="100" step="1" value="50"></label>
+      <label for="pbDSales">月商（万円）<input id="pbDSales" type="number" min="0" step="1" value="100"></label>
+    </div>
+    <div id="pbDiag" class="diag"></div>
+  </section>
+
+  <section class="panel">
+    <h2>収支表（月別・入金ベース）</h2>
+    <p class="note">単位は万円。太線がフェーズの切り替わり、色付きの行が回収月です。</p>
+    <div class="scroll"><table class="ledger" id="pbLedger"></table></div>
+    <details>
+      <summary>前提を変える</summary>
+      <div class="assume" id="pbAssume"></div>
+      <p class="note" style="margin-top:8px">回数券の構成・価格、経費の内訳は下の「置いている前提」に記載。入金は契約時に一括とみなしています。</p>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>置いている前提</h2>
+    <div class="two">
+      <div><h3 class="brandname" style="--brand:var(--belle)">Belle系</h3><ul class="list note" style="color:var(--fg)">
+        <li>回数券：6回8万円（50%）・12回14万円（50%）、2週に1回</li>
+        <li>継続率60%（継続も同じ構成と価格）、新規クーポン8,000円</li>
+        <li>初期投資：加盟金・マシン660万円＋物件等150〜300万円</li>
+        <li>商材費：50施術あたり8万円</li>
+        <li>物販・オプション：1,000〜4,000円（平均2,500円）を消化来店の30%が採用</li>
+        <li>2人目の研修は2〜3週間（研修中の給与約17万円を計上）</li></ul></div>
+      <div><h3 class="brandname" style="--brand:var(--lift)">Lift</h3><ul class="list note" style="color:var(--fg)">
+        <li>回数券：8回10万円（60%）・16回18.4万円（40%）、月2.5回</li>
+        <li>継続率40%（継続も同じ構成と価格）、新規クーポン7,000円</li>
+        <li>初期投資：加盟金・マシン550万円＋物件等150〜300万円</li>
+        <li>商材費：月2.5万円（スタッフ1人あたり）</li>
+        <li>物販・オプション：1,000〜3,000円（平均2,000円）を消化来店の30%が採用</li>
+        <li>2人目の研修は1〜2週間（研修中の給与約10万円を計上）</li></ul></div>
+      <div><h3>共通</h3><ul class="list note" style="color:var(--fg)">
+        <li>新規契約率：1〜3か月25%、4〜6か月30%、7か月目以降40%。再アポの契約率も同じ</li>
+        <li>再アポ：契約しなかった新規の40%が翌月来店、新規クーポンと同じ価格</li>
+        <li>予約枠：1人125施術、2人250施術。デビュー月は半分の枠で計算。オーナーは施術しない</li>
+        <li>採用：施術が80を超えた月に活動開始、2か月後にデビュー。マシン250万円＋ベッド等20万円を追加投資</li>
+        <li>新規：1人のとき20人、2人のとき25人（枠に空きがある分だけ）</li></ul></div>
+      <div><h3>経費</h3><ul class="list note" style="color:var(--fg)">
+        <li>家賃22万円、水道光熱費3万円、決済手数料2.5%</li>
+        <li>広告費：月商130万円以下は11.7万円、超えたら月商の15%</li>
+        <li>人件費：1人30万円＋個人売上80万円超の部分の17.5%</li>
+        <li>ロイヤリティ：売上の15%（最低13.2万円）</li>
+        <li>税金・減価償却・借入利息・キャンセルによる空き枠は入れていません</li></ul></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>回収から逆算した2人目の採用ペルソナ</h2>
+    <p class="lead">この収支が成り立つかは、デビュー直後から店の契約率を落とさず、半年で1人分の枠を埋められる人を採れるかで決まります。必要な力を数字から逆算すると次のとおりです。</p>
+    <div class="scroll"><table>
+      <tr><th>収支で求められること</th><th>必要な力</th><th>経歴で見るポイント</th></tr>
+      <tr><td>研修2〜3週間（Liftは1〜2週間）で現場に出る</td><td>手順を早く覚え、自分で練習できる</td><td>研修生サロンでの習得の速さ、前職で研修後すぐ独り立ちした経験</td></tr>
+      <tr><td>デビュー直後から契約率40%前後</td><td>悩みを聞いて提案し、断られても理由を聞ける</td><td>個人の売上目標を持った販売経験（美容部員、アパレル、化粧品、ジュエリー、携帯販売など）</td></tr>
+      <tr><td>1人で月125施術（1日5〜6施術）</td><td>体力と段取り、時間内に施術を終える</td><td>立ち仕事・予約制の仕事の経験、シフト勤務の継続年数</td></tr>
+      <tr><td>継続率60%（Belle）・40%（Lift）</td><td>同じお客様を担当し続け、関係を作る</td><td>指名・リピート客を持っていたか、顧客名簿やフォローの習慣</td></tr>
+      <tr><td>物販・オプションの採用率30%</td><td>商品を自分の言葉で勧められる</td><td>物販やセット販売の実績、推し商品を語れるか</td></tr>
+      <tr><td>投資回収（2年半〜3年）まで在籍</td><td>数字を前向きに受け止め、続けられる</td><td>前職の在籍年数、辞めた理由、目標未達のときの行動</td></tr>
+    </table></div>
+    <div class="two">
+      <div>
+        <h3>採用の見極め方（案）</h3>
+        <ul class="list">
+          <li>面接で5分の簡易カウンセリングをしてもらい、ロープレのチェックリストで採点する</li>
+          <li>「目標に届かなかった月に何をしたか」を具体的に聞く</li>
+          <li>研修生サロンでの契約率とチェックリスト点数を、配属の判断に使う</li>
+          <li>エステ経験者は技術より、前職のクロージングの癖（強引さ・長時間化）を確認する</li>
         </ul>
-        <div class="ph-note">データは<strong>2026年1月から</strong>です（BM会計の店は3月から）。
-          それより前の売上明細は入っていないので、累計利益もそこからの積み上げになります。</div>
+      </div>
+      <div>
+        <h3>注意</h3>
+        <ul class="list">
+          <li>「女性・20代」は社内の採用ターゲットとして持つ分には問題ありませんが、求人票で年齢や性別を限定する書き方は法律上原則できません。求人票は必要な経験と行動で書きます</li>
+          <li>エステ未経験でも販売経験が強い人は、研修で技術を補える分、契約率で早く戦力になりやすいと考えられます。社内の実績で確かめる仮説として扱います</li>
+        </ul>
       </div>
     </div>
+  </section>
+</div>
+</div>
 
     <!-- ⑤ 会計の入れ方・判定の基準 -->
     <div id="manualView" style="display:none">
@@ -5337,11 +5618,15 @@ function keizokuBookingAlert(store, month){
   if (st.count < KZA_MIN_COUNT) return null;
   const th = keizokuAlertThresholds(month);
   const tags = [];
-  if (st.unit > 0 && st.unit < th.unitLow) tags.push('単価が低すぎる');
+  // 単価0（契約が全部0円）も「低すぎる」に入れる。継続契約が3件以上ある店だけ見ているので、
+  //   単価0は「データが無い」ではなく「全部0円で会計している」という意味になる。
+  if (st.unit < th.unitLow) tags.push('単価が低すぎる');
   if (st.ratio > th.ratioHigh && st.unit < th.unitMid) tags.push('件数が多すぎる');
-  if (st.zero > 0) tags.push('0円の契約');
+  // ▼ 0円の契約は、それだけではアラートにしない（2026-11-17 キム兄さん：案B）。
+  //   契約行が無くてサービス行の目印だけ付いている会計も0円に当たるので、
+  //   単独で出すと健全な店まで並んでしまう。上の2つが出たときの補足として添える。
   if (!tags.length) return null;
-  return { store: store, tags: tags, stats: st, th: th };
+  return { store: store, tags: tags, stats: st, th: th, zeroNote: st.zero > 0 };
 }
 /* 当たった店の一覧（その月） */
 function keizokuBookingAlertStores(month){
@@ -5365,16 +5650,20 @@ function keizokuBookingAlertHtml(store, month){
   const parts = [];
   if (a.tags.indexOf('単価が低すぎる') >= 0) parts.push('継続契約の単価が' + man(st.unit) + 'と低く');
   if (a.tags.indexOf('件数が多すぎる') >= 0) parts.push('件数も消化の' + st.ratio + '%と多め');
-  if (a.tags.indexOf('0円の契約') >= 0)      parts.push('契約行が0円の会計が' + st.zero + '件あり');
   const head = parts.join('、') + 'です。';
+  // 0円の契約は補足としてだけ添える（案B）
+  const zeroNote = a.zeroNote
+    ? '<div class="kz-alert-body">補足：このうち<b>契約行が0円の会計が' + st.zero + '件</b>あります。</div>'
+    : '';
   return '<div class="kz-alert">' +
     '<div class="kz-alert-title">⚠️ 消化の売上を「契約」で会計していませんか？</div>' +
     '<div class="kz-alert-body">' + head +
       '消化の日の都度払いや残金を「契約」メニューで会計していないか確認してください。</div>' +
+    zeroNote +
     '<div class="kz-alert-meta">直近3か月の合計：継続契約 ' + st.count + '件 ／ 回数券消化 ' + st.shouka + '件 ／ ' +
       '継続契約単価 ' + fmt(st.unit) + '円 ／ 0円の契約 ' + st.zero + '件' +
-      '<br>基準：単価 ' + fmt(th.unitLow) + '円未満／件数 ' + th.ratioHigh + '%超かつ単価 ' + fmt(th.unitMid) + '円未満／0円の契約あり' +
-      '（継続契約が' + KZA_MIN_COUNT + '件以上の店だけ判定）</div>' +
+      '<br>基準：単価 ' + fmt(th.unitLow) + '円未満／件数 ' + th.ratioHigh + '%超かつ単価 ' + fmt(th.unitMid) + '円未満' +
+      '（継続契約が' + KZA_MIN_COUNT + '件以上の店だけ判定。0円の契約は補足で、単独ではアラートにしません）</div>' +
   '</div>';
 }
 
@@ -6404,7 +6693,11 @@ function switchMainTab(tab, opts) {
     try { renderUdStatus('trackerUdStatus'); } catch(e){}
     try { renderTrackerPage(); } catch(e){ console.warn('週次の進捗を出せません', e); }
   }
-  if (tab === 'payback') { try { renderUdStatus('paybackUdStatus'); } catch(e){} }
+  if (tab === 'payback') {
+    try { renderUdStatus('paybackUdStatus'); } catch(e){}
+    try { if (typeof renderPaybackPage === 'function') renderPaybackPage(focusStore ? { store: focusStore } : null); }
+    catch(e){ console.warn('投資回収を出せません', e); }
+  }
   if (tab === 'manual')  { try { renderManualPage(); } catch(e){ console.warn('判定の基準を出せません', e); } }
   renderSubPage(tab);
   if (!(opts && opts.silent)) setRouteHash(MAIN_TABS[tab].hash);
@@ -7888,8 +8181,8 @@ function renderManualPage() {
        + '<td>今月の分布：下から2割 ' + fmt(d.unitP20 || 0) + '円／真ん中 ' + fmt(d.unitP50 || 0) + '円（対象 ' + (d.n || 0) + '店）</td></tr>'
      + '<tr><td>件数が多すぎる</td><td>継続契約数 ÷ 回数券消化数 が ' + th.ratioHigh + '%超、かつ単価 ' + fmt(th.unitMid) + '円未満</td>'
        + '<td>今月の分布：真ん中 ' + (d.ratioP50 || 0) + '%／上から1割 ' + (d.ratioP90 || 0) + '%</td></tr>'
-     + '<tr><td>0円の契約</td><td>継続契約の会計で、契約行の金額が0円のものがある</td>'
-       + '<td>消化の日の都度払いや残金を「契約」で会計している疑い</td></tr>'
+     + '<tr><td>0円の契約（補足）</td><td>上の2つが出たときに、契約行が0円の会計の件数を添える</td>'
+       + '<td><b>単独ではアラートにしません</b>。契約行が無くてサービス行の目印だけ付いている会計も0円に当たるためです</td></tr>'
      + '</tbody></table>'
      + '<div class="crit-sec crit-note">いまの基準値は<b>' + (th.fixed ? '固定値' : 'その月の分布から出し直した値') + '</b>です。'
      + '毎月の分布から出し直す作りにしてあります（コードの KZA_DYNAMIC）。<br>'
@@ -8971,6 +9264,950 @@ document.addEventListener('keydown', function(e){
   }
 });
 
+
+/* ===== ④投資回収ボード（段階6）===== */
+try {
+
+(function(){
+const BR = {
+  Belle:{name:'Belle系', inv:885, invLo:810, invHi:960, coupon:0.8, tickets:[[6,8,.5],[12,14,.5]], pace:26/12, cont:0.6, optPrice:0.25, matVisit:0.16, matFlat:0, trainWage:17},
+  Lift:{name:'Lift', inv:775, invLo:700, invHi:850, coupon:0.7, tickets:[[8,10,.6],[16,18.4,.4]], pace:2.5, cont:0.4, optPrice:0.20, matVisit:0, matFlat:2.5, trainWage:10}
+};
+const DEF = {new1:20,new2:25,reapo:0.4,cap1:125,cap2:250,hireAt:80,lag:2,addInv:270,adBase:11.7,adTh:130,adRatio:0.15,optTake:0.3,r1:0.25,r2:0.30,r3:0.40,months:48};
+let brand='Belle';
+let P = {...DEF};
+let invOverride = {};
+let contOverride = {};
+
+function run(b, o){
+  o = Object.assign({}, P, o||{});
+  const inv0 = o.inv!=null? o.inv : (invOverride[brand]!=null? invOverride[brand] : b.inv);
+  const cont = o.cont!=null? o.cont : (contOverride[brand]!=null? contOverride[brand] : b.cont);
+  const avg = b.tickets.reduce((s,t)=>s+t[1]*t[2],0);
+  let cohorts=[], staff=1, hireStart=null, debut=null, prevUns=0, cum=0, invCum=inv0, pay=null;
+  const rows=[];
+  for(let m=1;m<=o.months;m++){
+    const rate = m<=3? o.r1 : m<=6? o.r2 : o.r3;
+    if(debut && m>=debut) staff=2;
+    const cap = staff===1? o.cap1 : (m===debut? (o.cap1+o.cap2)/2 : o.cap2);
+    let consume=0, ending=0;
+    for(const c of cohorts){ const u=Math.min(b.pace,c[1]); consume+=u*c[0]; c[1]-=u; if(c[1]<=1e-9) ending+=c[0]; }
+    cohorts = cohorts.filter(c=>c[1]>1e-9);
+    const reapo = prevUns*o.reapo;
+    const tgt = staff===1? o.new1 : o.new2;
+    const nw = Math.max(0, Math.min(tgt, cap-consume-reapo));
+    const nc=nw*rate, rc=reapo*rate, cc=ending*cont, all=nc+rc+cc;
+    for(const t of b.tickets) cohorts.push([all*t[2], t[0]]);
+    const visits = nw+reapo+consume;
+    const revCoupon=(nw+reapo)*b.coupon, revContract=all*avg, revOpt=consume*o.optTake*b.optPrice;
+    const S=revCoupon+revContract+revOpt;
+    const ad = S>o.adTh? o.adRatio*S : o.adBase;
+    const wage = staff*(30+0.175*Math.max(0,S/staff-80)) + (m===debut? b.trainWage:0);
+    const roy=Math.max(13.2,0.15*S), mat=visits*b.matVisit + b.matFlat*staff, fee=0.025*S, other=22+3+fee;
+    const Pm = S-(ad+wage+roy+mat+other);
+    if(m===debut) invCum+=o.addInv;
+    cum+=Pm;
+    rows.push({m,staff,nw,rate,reapo,rc,nc,ending,cc,all,consume,visits,cap,S,revCoupon,revContract,revOpt,ad,wage,roy,mat,other,P:Pm,cum,inv:invCum});
+    prevUns = nw-nc;
+    if(staff===1 && hireStart===null && visits>o.hireAt){ hireStart=m; debut=m+o.lag; }
+    if(pay===null && cum>=invCum) pay=m;
+  }
+  return {rows,pay,hireStart,debut,inv0,cont};
+}
+
+function phasesOf(res){
+  const R=res.rows, hs=res.hireStart||99, db=res.debut||99;
+  let full = R.findIndex(r=>r.staff===2 && r.visits>=0.9*r.cap && r.m>db);
+  full = full<0? 99 : R[full].m;
+  const ph=[];
+  ph.push({key:1,name:'立ち上げ',from:1,to:3});
+  ph.push({key:2,name:'定着',from:4,to:Math.max(4,hs-1)});
+  ph.push({key:3,name:'採用・1人の上限',from:Math.max(hs,5),to:db-1});
+  ph.push({key:4,name:'2人体制・拡大',from:db,to:Math.min(full-1,P.months)});
+  ph.push({key:5,name:'満枠・回収',from:full,to:P.months});
+  return ph.filter(p=>p.from<=p.to && p.from<=P.months);
+}
+const FOCUS = {
+  1:{kgi:'単月黒字に乗せる', kpi:['新規20人','契約率25%','再アポ来店率40%'], kdi:['スクリプト把握と毎週のロープレ（チェックリスト採点）','契約しなかった全員に再アポ提案','その場予約の特典'], staff:'スタッフは大枠（月商と財布）'},
+  2:{kgi:'月商130万円（広告を15%へ切り替える水準）', kpi:['契約率30%','最初の継続契約','高回数の比率'], kdi:['ジャブ打ちの開始時期とトーク','継続のロープレ','高回数を提案する理由の説明','消化来店でのオプション提案'], staff:'スタッフは中枠まで（自分の率・単価）'},
+  3:{kgi:'新規の枠を守りながら2人目を採る', kpi:['契約率40%','施術数（1人の上限125）','採用の進み具合'], kdi:['施術80を超えたら採用開始','面接でのロープレ採点','新規用の予約枠を確保する'], staff:'スタッフは小枠まで（点数・提案率）'},
+  4:{kgi:'2人で枠を埋め、広告費を回収する', kpi:['新規25人','2人目の契約率40%','広告の獲得単価'], kdi:['2人目のチェックリスト採点と接客同席','広告費15%の運用と効果検証','担当固定で継続をつくる'], staff:'2人目はオープン月と同じ順で育てる'},
+  5:{kgi:'投資回収と、次の追加投資の判断', kpi:['継続率','契約単価','オプション採用率','回収月'], kdi:['継続用回数券の見直し','枠が埋まったら広告比率を下げる','3人目・2店舗目の判断材料をそろえる'], staff:'全員が小枠まで'}
+};
+const fmt = (v,d=1)=> (Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toLocaleString('ja-JP',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmt0 = v=> Math.round(v).toLocaleString('ja-JP');
+const pct = v=> Math.round(v*100)+'%';
+
+function renderKpis(res){
+  const b=BR[brand], R=res.rows;
+  const y1=R[11], st=R[Math.min(35,R.length-1)];
+  const lo=run(b,{inv:b.invLo}).pay, hi=run(b,{inv:b.invHi}).pay;
+  document.getElementById('pbKpis').innerHTML = `
+   <div class="kpi hero"><span class="l">回収月</span><span class="v">${res.pay?res.pay:'—'}<small>か月目</small></span><span class="s">初期投資の幅で ${lo||'—'}〜${hi||'—'}か月</span></div>
+   <div class="kpi"><span class="l">2人目の採用開始／デビュー</span><span class="v">${res.hireStart||'—'}<small>→</small>${res.debut||'—'}<small>か月目</small></span><span class="s">施術80超で活動開始</span></div>
+   <div class="kpi"><span class="l">1年目の累計利益</span><span class="v">${fmt0(y1.cum)}<small>万円</small></span><span class="s">回収ライン ${fmt0(y1.inv)}万円</span></div>
+   <div class="kpi"><span class="l">3年目の月商／月の利益</span><span class="v">${fmt0(st.S)}<small>万円</small></span><span class="s">利益 ${fmt(st.P)}万円／月</span></div>`;
+}
+
+function chart(svgId, res, kind){
+  const svg=document.getElementById(svgId), R=res.rows, n=R.length;
+  const W=960, H= kind==='cum'?300:220, L=54, Rr=16, T=14, B=28;
+  const x=i=> L + (i+0.5)*(W-L-Rr)/n, bw=(W-L-Rr)/n*0.7;
+  let ymin, ymax;
+  if(kind==='cum'){ ymin=Math.min(0,...R.map(r=>r.cum)); ymax=Math.max(...R.map(r=>Math.max(r.cum,r.inv))); }
+  else { ymin=Math.min(0,...R.map(r=>r.P)); ymax=Math.max(...R.map(r=>r.S)); }
+  const step = niceStep((ymax-ymin)/5); ymin=Math.floor(ymin/step)*step; ymax=Math.ceil(ymax/step)*step;
+  const y=v=> T + (ymax-v)/(ymax-ymin)*(H-T-B);
+  let s='';
+  // phase bands
+  phasesOf(res).forEach((p,i)=>{ const x0=L+(p.from-1)*(W-L-Rr)/n, x1=L+p.to*(W-L-Rr)/n;
+    s+=`<rect x="${x0}" y="${T}" width="${x1-x0}" height="${H-T-B}" fill="var(${i%2?'--band2':'--band1'})"/>`;
+    const short={1:'立上げ',2:'定着',3:'採用',4:'2人・拡大',5:'満枠・回収'}[p.key];
+    if(kind==='cum' && x1-x0>=34) s+=`<text x="${x0+4}" y="${T+12}" style="font-family:var(--font);font-size:10.5px">${short}</text>`; });
+  for(let v=ymin; v<=ymax+1e-6; v+=step){ s+=`<line x1="${L}" x2="${W-Rr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="${v===0?1.5:1}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${fmt0(v)}</text>`; }
+  for(let i=0;i<n;i++){ if((i+1)%6===0||i===0) s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${i+1}</text>`; }
+  if(kind==='cum'){
+    s+=`<path d="${R.map((r,i)=>(i?'L':'M')+x(i)+' '+y(r.inv)).join('')}" fill="none" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    s+=`<path d="${R.map((r,i)=>(i?'L':'M')+x(i)+' '+y(r.cum)).join('')}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+    if(res.pay){ const i=res.pay-1; s+=`<circle cx="${x(i)}" cy="${y(R[i].cum)}" r="5" fill="var(--accent)"/><text x="${x(i)+8}" y="${y(R[i].cum)-8}" style="fill:var(--fg);font-weight:700;font-family:var(--font);font-size:12px">${res.pay}か月目に回収</text>`; }
+    if(res.debut&&res.debut<=n){ const i=res.debut-1; s+=`<text x="${x(i)}" y="${y(R[i].inv)-6}" text-anchor="middle" style="font-family:var(--font);font-size:10.5px">2人目＋${P.addInv}万</text>`; }
+  } else {
+    s+=R.map((r,i)=>`<rect x="${x(i)-bw/2}" y="${y(r.S)}" width="${bw}" height="${Math.max(0,y(0)-y(r.S))}" fill="var(--brand)" opacity=".55"/>`).join('');
+    s+=`<path d="${R.map((r,i)=>(i?'L':'M')+x(i)+' '+y(r.P)).join('')}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  }
+  s+=`<text x="${L}" y="${H-8}" text-anchor="start" dx="-48">月→</text>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.innerHTML=s;
+}
+function niceStep(raw){ const p=Math.pow(10,Math.floor(Math.log10(raw))); const f=raw/p; return (f<1.5?1:f<3?2:f<7?5:10)*p; }
+
+function renderPhases(res){
+  const R=res.rows;
+  document.getElementById('pbPhases').innerHTML = phasesOf(res).map(p=>{
+    const f=FOCUS[p.key], r=R[p.to-1];
+    return `<div class="ph"><div><span class="tag">フェーズ${p.key}</span><h3>${p.name}</h3><div class="when">${p.from}〜${p.to===P.months?P.months+'+':p.to}か月目</div></div>
+      <div><div class="sec">ゴール</div>${f.kgi}</div>
+      <div><div class="sec">重点KPI</div><ul>${f.kpi.map(k=>`<li>${k}</li>`).join('')}</ul></div>
+      <div><div class="sec">重点KDI</div><ul>${f.kdi.map(k=>`<li>${k}</li>`).join('')}</ul></div>
+      <div class="bench">${p.to}か月目の目安<br>月商 ${fmt0(r.S)}万円・施術 ${fmt0(r.visits)}／${fmt0(r.cap)}<br>累計利益 ${fmt0(r.cum)}万円</div>
+      <div class="note">${f.staff}</div></div>`;}).join('');
+}
+
+const KDI_MAP = {
+  new:['新規集客チームと連携（HPBの画像・記載、クーポン、口コミ返信）','月商130万円を超えたら広告費15%で新規を増やす','予約枠のうち新規用の枠を守る'],
+  rate:['チェックリストでのロープレと録画の振り返り','スクリプトの把握（カウンセリング〜クロージング）','スタッフ面談で課題を吸い上げる'],
+  reapo:['契約しなかった全員への再アポ提案','その場予約の特典（新規クーポンと同額など）','来店前日のリマインド'],
+  cont:['ジャブ打ちの開始時期とトーク','最終回の意思確認のタイミング','継続用回数券と早期継続の特典'],
+  price:['高回数を提案する理由の説明','回数券・クーポンの見直し、ローン導入','消化来店でのオプション提案']
+};
+function status(ratio){ return ratio>=0.85? ['good','順調'] : ratio>=0.70? ['warn','注意'] : ['bad','対策']; }
+function renderDiag(){
+  const b=BR[brand], base=run(b), R=base.rows;
+  const m=Math.min(Math.max(1,+document.getElementById('pbDMonth').value||1),P.months);
+  const r=R[m-1];
+  const bench = {new:r.nw, rate:r.rate, reapo:P.reapo, cont:base.cont, sales:r.S};
+  const act = {new:+document.getElementById('pbDNew').value, rate:(+document.getElementById('pbDRate').value)/100,
+    reapo:(+document.getElementById('pbDReapo').value)/100, cont:(+document.getElementById('pbDCont').value)/100, sales:+document.getElementById('pbDSales').value};
+  const ph = phasesOf(base).find(p=>m>=p.from && m<=p.to) || {name:'—'};
+  const delay = (o)=>{ const p=run(b,o).pay; return (p&&base.pay)? p-base.pay : null; };
+  const items = [
+    {k:'new', name:'新規数', a:act.new, bm:bench.new, show:v=>fmt(v,0)+'人', d: bench.new>0? delay({new1:P.new1*act.new/bench.new, new2:P.new2*act.new/bench.new}) : null},
+    {k:'rate', name:'新規契約率', a:act.rate, bm:bench.rate, show:v=>pct(v), d: delay({r1:Math.max(0,P.r1+act.rate-bench.rate), r2:Math.max(0,P.r2+act.rate-bench.rate), r3:Math.max(0,P.r3+act.rate-bench.rate)})},
+    {k:'reapo', name:'再アポ来店率', a:act.reapo, bm:bench.reapo, show:v=>pct(v), d: delay({reapo:act.reapo})},
+    {k:'cont', name:'継続率', a:act.cont, bm:bench.cont, show:v=>pct(v), d: (m>=4)? delay({cont:act.cont}) : null}
+  ];
+  items.forEach(i=>{ i.ratio = i.bm>0? i.a/i.bm : 1; });
+  const salesRatio = bench.sales>0? act.sales/bench.sales : 1;
+  const ranked = items.filter(i=>i.ratio<0.999).sort((a,c)=>(c.d??0)-(a.d??0));
+  const ok = items.filter(i=>i.ratio>=0.999);
+  const [sc,sl]=status(salesRatio);
+  let h = `<p><b>${m}か月目・フェーズ「${ph.name}」</b>　月商 ${fmt0(act.sales)}万円／目安 ${fmt0(bench.sales)}万円 <span class="chip ${sc}">${sl} ${Math.round(salesRatio*100)}%</span></p>`;
+  if(!ranked.length){ h+=`<p class="note">4つのKPIはすべて目安以上です。月商が足りない場合は、契約単価（高回数の比率）とオプションを確認します。</p><div class="gap"><div class="name">契約単価・オプション</div><div>${KDI_MAP.price.map(x=>'・'+x).join('<br>')}</div></div>`; }
+  ranked.forEach((i,idx)=>{ const [c,l]=status(i.ratio);
+    const dtxt = i.d==null? (i.k==='cont'?'継続は4か月目以降に発生':'—') : (i.d<=0? '回収への影響は小さい' : `このままだと回収が <b>${i.d}か月</b> 遅れる`);
+    h+=`<div class="gap"><div><div class="name">${idx+1}. ${i.name}</div><div class="delay">${i.show(i.a)} ／ 目安 ${i.show(i.bm)}</div><span class="chip ${c}">${l}</span></div>
+      <div><div class="delay">${dtxt}</div><div style="margin-top:4px">${KDI_MAP[i.k].map(x=>'・'+x).join('<br>')}</div></div></div>`; });
+  if(ok.length) h+=`<p class="note">目安以上：${ok.map(i=>i.name).join('、')}</p>`;
+  document.getElementById('pbDiag').innerHTML=h;
+}
+
+function renderLedger(res){
+  const ph=phasesOf(res), starts=new Set(ph.map(p=>p.from));
+  const head=`<tr><th>月</th><th>体制</th><th class="n">新規</th><th class="n">契約率</th><th class="n">再アポ来店</th><th class="n">契約数</th><th class="n">うち継続</th><th class="n">施術／枠</th><th class="n">月商</th><th class="n">クーポン</th><th class="n">回数券</th><th class="n">物販・OP</th><th class="n">広告費</th><th class="n">人件費</th><th class="n">ロイヤリティ</th><th class="n">商材費</th><th class="n">家賃・光熱・手数料</th><th class="n">利益</th><th class="n">累計利益</th><th class="n">回収ライン</th></tr>`;
+  const body=res.rows.map(r=>`<tr class="${starts.has(r.m)?'phase-start':''} ${r.m===res.pay?'payback':''}"><td class="n">${r.m}</td><td>${r.staff}人${r.m===res.debut?'（デビュー）':r.m===res.hireStart?'（採用開始）':''}</td>
+   <td class="n">${fmt(r.nw)}</td><td class="n">${pct(r.rate)}</td><td class="n">${fmt(r.reapo)}</td><td class="n">${fmt(r.all)}</td><td class="n">${fmt(r.cc)}</td><td class="n">${fmt0(r.visits)}／${fmt0(r.cap)}</td>
+   <td class="n"><b>${fmt(r.S)}</b></td><td class="n">${fmt(r.revCoupon)}</td><td class="n">${fmt(r.revContract)}</td><td class="n">${fmt(r.revOpt)}</td>
+   <td class="n">${fmt(r.ad)}</td><td class="n">${fmt(r.wage)}</td><td class="n">${fmt(r.roy)}</td><td class="n">${fmt(r.mat)}</td><td class="n">${fmt(r.other)}</td>
+   <td class="n" style="color:${r.P<0?'var(--bad)':'inherit'}"><b>${fmt(r.P)}</b></td><td class="n">${fmt0(r.cum)}</td><td class="n">${fmt0(r.inv)}</td></tr>`).join('');
+  document.getElementById('pbLedger').innerHTML=head+body;
+}
+
+const FIELDS=[
+  ['inv','初期投資（万円）',1],['new1','新規数・1人（人）',1],['new2','新規数・2人（人）',1],
+  ['r1','契約率 1〜3か月（%）',100],['r2','契約率 4〜6か月（%）',100],['r3','契約率 7か月〜（%）',100],
+  ['reapo','再アポ来店率（%）',100],['cont','継続率（%）',100],['cap1','予約枠・1人（施術）',1],['cap2','予約枠・2人（施術）',1],
+  ['hireAt','採用開始の施術数',1],['lag','採用開始→デビュー（か月）',1],['addInv','2人目の追加投資（万円）',1],
+  ['adTh','広告を%にする月商（万円）',1],['adRatio','広告費の比率（%）',100],['optTake','物販・OP採用率（%）',100]
+];
+function renderAssume(){
+  const b=BR[brand];
+  document.getElementById('pbAssume').innerHTML = FIELDS.map(([k,l,mul])=>{
+    let v = k==='inv'? (invOverride[brand]??b.inv) : k==='cont'? (contOverride[brand]??b.cont) : P[k];
+    return `<label for="a_${k}">${l}<input id="a_${k}" type="number" step="${mul===100?1:1}" value="${Math.round(v*mul*10)/10}" data-k="${k}" data-mul="${mul}"></label>`;}).join('');
+  document.querySelectorAll('#pbAssume input').forEach(inp=>inp.addEventListener('change',e=>{
+    const k=e.target.dataset.k, mul=+e.target.dataset.mul, v=(+e.target.value)/mul;
+    if(k==='inv') invOverride[brand]=v; else if(k==='cont') contOverride[brand]=v; else P[k]=v;
+    render(false);
+  }));
+}
+
+function render(withAssume=true){
+  const b=BR[brand];
+  const _r=document.getElementById('pb-sim'); if(_r) _r.className='view brand-'+brand.toLowerCase();
+  const res=run(b);
+  renderKpis(res); chart('pbChartCum',res,'cum'); chart('pbChartMonth',res,'month'); renderPhases(res); renderLedger(res); renderDiag();
+  if(withAssume) renderAssume();
+}
+document.getElementById('pbBBelle').addEventListener('click',()=>{brand='Belle';document.getElementById('pbBBelle').setAttribute('aria-pressed','true');document.getElementById('pbBLift').setAttribute('aria-pressed','false');render();});
+document.getElementById('pbBLift').addEventListener('click',()=>{brand='Lift';document.getElementById('pbBLift').setAttribute('aria-pressed','true');document.getElementById('pbBBelle').setAttribute('aria-pressed','false');render();});
+['pbDMonth','pbDNew','pbDRate','pbDReapo','pbDCont','pbDSales'].forEach(id=>document.getElementById(id).addEventListener('input',renderDiag));
+window.pbRenderSim = render;
+render();
+})();
+
+} catch(e){ console.warn('投資回収シミュレーターを出せません', e); }
+try {
+
+(function(){
+// ===== ブランドの基本設定 =====
+const BRAND = {
+  Belle:{label:'Belle系', inv:885, coupon:0.8, mix:[[6,8,.5],[12,14,.5]], pace:26/12, cont:0.6, optPrice:0.25, matVisit:0.16, matFlat:0, trainWage:17},
+  Lift:{label:'Lift', inv:775, coupon:0.7, mix:[[8,10,.6],[16,18.4,.4]], pace:2.5, cont:0.4, optPrice:0.20, matVisit:0, matFlat:2.5, trainWage:10}
+};
+const STD = {cap1:125, cap2:250, hireAt:80, lag:2, addInv:270, adBase:11.7, adTh:130, adRatio:0.15, optTake:0.3, rent:22, light:3};
+// ▼ 今月と今日はデータから入れる（テスト版は2026年11月で固定だった）
+let NOW_YM = [2026,11];
+let TODAY  = new Date();
+const avgPrice = mix => mix.reduce((s,t)=>s+t[1]*t[2],0);
+const planRate = m => m<=3?0.25: m<=6?0.30:0.40;
+
+// ===== 計算エンジン（月ごとの積み上げ） =====
+function engine(b, c){
+  const st = c.init ? {cohorts:c.init.cohorts.map(x=>x.slice()), staff:c.init.staff, hireStart:c.init.hireStart, debut:c.init.debut, prevUns:c.init.prevUns, cum:c.init.cum, invCum:c.init.invCum, pay:c.init.pay}
+                    : {cohorts:[], staff:1, hireStart:null, debut:null, prevUns:0, cum:0, invCum:c.inv0, pay:null};
+  const mix = c.mix || b.mix, ap = avgPrice(mix), rows=[];
+  for(let m=c.start; m<=c.end; m++){
+    const k = c.kpiAt(m);
+    if(st.debut && m>=st.debut) st.staff=2;
+    const cap = st.staff===1? c.cap1 : (m===st.debut? (c.cap1+c.cap2)/2 : c.cap2);
+    let consume=0, ending=0;
+    for(const x of st.cohorts){ const u=Math.min(b.pace,x[1]); consume+=u*x[0]; x[1]-=u; if(x[1]<=1e-9) ending+=x[0]; }
+    st.cohorts = st.cohorts.filter(x=>x[1]>1e-9);
+    const reapo = st.prevUns*k.reapo;
+    const tgt = st.staff===1? k.new1 : k.new2;
+    const nw = Math.max(0, Math.min(tgt, cap-consume-reapo));
+    const nc=nw*k.rate, rc=reapo*k.rate, cc=ending*k.cont, all=nc+rc+cc;
+    for(const t of mix) st.cohorts.push([all*t[2], t[0]]);
+    const visits = nw+reapo+consume;
+    const S = (nw+reapo)*b.coupon + all*ap*k.priceMul + consume*k.optPer;
+    const ad = c.adAt(m,S);
+    const wage = st.staff*(30+0.175*Math.max(0,S/st.staff-80)) + (m===st.debut? b.trainWage:0);
+    // ▼ ロイヤリティは店ごとに違う（直営は0）。渡されなければ元の15%・最低13.2万
+    const roy=(c.royAt? c.royAt(S) : Math.max(13.2,0.15*S)), mat=visits*b.matVisit + b.matFlat*st.staff, fee=0.025*S;
+    const cost = ad+wage+roy+mat+fee+c.rent+STD.light, P = S-cost;
+    if(m===st.debut) st.invCum+=c.addInv;
+    st.cum+=P;
+    rows.push({m, staff:st.staff, nw, rate:k.rate, reapo, nc, rc, ending, cc, all, consume, visits, cap, S, ad, wage, roy, mat, fee, rent:c.rent, light:STD.light, cost, P, cum:st.cum, inv:st.invCum, price:ap*k.priceMul,
+      sNew:nw*b.coupon, sRe:reapo*b.coupon, sTicket:all*ap*k.priceMul, sOpt:consume*k.optPer});
+    st.prevUns = nw-nc;
+    if(st.staff===1 && st.hireStart===null && c.allowHire && visits>c.hireAt){ st.hireStart=m; st.debut=m+c.lag; }
+    if(st.pay===null && st.cum>=st.invCum) st.pay=m;
+  }
+  return {rows, ...st};
+}
+function adRule(set){ return (m,S)=> set.adMode==='fixed'? set.adFixed : (S>STD.adTh? STD.adRatio*S : STD.adBase); }
+
+// ===== ブランドの計画（目標の線） =====
+const BASE = {};
+for(const k of Object.keys(BRAND)){
+  const b=BRAND[k];
+  BASE[k] = engine(b,{start:1,end:60,inv0:b.inv,cap1:STD.cap1,cap2:STD.cap2,hireAt:STD.hireAt,lag:STD.lag,addInv:STD.addInv,allowHire:true,rent:STD.rent,
+    adAt:adRule({adMode:'rule'}), kpiAt:m=>({new1:20,new2:25,rate:planRate(m),reapo:0.4,cont:b.cont,priceMul:1,optPer:STD.optTake*b.optPrice})});
+}
+
+// ===== 日付まわり（ダミー店舗の代わりに、実データから作る）=====
+const monthsSince = o => (NOW_YM[0]-o[0])*12 + (NOW_YM[1]-o[1]) + 1;
+const ymOf = (o,m) => { const t=o[0]*12+(o[1]-1)+(m-1); return [Math.floor(t/12), t%12+1]; };
+const ymLabel = ([y,mo]) => `${y}/${String(mo).padStart(2,'0')}`;
+const ymShort = ([y,mo]) => `${String(y).slice(2)}/${mo}`;
+function mixOf(s){ const base=pbMix(s.brand), h=s.set.highShare/100; return [[base[0][0],base[0][1],1-h],[base[1][0],base[1][1],h]]; }
+let STORES = [];
+
+// ============================================================
+//  ④投資回収：実データから店舗を作る（依頼45の4章・段階6）
+//   ・売上明細は2026年1月から（BM会計の店は3月から）。それより前は入っていない
+//   ・判定は「前月までの確定月」。今月は着地見込として別に見せる
+//   ・ロイヤリティは店ごとの実際の額（直営は0）
+// ============================================================
+const PB_FIRST_YM   = '202601';
+const PB_DEF_RENT   = 22;                         // 家賃の仮の値（万円）
+const PB_DEF_INV    = { Belle: 885, Lift: 775 };  // 初期投資の仮の値（万円）
+const PB_DEF_HIGH   = { Belle: 50,  Lift: 40 };   // 上位回数券の比率（%）
+const PB_DEF_AD     = 11.7;
+const PB_DEF_TARGET = 36;
+// 回数券の前提価格（画面から変えられる。[回数, 万円] の2段）
+const PB_MIX_KEY = 'limefit_pb_mix';
+const PB_MIX_DEF = { Belle: [[6, 8], [12, 14]], Lift: [[8, 10], [16, 18.4]] };
+let PB_MIX = (function(){
+  try { return Object.assign({}, PB_MIX_DEF, JSON.parse(localStorage.getItem(PB_MIX_KEY) || '{}')); }
+  catch(e){ return Object.assign({}, PB_MIX_DEF); }
+})();
+function pbMix(brand){
+  const m = PB_MIX[brand] || PB_MIX_DEF[brand];
+  return [[m[0][0], m[0][1], 0.5], [m[1][0], m[1][1], 0.5]];   // 比率は mixOf で上位回数券比率に入れ替える
+}
+function pbSaveMix(){ try { localStorage.setItem(PB_MIX_KEY, JSON.stringify(PB_MIX)); } catch(e){} }
+
+// ブランドの前提値をどれで計算するか。LABO・LIMEはBelle系、Areum・LINO・直営も一旦Belle系
+function pbBrandOf(store){ return /^Lift/.test(store || '') ? 'Lift' : 'Belle'; }
+// 前提値が仮の店（Belle・LIME・LABO・Lift 以外）
+function pbIsProvisional(store){ return !/^(Belle|LIME|LABO|Lift)/.test(store || ''); }
+
+function pbYmArr(ym){ return [parseInt(ym.slice(0,4),10), parseInt(ym.slice(4),10)]; }
+function pbYmStr(a){ return a[0] + ('0' + a[1]).slice(-2); }
+function pbYmDiff(a, b){ return (b[0]-a[0])*12 + (b[1]-a[1]); }   // aからbまでの月数
+// 「2026-01」「2026/1」「202601」などを '202601' にする
+function pbNormYm(v){
+  const t = (v == null ? '' : v).toString().trim();
+  if (!t) return '';
+  const m = t.match(/^(\d{4})[\/\-.年]?\s*(\d{1,2})/);
+  if (!m) return '';
+  const mo = parseInt(m[2], 10);
+  if (mo < 1 || mo > 12) return '';
+  return m[1] + ('0' + mo).slice(-2);
+}
+
+/* 店ごとの入力（店舗収支設定）。無ければ仮の値を入れて、仮であることを返す */
+function pbSettingOf(store, brand){
+  const r = (typeof udGet === 'function') ? udGet('finance', store) : null;
+  const num = function(v){ const n = parseFloat(v); return isFinite(n) && v !== '' && v != null ? n : null; };
+  const openYm = r ? pbNormYm(r['オープン年月']) : '';
+  const rent   = r ? num(r['家賃']) : null;
+  const inv    = r ? num(r['初期投資']) : null;
+  const high   = r ? num(r['上位回数券比率']) : null;
+  const adCost = r ? num(r['広告費']) : null;
+  const target = r ? num(r['回収期限']) : null;
+  const hireYm = r ? pbNormYm(r['採用開始月']) : '';
+  const adMode = (r && String(r['広告費の決め方']).indexOf('売上比') >= 0) ? 'rule' : 'fixed';
+  const hire   = r ? !(String(r['2人目を採用する']) === 'false' || r['2人目を採用する'] === false) : true;
+  return {
+    has: !!r,
+    openYm: openYm, hireYm: hireYm,
+    set: {
+      rent: rent != null ? rent : PB_DEF_RENT,
+      inv:  inv  != null ? inv  : PB_DEF_INV[brand],
+      highShare: high != null ? high : PB_DEF_HIGH[brand],
+      adMode: adMode,
+      adFixed: adCost != null ? adCost : PB_DEF_AD,
+      allowHire: hire,
+      hireStartM: null,                     // あとで経過月に直す
+      payTarget: target != null ? target : PB_DEF_TARGET
+    },
+    prov: { open: !openYm, rent: rent == null, inv: inv == null }
+  };
+}
+
+/* 月ごとの手入力（広告費・スタッフ数） */
+function pbMonthlyOf(store, ym){
+  const r = (typeof udGet === 'function') ? udGet('monthly', store + '|' + ym) : null;
+  if (!r) return {};
+  const num = function(v){ const n = parseFloat(v); return isFinite(n) && v !== '' && v != null ? n : null; };
+  return { ad: num(r['広告費']), staff: num(r['スタッフ数']) };
+}
+
+/* アクションの状態 */
+function pbActionStatus(store, action){
+  const r = (typeof udGet === 'function') ? udGet('action', store + '|' + action) : null;
+  return r ? (r['状態'] || '') : '';
+}
+
+/* ---- 保存 ---- */
+function pbSaved(p){
+  return p.then(function(){ udToast('保存しました'); return udLoadAll(); })
+          .then(function(){ if (typeof window.renderPaybackPage === 'function') window.renderPaybackPage({ store: current }); })
+          .catch(function(e){ udToast(e.message || '保存できませんでした', true); });
+}
+function pbSaveFinance(s){
+  const hireYm = (s.set.hireStartM && s.open) ? pbYmStr(ymOf(s.open, s.set.hireStartM)) : '';
+  pbSaved(udSave('finance', {
+    store: s.id,
+    open_ym: s.openInput || '',
+    rent: s.set.rent, capex: s.set.inv, high_ratio: s.set.highShare,
+    ad_mode: s.set.adMode === 'rule' ? '売上比' : '固定額',
+    ad_cost: s.set.adFixed,
+    hire_second: !!s.set.allowHire,
+    hire_ym: hireYm,
+    payback_months: s.set.payTarget
+  }));
+}
+function pbSaveMonthly(store, ym, manual){
+  pbSaved(udSave('monthly', {
+    store: store, month: pbYmStr(ym),
+    ad_cost: manual['広告費'], staff_count: manual['スタッフ数']
+  }));
+}
+function pbSaveAction(store, action, status){
+  pbSaved(udSave('action', { store: store, action: action, status: status }));
+}
+
+/* ---- 店舗を作る ---- */
+function pbBuildStores(){
+  const D = (typeof DATA !== 'undefined' && DATA.data) ? DATA.data : {};
+  const all = Object.keys(D).sort();
+  const newest = all.length ? all[all.length-1] : curMonth;
+  const nowYm  = curMonth;
+  const running = (nowYm === newest);              // 今月＝まだ途中の月か
+  const lastYm  = running ? getPrevMonth(nowYm) : nowYm;
+  NOW_YM = pbYmArr(nowYm);
+  TODAY  = new Date();
+
+  const months = all.filter(function(y){ return y >= PB_FIRST_YM && y <= lastYm; });
+  const stores = [];
+  const skipped = [];
+  const list = (DATA.stores || []).filter(function(st){
+    const closed = DATA.store_closed_month && DATA.store_closed_month[st];
+    if (closed && String(nowYm) > String(closed)) return false;
+    if (typeof curPerson !== 'undefined' && curPerson !== '全店舗' && DATA.store_person[st] !== curPerson) return false;
+    if (typeof curStoreType !== 'undefined' && curStoreType !== '全店舗' && DATA.store_type[st] !== curStoreType) return false;
+    if (typeof matchBrand === 'function' && !matchBrand(st)) return false;
+    if (focusStore && st !== focusStore) return false;
+    return true;
+  });
+
+  list.forEach(function(st){
+    const brand = pbBrandOf(st);
+    const cfg = pbSettingOf(st, brand);
+    const isDirect = (DATA.store_type && DATA.store_type[st]) === '直営';
+    const pattern = (DATA.store_royalty_pattern && DATA.store_royalty_pattern[st]) || '';
+    // データの最初の月（2026年1月以降）。オープン年月が後ならそちらから
+    const firstData = months.filter(function(y){ return D[y] && D[y][st]; })[0];
+    if (!firstData) { skipped.push(st); return; }
+    const openYm = cfg.openYm && cfg.openYm < firstData ? cfg.openYm : (cfg.openYm || firstData);
+    const open = pbYmArr(openYm);
+    const rows = [];
+    months.forEach(function(y){
+      const d = D[y] && D[y][st];
+      if (!d) return;
+      if (y < openYm) return;
+      const ymA = pbYmArr(y);
+      const m = pbYmDiff(open, ymA) + 1;            // オープンからの経過月
+      if (m < 1) return;
+      const man = pbMonthlyOf(st, y);
+      const S = (d.total_sales || 0) / 10000;
+      const keiyaku = (d.keiyaku_contract_sales != null)
+        ? d.keiyaku_contract_sales
+        : ((d.new_contract_sales||0) + (d.reappo_contract_sales||0) + (d.keizoku_contract_sales||0)
+           || (d.kaisuken_contract_sales || 0));
+      const cnt = (d.kaisuken_contract_count != null)
+        ? d.kaisuken_contract_count
+        : ((d.new_contract_count||0) + (d.reappo_contract_count||0) + (d.keizoku_continue_count||0));
+      const ad = (man.ad != null) ? man.ad
+               : (cfg.set.adMode === 'rule' ? (S > 130 ? 0.15 * S : PB_DEF_AD) : cfg.set.adFixed);
+      rows.push({
+        m: m, ym: ymA,
+        roy: isDirect ? 0 : (d.royalty || 0) / 10000,
+        auto: {
+          '店舗売上': Math.round(S * 10) / 10,
+          '施術数': d.total_treatments || 0,
+          '新規数': d.new_count || 0,
+          '新規売上': Math.round(Math.max(0, (d.new_sales || 0) - (d.new_contract_sales || 0)) / 1000) / 10,
+          '再来数': Math.max(0, (d.total_treatments || 0) - (d.new_count || 0)),
+          '再来売上': Math.round((d.repeat_sales || 0) / 1000) / 10,
+          '回数券契約数': cnt,
+          '回数券売上': Math.round(keiyaku / 1000) / 10,
+          'option売上': Math.round((d.option_sales || 0) / 1000) / 10,
+          'option追加人数': d.option_count || 0,
+          '新規→回数券': d.new_contract_count || 0,
+          '再来→回数券': d.reappo_contract_count || 0,
+          '回数券終了': d.keizoku_end_count || 0,
+          '回数券継続購入': d.keizoku_continue_count || 0
+        },
+        manual: {
+          // ▼ ボードの計算は1〜2人体制が前提（予約枠125/250・人件費は1人30万円）。
+          //   data.json のスタッフ数は売上が立った人を全部数えるので、自動の値は2人までにする。
+          //   実際と違うときは、月次の表で上書きしてください（上書きした数はそのまま使う）。
+          'スタッフ数': man.staff != null
+            ? Math.max(1, Math.round(man.staff))
+            : Math.min(2, Math.max(1, Math.round(d.staff_count || 1))),
+          '広告費': Math.round(ad * 10) / 10
+        }
+      });
+    });
+    if (!rows.length) { skipped.push(st); return; }
+    // 採用活動の開始月（年月）を経過月に直す
+    if (cfg.hireYm) {
+      const hm = pbYmDiff(open, pbYmArr(cfg.hireYm)) + 1;
+      if (hm >= 1) cfg.set.hireStartM = hm;
+    }
+    const prov = [];
+    if (cfg.prov.open) prov.push('オープン年月 未入力');
+    if (cfg.prov.rent) prov.push('家賃は仮');
+    if (cfg.prov.inv)  prov.push('初期投資は仮');
+    if (pbIsProvisional(st)) prov.push('前提値は仮（' + BRAND[brand].label + 'で計算）');
+    stores.push({
+      id: st, name: (typeof dispName === 'function') ? dispName(st) : st,
+      brand: brand, open: open, openInput: cfg.openYm ? (cfg.openYm.slice(0,4) + '-' + cfg.openYm.slice(4)) : '',
+      hasInput: cfg.has,
+      story: (cfg.has ? '入力済み' : '未入力') + (prov.length ? '／' + prov.join('・') : ''),
+      prov: prov,
+      set: cfg.set,
+      royOf: function(S){ return isDirect ? 0 : calcRoyalty(S * 10000, pattern) / 10000; },
+      months: rows
+    });
+  });
+
+  return { stores: stores, skipped: skipped, nowYm: nowYm, lastYm: lastYm, running: running };
+}
+
+/* 今月（まだ途中の月）の売上と着地見込。ダッシュボードの日割りの見込みを使う */
+function pbThisMonthKpi(A){
+  try {
+    const ym = pbYmStr(NOW_YM);
+    const d = DATA.data && DATA.data[ym] && DATA.data[ym][A.s.id];
+    if (!d) return '';
+    const now = (d.total_sales || 0) / 10000;
+    const pj = (typeof calcProjection === 'function')
+      ? calcProjection(d.total_sales, d.last_date, ym, 0) : null;
+    const proj = pj ? pj.projection / 10000 : null;
+    return '<div class="kpi"><span class="l">今月（' + NOW_YM[1] + '月）の着地見込</span>'
+      + '<span class="v" style="font-size:21px">' + (proj != null ? fmt0(proj) : fmt0(now)) + '<small>万円</small></span>'
+      + '<span class="s">いまの実績 ' + fmt0(now) + '万円'
+      + (pj ? '（' + pj.elapsedDays + '日経過／' + pj.totalDays + '日）' : '')
+      + '<br>今月は判定に入れていません</span></div>';
+  } catch(e){ return ''; }
+}
+
+/* ページの上に出すお知らせ（データの範囲・今月の着地見込・前提値） */
+function pbRenderNotice(built){
+  const el = document.getElementById('pbNotice');
+  if (!el) return;
+  const mLabel = function(ym){ return ym.slice(0,4) + '年' + parseInt(ym.slice(4),10) + '月'; };
+  const asOf = document.getElementById('pbAsOf');
+  if (asOf) asOf.textContent = mLabel(built.lastYm) + 'まで';
+  const noInput = built.stores.filter(function(s){ return !s.hasInput; }).length;
+  let h = '<div class="pb-notice">'
+    + '<b>2026年1月より前のデータは入っていません。</b>'
+    + '累計利益も2026年1月からの積み上げです（BM会計の店は3月から）。<br>'
+    + '判定は<b>' + mLabel(built.lastYm) + 'までの確定月</b>で行い、今月（' + mLabel(built.nowYm) + '）は'
+    + (built.running ? '着地見込として別に出します（判定には入れていません）。' : 'この月までが確定です。')
+    + '<br>そのため<b>2026年1月より前に稼いだ分は累計利益に入っていません。'
+    + '開店が古い店ほど、回収が実際より遠く出ます。</b>'
+    + '<br>スタッフ数は、自動では<b>2人まで</b>で計算しています'
+    + '（ボードの計算が1〜2人体制を前提にしているため）。違うときは月次の表で上書きしてください。'
+    + (noInput ? '<br><b>家賃・初期投資が未入力の店が ' + noInput + '店</b>あります。'
+                 + '店舗詳細のいちばん下「店舗の固定設定」から入れてください（仮の値で計算しています）。' : '')
+    + '</div>';
+  // 回数券の前提価格
+  h += '<details class="pb-assume-box"><summary>回数券の前提価格を変える（実際の価格表と違うときに直します）</summary><div class="assume">'
+    + ['Belle','Lift'].map(function(br){
+        const m = PB_MIX[br] || PB_MIX_DEF[br];
+        return '<label>' + BRAND[br].label + '・下位の回数<input type="number" min="1" step="1" value="' + m[0][0] + '" data-br="' + br + '" data-i="0" data-j="0"></label>'
+             + '<label>' + BRAND[br].label + '・下位の価格（万円）<input type="number" min="0" step="0.1" value="' + m[0][1] + '" data-br="' + br + '" data-i="0" data-j="1"></label>'
+             + '<label>' + BRAND[br].label + '・上位の回数<input type="number" min="1" step="1" value="' + m[1][0] + '" data-br="' + br + '" data-i="1" data-j="0"></label>'
+             + '<label>' + BRAND[br].label + '・上位の価格（万円）<input type="number" min="0" step="0.1" value="' + m[1][1] + '" data-br="' + br + '" data-i="1" data-j="1"></label>';
+      }).join('')
+    + '</div></details>';
+  el.innerHTML = h;
+  el.querySelectorAll('.pb-assume-box input').forEach(function(inp){
+    inp.addEventListener('change', function(e){
+      const br = e.target.dataset.br, i = +e.target.dataset.i, j = +e.target.dataset.j;
+      if (!PB_MIX[br]) PB_MIX[br] = PB_MIX_DEF[br].map(function(x){ return x.slice(); });
+      PB_MIX[br][i][j] = +e.target.value;
+      pbSaveMix();
+      if (typeof window.renderPaybackPage === 'function') window.renderPaybackPage({ store: current });
+    });
+  });
+}
+
+
+// ===== 店舗の分析 =====
+function analyze(s){
+  const b=BRAND[s.brand], mix=mixOf(s), ap=avgPrice(mix), M=s.months, base=BASE[s.brand];
+  // ▼ n はオープンからの経過月。データは2026年1月からしか無いので、M.length とは違う
+  const n = M.length ? M[M.length-1].m : 1;
+  const royOf = s.royOf || (S=>Math.max(13.2,0.15*S));
+  let cum=0, inv=s.set.inv, prevStaff=1; const act=[];
+  for(const x of M){
+    const a=x.auto, st=x.manual.スタッフ数, S=a.店舗売上;
+    const debutNow = st>prevStaff; if(debutNow) inv+=STD.addInv;
+    const wage = st*(30+0.175*Math.max(0,S/st-80)) + (debutNow? b.trainWage:0);
+    // ▼ 実績の月は、その月の実際のロイヤリティを使う（data.json の royalty。直営は0）
+    const roy=(x.roy!=null? x.roy : royOf(S)), mat=a.施術数*b.matVisit + b.matFlat*st, fee=0.025*S, ad=x.manual.広告費;
+    const cost=ad+wage+roy+mat+fee+s.set.rent+STD.light, P=S-cost;
+    cum+=P; act.push({m:x.m, S, P, cum, inv, staff:st, wage, roy, mat, fee, ad, rent:s.set.rent, light:STD.light, cost});
+    prevStaff=st;
+  }
+  const last=M[M.length-1], L3=M.slice(-3), sum=(arr,k)=>arr.reduce((t,x)=>t+(x.auto[k]||0),0);
+  const cur = {
+    new: sum(L3,'新規数')/L3.length,
+    rate: sum(L3,'新規数')? sum(L3,'新規→回数券')/sum(L3,'新規数') : 0,
+    price: sum(L3,'回数券契約数')? sum(L3,'回数券売上')/sum(L3,'回数券契約数') : ap,
+    cont: sum(M.slice(-4),'回数券終了')? sum(M.slice(-4),'回数券継続購入')/sum(M.slice(-4),'回数券終了') : null,
+    optPer: sum(L3,'再来数')>0? sum(L3,'option売上')/sum(L3,'再来数') : STD.optTake*b.optPrice,
+    sales: sum(L3,'店舗売上')/L3.length,
+    visits: sum(L3,'施術数')/L3.length
+  };
+  let reNum=0, reDen=0;
+  for(let i=Math.max(1,M.length-3); i<M.length; i++){ const p=M[i-1].auto, q=M[i].auto; reNum+=q['再来→回数券']; reDen+=(p.新規数-p['新規→回数券'])*Math.max(cur.rate,0.05); }
+  cur.reapo = reDen>0? Math.min(1,reNum/reDen) : 0.4;
+  const cohorts=[];
+  for(const x of M){ for(const t of mix){ const rem=t[0]-b.pace*(n-x.m); if(rem>1e-9) cohorts.push([x.auto.回数券契約数*t[2], rem]); } }
+  const staffNow=last.manual.スタッフ数;
+  let hireStart=null, debut=null;
+  if(staffNow===1 && s.set.hireStartM){ hireStart=s.set.hireStartM; debut=Math.max(hireStart+STD.lag, n+1); }
+  const init={cohorts, staff:staffNow, hireStart, debut, prevUns:last.auto.新規数-last.auto['新規→回数券'], cum, invCum:inv, pay: cum>=inv? n : null};
+  const priceMul = cur.price/ap, contNow = cur.cont==null? b.cont : cur.cont;
+  const scen = (over={})=>{
+    const o = Object.assign({new:cur.new, rate:cur.rate, reapo:cur.reapo, cont:contNow, priceMul, hire:s.set.allowHire}, over);
+    const i2 = Object.assign({}, init, {cohorts:init.cohorts.map(x=>x.slice())});
+    if(o.hire && staffNow===1 && i2.hireStart===null && over.hireNow){ i2.hireStart=n; i2.debut=n+STD.lag; }
+    if(!o.hire){ i2.hireStart=null; i2.debut=null; }
+    return engine(b,{start:n+1,end:120,init:i2,cap1:STD.cap1,cap2:STD.cap2,hireAt:STD.hireAt,lag:STD.lag,addInv:STD.addInv,allowHire:o.hire,rent:s.set.rent,mix,royAt:royOf,
+      adAt:adRule(s.set), kpiAt:m=>({new1:o.new, new2:o.new2!=null?o.new2:Math.max(o.new*1.25,o.new), rate:typeof o.rate==='function'?o.rate(m):o.rate, reapo:o.reapo, cont:o.cont, priceMul:o.priceMul, optPer:cur.optPer})});
+  };
+  const half=(c,t)=> c>=t? c : c+(t-c)/2;
+  const full = last.auto.施術数>=0.8*STD.cap1;
+  const fNow = scen();
+  const fGoal = scen({new:Math.max(cur.new,20), new2:25, rate:m=>Math.max(cur.rate,planRate(m)), reapo:Math.max(cur.reapo,0.4), cont:Math.max(contNow,b.cont), priceMul:Math.max(priceMul,1), hire:true, hireNow:full});
+  const fEffort = scen({new:half(cur.new,20), new2:half(cur.new*1.25,25), rate:m=>half(cur.rate,planRate(m)), reapo:half(cur.reapo,0.4), cont:half(contNow,b.cont), priceMul:half(priceMul,1), hire:s.set.allowHire||full, hireNow:full});
+  const payNow = init.pay || fNow.pay, payGoal = init.pay || fGoal.pay, payEffort = init.pay || fEffort.pay;
+  const bm = base.rows[n-1];
+  const levers = [
+    {k:'new', name:'新規数', cur:cur.new, tg:20, unit:'人', d:1, over:{new:Math.max(cur.new,20), new2:25}},
+    {k:'rate', name:'新規契約率', cur:cur.rate, tg:planRate(n), unit:'%', over:{rate:m=>Math.max(cur.rate,planRate(m))}},
+    {k:'reapo', name:'再アポ来店率（推定）', cur:cur.reapo, tg:0.4, unit:'%', over:{reapo:Math.max(cur.reapo,0.4)}},
+    {k:'cont', name:'継続率', cur:cur.cont, tg:b.cont, unit:'%', over:{cont:Math.max(contNow,b.cont)}},
+    {k:'price', name:'回数券単価', cur:cur.price, tg:avgPrice(b.mix), unit:'万円', d:1, over:{priceMul:Math.max(priceMul,1)}},
+    {k:'hire', name:'2人目の稼働', cur:staffNow, tg:(bm.staff||1), unit:'人', d:0, over:{hire:true, hireNow:true, new2:Math.max(cur.new*1.25,20)}}
+  ];
+  const horizon = 121;
+  const c60 = rr=> { const x=rr.rows.find(q=>q.m===60); return x? x.cum : cum; };
+  levers.forEach(l=>{
+    l.ratio = (l.cur==null||!l.tg)? 1 : l.cur/l.tg;
+    if(l.k==='hire') l.ratio = (staffNow>=2 || !full)? 1 : 0.5;
+    const r = scen(l.over), p = init.pay || r.pay;
+    l.gain = ((payNow||horizon) - (p||horizon)); l.gainCum = c60(r) - c60(fNow);
+  });
+  const util = last.auto.施術数/(staffNow===1?STD.cap1:STD.cap2);
+  const phase = n<=3? 1 : staffNow===1? (last.auto.施術数<=STD.hireAt? 2 : 3) : (util<0.9? 4 : 5);
+  const PH={1:'立ち上げ',2:'定着',3:'採用・1人の上限',4:'2人体制・拡大',5:'満枠・回収'};
+  const bmPhase = n<=3?1 : (base.hireStart && n<base.hireStart)?2 : (base.debut && n<base.debut)?3 : (bm.visits<0.9*bm.cap)?4:5;
+  const goalS3 = base.rows.slice(Math.max(0,n-3),n).reduce((t,x)=>t+x.S,0)/Math.min(3,n);
+  // 回収期限に間に合わせるのに必要な月商
+  const T = s.set.payTarget, remain = inv-cum;
+  let need=null, needNote='';
+  if(remain<=0){ need=0; needNote='回収済み'; }
+  else {
+    const L = T-n>0? T-n : 12; needNote = T-n>0? `${T}か月目までに回収` : `期限（${T}か月目）を過ぎたため、今から12か月で回収`;
+    const perVisit = cur.visits/Math.max(cur.sales,1), wantP = remain/L, st=staffNow;
+    const P=(S)=> S-((s.set.adMode==='fixed'?s.set.adFixed:(S>STD.adTh?STD.adRatio*S:STD.adBase)) + st*(30+0.175*Math.max(0,S/st-80)) + royOf(S) + S*perVisit*b.matVisit + b.matFlat*st + 0.025*S + s.set.rent + STD.light);
+    let lo=0, hi=1500; for(let i=0;i<60;i++){ const mid=(lo+hi)/2; if(P(mid)<wantP) lo=mid; else hi=mid; } need=hi;
+  }
+  const effortS = fEffort.rows.slice(0,3).reduce((t,x)=>t+x.S,0)/3;
+  const nowS = fNow.rows.slice(0,3).reduce((t,x)=>t+x.S,0)/3;
+  return {s,b,n,act,cur,init,fNow,fGoal,fEffort,payNow,payGoal,payEffort,levers,phase,phaseName:PH[phase],bmPhase,bmPhaseName:PH[bmPhase],util,
+    progress:cur.sales/goalS3, goalS3, staffNow,bm,base,last,cum,inv,need,needNote,effortS,nowS,T,months3:k=>M.slice(-3).reduce((t,x)=>t+x.auto[k],0)/Math.min(3,n)};
+}
+
+// ===== 表示まわり =====
+const fmt=(v,d=1)=> v==null||isNaN(v)?'—':(Math.round(v*10**d)/10**d).toLocaleString('ja-JP',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmt0=v=> v==null||isNaN(v)?'—':Math.round(v).toLocaleString('ja-JP');
+const pct=v=> v==null||isNaN(v)?'—':Math.round(v*100)+'%';
+const stat=r=> r>=0.95?['good','達成ペース']: r>=0.80?['warn','ややビハインド']:['bad','ビハインド'];
+const chip=(c,t)=>`<span class="chip ${c}">${t}</span>`;
+const addDays=d=>{const t=new Date(TODAY); t.setDate(t.getDate()+d); return `${t.getMonth()+1}/${t.getDate()}`;};
+const ymAfter=k=>{ const t=NOW_YM[0]*12+NOW_YM[1]-1+k; return `${Math.floor(t/12)}年${t%12+1}月`; };
+const payLabel=(A,p)=> p==null? '10年以上' : (p<=A.n? `回収済み（${p}か月目）` : `${p}か月目（${ymLabel(ymOf(A.s.open,p))}）`);
+// 差の表記：+は上回り、−はビハインド
+function diff(curV, tgV, unit, d=1){
+  if(curV==null||tgV==null) return '<span class="note">—</span>';
+  const isPct = unit==='%', dv = isPct? (curV-tgV)*100 : curV-tgV, u = isPct? 'pt' : unit;
+  const txt = (dv>=0?'+':'−') + (isPct? Math.abs(Math.round(dv)) : fmt(Math.abs(dv), d)) + u;
+  const cls = dv>=-1e-9? 'pos':'neg';
+  return `<span class="df ${cls}">${txt}</span> <span class="note">${dv>=-1e-9?'上回り':'ビハインド'}</span>`;
+}
+const diffS=(c,t,unit,d=1)=>{ const isPct=unit==='%', dv=isPct?(c-t)*100:c-t; return `<span class="df ${dv>=-1e-9?'pos':'neg'}">${dv>=0?'+':'−'}${isPct?Math.abs(Math.round(dv))+'pt':fmt(Math.abs(dv),d)+unit}</span>`; };
+const val=(v,unit,d=1)=> v==null||isNaN(v)?'—' : unit==='%'? pct(v) : unit==='人'? fmt(v,d)+'人' : fmt(v,d)+unit;
+
+const ACTIONS = {
+  new:{kdi:'HPBの画像・記載とクーポンの見直し、口コミ返信', doer:'本部（新規集客チーム）', boss:'担当SV', due:14, see:1, how:'翌月の新規数'},
+  rate:{kdi:'週1回のロープレをチェックリストで採点し、録画で振り返る', doer:'スタッフ', boss:'オーナー（採点）／担当SV（確認）', due:7, see:1, how:'4週間後の新規契約率'},
+  reapo:{kdi:'契約しなかった全員に再アポを提案し、その場予約の特典を案内', doer:'スタッフ', boss:'オーナー', due:7, see:1, how:'翌月の再来→回数券'},
+  cont:{kdi:'残り3回からのジャブ打ちと、最終回の継続提案のトークを決めてロープレ', doer:'スタッフ', boss:'担当SV', due:14, see:2, how:'2〜3か月後の継続率（回数券終了の周期）'},
+  price:{kdi:'高回数を提案する理由の説明をそろえ、回数券の構成を見直す', doer:'スタッフ／本部（回数券設計）', boss:'担当SV', due:21, see:1, how:'翌月の回数券単価'},
+  hire:{kdi:'2人目の採用を開始し、マシンとベッドを準備（追加投資の提案）', doer:'オーナー', boss:'担当SV／本部', due:30, see:3, how:'デビュー月以降の施術数と新規数'}
+};
+function pickFocus(A){ return A.levers.filter(l=>(l.k!=='hire' || l.ratio<1) && (l.gain>0 || l.gainCum>30 || (l.ratio<0.85 && l.k!=='hire'))).sort((a,b)=>(b.gain-a.gain)||(b.gainCum-a.gainCum)); }
+
+let ANALYSIS = [], current='';
+const statusOf = {};
+
+function renderList(){
+  const rows = ANALYSIS.map(A=>{
+    const [c,l]=stat(A.progress), top=pickFocus(A)[0], late=A.phase<A.bmPhase;
+    return `<tr data-id="${A.s.id}" class="${A.s.hasInput?'':'pb-noinput'}"><td><b>${A.s.name}</b><div class="note">${A.s.story}</div></td><td><span class="brandname" style="--brand:var(--${A.s.brand==='Lift'?'lift':'belle'})">${BRAND[A.s.brand].label}</span></td>
+      <td class="n">${A.n}か月目</td><td>${A.phaseName}${late?`<div class="note">計画では「${A.bmPhaseName}」</div>`:''}</td><td class="n">${A.staffNow}人</td>
+      <td class="n">${fmt0(A.cur.sales)}万円</td><td class="n">${fmt0(A.goalS3)}万円</td><td class="n">${diff(A.cur.sales,A.goalS3,'万円',0)}<div>${chip(c,l)}</div></td>
+      <td class="n">${fmt0(A.cum)}／${fmt0(A.inv)}万円<div class="note">残り ${fmt0(Math.max(0,A.inv-A.cum))}万円</div></td><td>${payLabel(A,A.payNow)}<div class="note">努力値なら ${payLabel(A,A.payEffort)}</div></td>
+      <td>${top?`${top.name}<div class="note">${top.gain>0?'回収が'+top.gain+'か月早まる':'5年目までの利益 +'+fmt0(top.gainCum)+'万円'}</div>`:'—'}</td></tr>`; }).join('');
+  document.getElementById('pbStoreTable').innerHTML = `<tr><th>店舗</th><th>ブランド</th><th class="n">経過</th><th>フェーズ</th><th class="n">体制</th><th class="n">月商の現状<br>（直近3か月）</th><th class="n">月商の目標</th><th class="n">差</th><th class="n">累計利益／回収ライン</th><th>回収予測（このまま）</th><th>最優先の注力</th></tr>`+rows;
+  document.querySelectorAll('#pbStoreTable tr[data-id]').forEach(tr=>tr.addEventListener('click',()=>{ current=tr.dataset.id; show('store'); }));
+  const cnt=k=>ANALYSIS.filter(A=>stat(A.progress)[0]===k).length;
+  document.getElementById('pbListSummary').innerHTML = `<div class="kpi"><span class="l">達成ペース</span><span class="v" style="color:var(--good)">${cnt('good')}<small>店</small></span></div><div class="kpi"><span class="l">ややビハインド</span><span class="v" style="color:var(--warn)">${cnt('warn')}<small>店</small></span></div><div class="kpi"><span class="l">ビハインド</span><span class="v" style="color:var(--bad)">${cnt('bad')}<small>店</small></span></div>`;
+  document.getElementById('pbInvestList').innerHTML = ANALYSIS.map(A=>{ const v=invest(A); return `<div class="gap"><div><div class="name">${A.s.name}</div>${chip(v.c,v.label)}</div><div>${v.text}</div></div>`; }).join('');
+}
+function invest(A){
+  const used=A.last.auto.施術数, hl=A.levers.find(l=>l.k==='hire'), topL=pickFocus(A)[0];
+  if(A.cum>=A.inv) return {c:'good',label:'次の投資を提案',text:`回収済みです。予約枠が${pct(A.util)}埋まっていれば、2店舗目か3人目を提案する時期です。`};
+  if(A.staffNow===1 && used>=0.8*STD.cap1 && !A.init.hireStart && (hl.gain>=3 || (topL&&topL.k==='hire')))
+    return {c:'warn',label:'2人目の追加投資を提案',text:`施術数${used}で、1人の予約枠（${STD.cap1}）の${pct(used/STD.cap1)}が埋まっています。このままでは新規を受けきれません。2人目（マシン・ベッド約270万円）を今月から採用すると、回収が${hl.gain}か月早まる見込みです（2人体制で新規20人の前提）。`};
+  if(A.staffNow===1 && A.init.hireStart) return {c:'neutral',label:'2人目を採用中',text:`${A.init.hireStart}か月目に施術80を超え、採用を始めています。デビュー見込みは${ymLabel(ymOf(A.s.open,A.init.debut))}です。`};
+  if(A.payNow && A.payNow-A.n<=6) return {c:'good',label:'次の投資の準備',text:`${A.payNow-A.n}か月後に回収できる見込みです。2店舗目の物件と人員の準備を始める時期です。`};
+  return {c:'neutral',label:'まだ早い',text:`追加投資の前に、${topL?topL.name+(topL.gain>0?'（回収が'+topL.gain+'か月早まる）':''):'今のKPI'}を立て直します。回収予測は${payLabel(A,A.payNow)}です。`};
+}
+
+function renderStore(){
+  const A=ANALYSIS.find(x=>x.s.id===current), s=A.s;
+  document.getElementById('pbStoreSeg').innerHTML = ANALYSIS.map(x=>`<button data-id="${x.s.id}" aria-pressed="${x.s.id===current}">${x.s.name}</button>`).join('');
+  document.querySelectorAll('#pbStoreSeg button').forEach(bt=>bt.addEventListener('click',()=>{current=bt.dataset.id; renderStore(); try{history.replaceState(null,'','#store-'+current);}catch(e){}}));
+  document.getElementById('pbStoreMeta').innerHTML = `${BRAND[s.brand].label}・${ymLabel(s.open)}オープン・${s.story}`;
+  const [c,l]=stat(A.progress), v=invest(A);
+  const payCol = A.payNow&&A.payNow<=A.T?'var(--good)':A.payNow&&A.payNow<=A.T+12?'var(--warn)':'var(--bad)';
+  document.getElementById('pbStoreKpis').innerHTML = `
+    <div class="kpi"><span class="l">フェーズ</span><span class="v" style="font-size:19px">${A.phaseName}</span><span class="s">${A.n}か月目・${A.staffNow}人体制${A.phase<A.bmPhase?`<br>計画では「${A.bmPhaseName}」`:''}</span></div>
+    <div class="kpi"><span class="l">月商　現状 → 目標</span><span class="v" style="font-size:21px">${fmt0(A.cur.sales)}<small>→</small>${fmt0(A.goalS3)}<small>万円</small></span><span class="s">${diff(A.cur.sales,A.goalS3,'万円',0)} ${chip(c,l)}</span></div>
+    <div class="kpi"><span class="l">回収まで残り</span><span class="v" style="font-size:21px">${fmt0(Math.max(0,A.inv-A.cum))}<small>万円</small></span><span class="s">累計利益 ${fmt0(A.cum)}／回収ライン ${fmt0(A.inv)}万円</span></div>
+    <div class="kpi"><span class="l">回収予測（このまま）</span><span class="v" style="font-size:19px;color:${payCol}">${payLabel(A,A.payNow)}</span><span class="s">回収期限 ${A.T}か月目・追加投資：${v.label}</span></div>
+    ${pbThisMonthKpi(A)}`;
+  lineBullet(A); pathChart(A); scenChart(A); kpiTable(A); focusList(A); actionTable(A); monthTable(A); settings(A);
+}
+
+// 今月の売上ライン（ブレットチャート）
+function lineBullet(A){
+  const svg=document.getElementById('pbLineBullet'), W=960, L=24, R=24, y0=56, h=34;
+  const marks=[{k:'effort',lab:'努力値ライン',v:A.effortS,col:'var(--good)'},{k:'need',lab:'回収期限に必要',v:A.need,col:'var(--warn)'},{k:'goal',lab:'計画の目標',v:A.goalS3,col:'var(--fg)'}].filter(m=>m.v!=null&&m.v>0);
+  const max = nice(Math.max(A.cur.sales,...marks.map(m=>m.v))*1.12/5)*5;
+  const x=v=>L+v/max*(W-L-R);
+  let s=`<rect x="${L}" y="${y0}" width="${W-L-R}" height="${h}" rx="4" fill="var(--soft)"/>`;
+  s+=`<rect x="${L}" y="${y0+8}" width="${x(A.cur.sales)-L}" height="${h-16}" rx="3" fill="var(--brand)" opacity=".85"/>`;
+  s+=`<text x="${x(A.cur.sales)+6}" y="${y0+h/2+4}" style="fill:var(--fg);font-weight:700;font-family:var(--font);font-size:12px">現状 ${fmt0(A.cur.sales)}万円</text>`;
+  const sorted=[...marks].sort((a,b)=>a.v-b.v); let lastX=-999, row=0;
+  sorted.forEach(m=>{ const xx=x(m.v); row = (xx-lastX<120)? (row+1)%2 : 0; lastX=xx;
+    s+=`<line x1="${xx}" x2="${xx}" y1="${y0-6}" y2="${y0+h+6}" stroke="${m.col}" stroke-width="3"/>`;
+    const ty = row? y0+h+24 : y0-14, anc = xx>W-150? 'end' : xx<150? 'start' : 'middle';
+    s+=`<text x="${xx}" y="${ty}" text-anchor="${anc}" style="fill:${m.col};font-weight:700;font-family:var(--font);font-size:12px">${m.lab} ${fmt0(m.v)}万円</text>`; });
+  for(let v=0; v<=max+1e-6; v+=max/5) s+=`<text x="${x(v)}" y="${140}" text-anchor="middle">${fmt0(v)}</text>`;
+  svg.innerHTML=s;
+  const gapTxt=(v)=> v==null? '—' : diff(A.cur.sales, v, '万円', 0);
+  document.getElementById('pbLineTable').innerHTML = `<tr><th>ライン</th><th class="n">月商</th><th class="n">現状との差</th><th>意味</th><th>回収月</th></tr>
+    <tr><td><b>現状</b></td><td class="n">${fmt0(A.cur.sales)}万円</td><td class="n">—</td><td>直近3か月の平均。このままのペースが続くと…</td><td>${payLabel(A,A.payNow)}</td></tr>
+    <tr><td><b style="color:var(--good)">努力値ライン</b></td><td class="n">${fmt0(A.effortS)}万円</td><td class="n">${gapTxt(A.effortS)}</td><td>各KPIを現状と目標の中間まで上げた場合。今月スタッフが狙うライン</td><td>${payLabel(A,A.payEffort)}</td></tr>
+    <tr><td><b style="color:var(--warn)">回収期限に必要</b></td><td class="n">${A.need?fmt0(A.need)+'万円':'—'}</td><td class="n">${A.need?gapTxt(A.need):'—'}</td><td>${A.needNote}。今の体制で毎月この売上が要る${A.need && A.staffNow===1 && A.need > STD.cap1*(A.cur.sales/Math.max(A.cur.visits,1))? '<div class="note" style="color:var(--bad)">1人の予約枠（125施術）では届かない水準。2人体制が前提です</div>':''}</td><td>${A.T}か月目</td></tr>
+    <tr><td><b>計画の目標</b></td><td class="n">${fmt0(A.goalS3)}万円</td><td class="n">${gapTxt(A.goalS3)}</td><td>ブランドの計画の同じ経過月の月商</td><td>${payLabel(A,A.payGoal)}（KPIをすべて目標にした場合）</td></tr>`;
+}
+
+// 回収までの道のり（実績＋このまま、回収ライン、期限）
+function pathChart(A){
+  const svg=document.getElementById('pbPathChart'), W=520,H=300,L=52,R=14,T=16,B=28;
+  const N = Math.max(48, Math.min(120, (A.payNow||120)+6));
+  const pts=A.act.map(r=>({m:r.m,cum:r.cum,inv:r.inv})), now=A.fNow.rows.filter(r=>r.m<=N);
+  const vals=[...pts.map(p=>p.cum),...now.map(r=>r.cum),...pts.map(p=>p.inv),...now.map(r=>r.inv)];
+  let ymin=Math.min(0,...vals), ymax=Math.max(...vals); const step=nice((ymax-ymin)/5); ymin=Math.floor(ymin/step)*step; ymax=Math.ceil(ymax/step)*step;
+  const x=m=>L+(m-0.5)*(W-L-R)/N, y=v=>T+(ymax-v)/(ymax-ymin)*(H-T-B), path=(arr,k)=>arr.map((r,i)=>(i?'L':'M')+x(r.m)+' '+y(r[k])).join('');
+  let s='';
+  for(let v=ymin; v<=ymax+1e-6; v+=step) s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="${v===0?1.5:1}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${fmt0(v)}</text>`;
+  const tick = N>72?24:12; for(let m=tick;m<=N;m+=tick) s+=`<text x="${x(m)}" y="${H-8}" text-anchor="middle">${m}か月</text>`;
+  if(A.T<=N) s+=`<line x1="${x(A.T)}" x2="${x(A.T)}" y1="${T}" y2="${H-B}" stroke="var(--bad)" stroke-width="1.2"/><text x="${x(A.T)+4}" y="${H-B-6}" style="fill:var(--bad);font-family:var(--font);font-size:11px">回収期限 ${A.T}か月</text>`;
+  const inv=[...pts,...now]; s+=`<path d="${path(inv,'inv')}" fill="none" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s+=`<path d="${path([{m:A.n,cum:A.cum},...now],'cum')}" fill="none" stroke="var(--warn)" stroke-width="2.2" stroke-dasharray="7 5"/>`;
+  s+=`<path d="${path(pts,'cum')}" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
+  s+=`<circle cx="${x(A.n)}" cy="${y(A.cum)}" r="4" fill="var(--accent)"/><text x="${x(A.n)+6}" y="${y(A.cum)-8}" style="fill:var(--fg);font-family:var(--font);font-size:11px">今月 ${fmt0(A.cum)}万円</text>`;
+  if(A.payNow && A.payNow<=N && A.payNow>A.n){ const r=now.find(q=>q.m===A.payNow); s+=`<circle cx="${x(A.payNow)}" cy="${y(r.cum)}" r="4.5" fill="var(--warn)"/><text x="${x(A.payNow)-6}" y="${y(r.cum)-10}" text-anchor="end" style="fill:var(--fg);font-weight:700;font-family:var(--font);font-size:11.5px">このままなら${A.payNow}か月目に回収</text>`; }
+  if(!A.payNow) s+=`<text x="${W-R}" y="${y(now.at(-1).cum)-10}" text-anchor="end" style="fill:var(--bad);font-weight:700;font-family:var(--font);font-size:11.5px">このままでは${N}か月でも回収できない</text>`;
+  svg.innerHTML=s;
+}
+// 頑張り方ごとの回収月（横棒）
+function scenChart(A){
+  const svg=document.getElementById('pbScenChart'), W=520, L=118, R=60;
+  const items=[{lab:'このまま',p:A.payNow,col:'var(--warn)'},{lab:'努力値ライン',p:A.payEffort,col:'var(--good)'},{lab:'KPIすべて目標',p:A.payGoal,col:'var(--accent)'}];
+  const max = Math.max(A.T+12, ...items.map(i=>i.p||0)); const cap=Math.min(max,120);
+  const x=v=>L+Math.min(v,cap)/cap*(W-L-R);
+  let s='';
+  items.forEach((it,i)=>{ const yy=40+i*72;
+    s+=`<text x="${L-10}" y="${yy+22}" text-anchor="end" style="fill:var(--fg);font-family:var(--font);font-size:13px;font-weight:700">${it.lab}</text>`;
+    const w = (it.p? x(it.p) : x(cap))-L;
+    s+=`<rect x="${L}" y="${yy}" width="${w}" height="34" rx="4" fill="${it.col}" opacity="${it.p?0.85:0.3}"/>`;
+    s+=`<text x="${L+w+6}" y="${yy+22}" style="fill:var(--fg);font-family:var(--font);font-size:12.5px;font-weight:700">${it.p? it.p+'か月':'10年以上'}</text>`; });
+  s+=`<line x1="${x(A.T)}" x2="${x(A.T)}" y1="26" y2="262" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${x(A.T)}" y="282" text-anchor="middle" style="fill:var(--bad);font-family:var(--font);font-size:11px">回収期限 ${A.T}か月</text>`;
+  svg.innerHTML=s;
+}
+function nice(raw){ if(raw<=0) return 1; const p=10**Math.floor(Math.log10(raw)); const f=raw/p; return (f<1.5?1:f<3?2:f<7?5:10)*p; }
+
+function kpiTable(A){
+  const L=A.last.auto, b=A.b, bm=A.bm;
+  const rows=[
+    ['店舗売上', A.cur.sales, A.goalS3, '万円', 0],
+    ['施術数', A.months3('施術数'), bm.visits, '件', 0],
+    ['新規数', A.cur.new, 20, '人', 1],
+    ['新規契約率', A.cur.rate, planRate(A.n), '%'],
+    ['回数券単価', A.cur.price, avgPrice(b.mix), '万円', 1],
+    ['再来→回数券', A.months3('再来→回数券'), bm.rc, '件', 1],
+    ['継続率（継続購入÷終了）', A.cur.cont, b.cont, '%'],
+    ['option単価（再来1人あたり）', A.cur.optPer*10000, STD.optTake*b.optPrice*10000, '円', 0]
+  ];
+  document.getElementById('pbKpiTable').innerHTML = `<tr><th>KPI（ダッシュボードの項目）</th><th class="n">現状</th><th class="n">努力値</th><th class="n">目標</th><th class="n">差（現状−目標）</th></tr>`+
+    rows.map((r,ri)=>{ const [nm,c,t,u,d]=r; const eff = ri===0? A.effortS : c==null? null : (c>=t? c : c+(t-c)/2);
+      return `<tr><td>${nm}</td><td class="n">${val(c,u,d)}</td><td class="n">${val(eff,u,d)}</td><td class="n">${val(t,u,d)}</td><td class="n">${c==null?'<span class="note">まだ発生なし</span>':diffS(c,t,u,d??1)}</td></tr>`;}).join('') +
+    `<tr><td colspan="5" class="note">差の＋は目標を上回り、−はビハインド。再アポ来店率は今のダッシュボードに項目がないため、再来→回数券から推定しています（推定 ${pct(A.cur.reapo)}）。回数券終了・継続購入はサロンボードの会計区分から追加で取る想定です。</td></tr>`;
+}
+function focusList(A){
+  const list=pickFocus(A), full=A.staffNow===1 && A.last.auto.施術数>=0.95*STD.cap1;
+  document.getElementById('pbFocusList').innerHTML = list.length? list.map((l,i)=>{
+    const eff = l.gain>0? (l.ratio>=0.95 && l.k!=='hire'? `今は目標どおり。計画どおり上げていくと回収が <b>${l.gain}か月</b> 早まる` : `目標まで上げると回収が <b>${l.gain}か月</b> 早まる`)
+            : l.gainCum>30? `回収は${payLabel(A,A.payNow)}のままだが、5年目までの累計利益が <b>${fmt0(l.gainCum)}万円</b> 増える` : '回収への影響は小さい';
+    let kdi = ACTIONS[l.k].kdi;
+    if(l.k==='new' && full) kdi = `予約枠の${pct(A.last.auto.施術数/STD.cap1)}が埋まり、新規を受けられていません。集客より2人目の稼働が先です。`;
+    if(l.k==='rate' && A.cur.new>=25 && A.cur.rate<0.2) kdi += '。新規が多いのに契約率が低いので、集客の質（クーポンと客層のずれ）も確認';
+    const diffTxt = l.k==='hire'? `${l.cur}人 ／ 目標 ${l.tg}人` : `${val(l.cur,l.unit,l.d)} ／ 目標 ${val(l.tg,l.unit,l.d)}　${diff(l.cur,l.tg,l.unit,l.d??1)}`;
+    return `<div class="gap"><div><div class="name">${i+1}. ${l.name}</div><div class="delay">${diffTxt}</div></div><div><div class="delay">${eff}</div><div style="margin-top:4px">${kdi}</div></div></div>`;}).join('')
+    : '<p class="note">大きな不足はありません。計画どおりに進んでいます。</p>';
+}
+function actionTable(A){
+  const list=pickFocus(A).slice(0,3), opts=['未着手','実行中','完了'];
+  document.getElementById('pbActionTable').innerHTML = `<tr><th>注力KPI</th><th>やること（KDI）</th><th>実行</th><th>監督</th><th>期限</th><th>成果を見る時期</th><th>状態</th></tr>`+
+    (list.length? list.map(l=>{ const a=ACTIONS[l.k], key=A.s.id+'-'+l.k,
+        st=statusOf[key] || pbActionStatus(A.s.id, l.name) || '未着手';
+      return `<tr><td><b>${l.name}</b></td><td style="white-space:normal;min-width:220px">${a.kdi}</td><td>${a.doer}</td><td>${a.boss}</td><td class="n">${addDays(a.due)}</td><td>${ymAfter(a.see)}<div class="note">${a.how}</div></td>
+      <td><select data-key="${key}" data-store="${A.s.id}" data-act="${l.name}" aria-label="状態">${opts.map(o=>`<option ${o===st?'selected':''}>${o}</option>`).join('')}</select></td></tr>`;}).join('')
+    : `<tr><td colspan="7" class="note">今月の重点アクションはありません。</td></tr>`);
+  document.querySelectorAll('#pbActionTable select').forEach(sel=>sel.addEventListener('change',e=>{
+    const key=e.target.dataset.key, v=e.target.value;
+    statusOf[key]=v;
+    pbSaveAction(e.target.dataset.store, e.target.dataset.act, v);
+  }));
+}
+
+// 月次の収支表（横＝年月、縦＝項目）
+function monthTable(A){
+  const s=A.s, M=s.months, base=A.base.rows, F=A.fNow.rows.slice(0,6);
+  const cols = M.map((x,i)=>({kind:'act', m:x.m, ym:x.ym, a:x.auto, man:x.manual, r:A.act[i], g:base[x.m-1]}))
+     .concat(F.map(r=>({kind:'fc', m:r.m, ym:ymOf(s.open,r.m), r, g:base[r.m-1]})));
+  const cell=(c,html,cls='')=>`<td class="n ${c.kind==='fc'?'fc':''} ${cls}">${html}</td>`;
+  const dcell=(c,v,t,isPct)=>{ if(v==null||t==null) return cell(c,'—'); const d=isPct?(v-t)*100:(v-t); return cell(c,`<span class="df ${d>=-1e-9?'pos':'neg'}">${d>=0?'+':'−'}${isPct?Math.abs(Math.round(d))+'pt':fmt(Math.abs(d),1)}</span>`); };
+  const g=(c,f)=> f(c);
+  const rows=[];
+  const sec=t=>rows.push(`<tr class="sec"><th class="rowh">${t}</th><td colspan="${cols.length}"></td></tr>`);
+  const row=(label,fn,tag='')=>rows.push(`<tr><th class="rowh">${label}${tag}</th>${cols.map(fn).join('')}</tr>`);
+  const AUTO=' <span class="chip neutral">自動</span>', MAN=' <span class="chip warn">手入力</span>';
+  rows.push(`<tr><th class="rowh">年月</th>${cols.map(c=>{
+    const isNow = c.ym[0]===NOW_YM[0] && c.ym[1]===NOW_YM[1];
+    return `<th class="n ${c.kind==='fc'?'fc':''}">${ymShort(c.ym)}<div class="note">${c.m}か月目${c.kind==='fc'?(isNow?'・今月の着地見込':'・見込み'):''}</div></th>`;}).join('')}</tr>`);
+  sec('売上');
+  row('店舗売上', c=>cell(c,`<b>${fmt(c.kind==='act'?c.a.店舗売上:c.r.S)}</b>`), AUTO);
+  row('　目標（計画）', c=>cell(c,fmt(c.g?c.g.S:null),'muted'));
+  row('　差（＋上回り／−ビハインド）', c=>dcell(c, c.kind==='act'?c.a.店舗売上:c.r.S, c.g?c.g.S:null));
+  row('　新規売上', c=>cell(c,fmt(c.kind==='act'?c.a.新規売上:c.r.sNew)), AUTO);
+  row('　再来売上', c=>cell(c,fmt(c.kind==='act'?c.a.再来売上:c.r.sRe)), AUTO);
+  row('　回数券売上', c=>cell(c,fmt(c.kind==='act'?c.a.回数券売上:c.r.sTicket)), AUTO);
+  row('　option売上', c=>cell(c,fmt(c.kind==='act'?c.a.option売上:c.r.sOpt)), AUTO);
+  sec('KPI');
+  row('施術数', c=>cell(c,fmt0(c.kind==='act'?c.a.施術数:c.r.visits)), AUTO);
+  row('新規数', c=>cell(c,fmt0(c.kind==='act'?c.a.新規数:c.r.nw)), AUTO);
+  row('新規→回数券', c=>cell(c,fmt0(c.kind==='act'?c.a['新規→回数券']:c.r.nc)), AUTO);
+  row('新規契約率', c=>{ const v=c.kind==='act'?(c.a.新規数?c.a['新規→回数券']/c.a.新規数:0):c.r.rate; return cell(c,pct(v)); });
+  row('　目標', c=>cell(c,pct(planRate(c.m)),'muted'));
+  row('　差', c=>dcell(c, c.kind==='act'?(c.a.新規数?c.a['新規→回数券']/c.a.新規数:0):c.r.rate, planRate(c.m), true));
+  row('回数券契約数', c=>cell(c,fmt0(c.kind==='act'?c.a.回数券契約数:c.r.all)), AUTO);
+  row('回数券単価', c=>{ const v=c.kind==='act'?(c.a.回数券契約数?c.a.回数券売上/c.a.回数券契約数:null):c.r.price; return cell(c,fmt(v)); });
+  row('再来→回数券', c=>cell(c,fmt0(c.kind==='act'?c.a['再来→回数券']:c.r.rc)), AUTO);
+  row('回数券終了', c=>cell(c,fmt0(c.kind==='act'?c.a.回数券終了:c.r.ending)), AUTO);
+  row('回数券継続購入', c=>cell(c,fmt0(c.kind==='act'?c.a.回数券継続購入:c.r.cc)), AUTO);
+  sec('体制・手入力');
+  row('スタッフ数', (c,i)=> c.kind==='act'? cell(c,`<input class="mini" type="number" min="1" max="3" step="1" value="${c.man.スタッフ数}" data-m="${c.m}" data-k="スタッフ数" aria-label="${ymLabel(c.ym)}のスタッフ数">`) : cell(c,c.r.staff), MAN);
+  row('広告費', c=> c.kind==='act'? cell(c,`<input class="mini" type="number" min="0" step="0.1" value="${c.man.広告費}" data-m="${c.m}" data-k="広告費" aria-label="${ymLabel(c.ym)}の広告費">`) : cell(c,fmt(c.r.ad)), MAN);
+  sec('支出');
+  row('家賃', c=>cell(c,fmt(c.r.rent)));
+  row('水道光熱費', c=>cell(c,fmt(c.r.light)));
+  row('人件費（インセンティブ込み）', c=>cell(c,fmt(c.r.wage)));
+  row('広告費', c=>cell(c,fmt(c.r.ad)));
+  row('ロイヤリティ', c=>cell(c,fmt(c.r.roy)));
+  row('商材費', c=>cell(c,fmt(c.r.mat)));
+  row('決済手数料', c=>cell(c,fmt(c.r.fee)));
+  row('<b>支出合計</b>', c=>cell(c,`<b>${fmt(c.r.cost)}</b>`));
+  sec('利益と回収');
+  row('<b>月の利益</b>', c=>cell(c,`<b>${fmt(c.r.P)}</b>`, c.r.P<0?'negv':''));
+  row('累計利益', c=>cell(c,fmt0(c.r.cum)));
+  row('　目標（計画の累計）', c=>cell(c,fmt0(c.g?c.g.cum:null),'muted'));
+  row('　差', c=>dcell(c, c.r.cum, c.g?c.g.cum:null));
+  row('回収ライン', c=>cell(c,fmt0(c.r.inv)));
+  row('回収まで残り', c=>cell(c,fmt0(Math.max(0,c.r.inv-c.r.cum))));
+  document.getElementById('pbMonthTable').innerHTML=rows.join('');
+  document.querySelectorAll('#pbMonthTable input').forEach(inp=>inp.addEventListener('change',e=>{
+    const m=+e.target.dataset.m, k=e.target.dataset.k, x=s.months.find(q=>q.m===m);
+    x.manual[k]=k==='スタッフ数'?Math.max(1,Math.round(+e.target.value)):+e.target.value;
+    pbSaveMonthly(s.id, x.ym, x.manual);
+    refresh();}));
+  const sc=document.getElementById('pbMonthTable').parentElement; sc.scrollLeft = sc.scrollWidth;
+}
+function settings(A){
+  const s=A.s, F=[['rent','家賃（万円／月）'],['inv','初期投資（万円）'],['highShare','上位の回数券の比率（%）'],['adFixed','広告費・固定額（万円）'],['payTarget','回収期限（か月）']];
+  document.getElementById('pbStoreSettings').innerHTML =
+    `<label for="st_open">オープン年月（2025-04 の形）<input id="st_open" type="text" value="${s.openInput||''}" data-k="openYm" placeholder="未入力なら2026-01から"></label>`+
+    F.map(([k,l])=>`<label for="st_${k}">${l}<input id="st_${k}" type="number" step="1" value="${s.set[k]}" data-k="${k}"></label>`).join('')+
+    `<label for="st_ad">広告費の決め方<select id="st_ad" data-k="adMode"><option value="fixed" ${s.set.adMode==='fixed'?'selected':''}>毎月の固定額</option><option value="rule" ${s.set.adMode==='rule'?'selected':''}>月商130万円超で15%</option></select></label>`+
+    `<label for="st_hs">採用活動の開始月（経過月・未開始は空欄）<input id="st_hs" type="number" min="1" step="1" value="${s.set.hireStartM||''}" data-k="hireStartM"></label>`+
+    `<label for="st_hire">2人目の採用<select id="st_hire" data-k="allowHire"><option value="1" ${s.set.allowHire?'selected':''}>施術80超で採用する</option><option value="0" ${!s.set.allowHire?'selected':''}>採用しない（オーナー判断）</option></select></label>`;
+  document.querySelectorAll('#pbStoreSettings input,#pbStoreSettings select').forEach(el=>el.addEventListener('change',e=>{
+    const k=e.target.dataset.k;
+    if (k==='openYm') { s.openInput = e.target.value; }
+    else s.set[k]= k==='adMode'? e.target.value : k==='allowHire'? e.target.value==='1' : k==='hireStartM'? (e.target.value?+e.target.value:null) : +e.target.value;
+    pbSaveFinance(s);
+    refresh();}));
+}
+function refresh(){
+  ANALYSIS = STORES.map(analyze);
+  renderList();
+  if(ANALYSIS.length && !ANALYSIS.some(A=>A.s.id===current)) current = ANALYSIS[0].s.id;
+  if(!document.getElementById('pb-store').hidden && current) renderStore();
+}
+
+function show(v){
+  ['list','store','sim'].forEach(k=>{ document.getElementById('pb-'+k).hidden = k!==v; });
+  document.querySelectorAll('.pbtabs button').forEach(b=>b.setAttribute('aria-selected', b.dataset.pbview===v));
+  if(v==='store' && current) renderStore();
+  if(v==='sim' && typeof window.pbRenderSim === 'function') window.pbRenderSim();
+}
+document.querySelectorAll('.pbtabs button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.pbview)));
+
+// ▼ ダッシュボードの④タブから呼ぶ入口
+window.renderPaybackPage = function(opts){
+  const built = pbBuildStores();
+  STORES = built.stores;
+  pbRenderNotice(built);
+  if (opts && opts.store) current = opts.store;
+  if (!STORES.length) {
+    document.getElementById('pbStoreTable').innerHTML = '';
+    document.getElementById('pbListSummary').innerHTML = '';
+    document.getElementById('pbInvestList').innerHTML = '<p class="note">出せる店舗がありません。</p>';
+    return;
+  }
+  refresh();
+  show(opts && opts.store ? 'store' : 'list');
+};
+window.pbOpenStore = function(store){ current = store; show('store'); };
+})();
+
+
+} catch(e){ console.warn('投資回収ボードを出せません', e); }
 </script>
 <style>
 #chatFab{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#667eea,#a78bfa);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(102,126,234,.45);z-index:9998}
