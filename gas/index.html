@@ -308,6 +308,51 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 #paybackView .pbtabs button{border:0;background:none;font:inherit;font-weight:700;color:var(--muted);padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
 #paybackView .pbtabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
 #paybackView{display:block}
+/* ============================================================
+ *  ⑤会計の入れ方（54a。スタッフに配るPDFと同じ中身）
+ * ============================================================ */
+.bk-wrap{margin-bottom:20px}
+.bk-head{font-size:17px;font-weight:800;color:#1a1a2e;display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;margin-bottom:6px}
+.bk-head-sub{font-size:12px;font-weight:600;color:#8a90a6}
+.bk-basics{background:#eef2ff;border:1.5px solid #c7d2fe;border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.bk-basics-title{font-size:13.5px;font-weight:800;color:#3730a3;margin-bottom:8px}
+.bk-basics ol{margin:0;padding-left:20px}
+.bk-basics li{font-size:13px;color:#1e1b4b;line-height:1.9;margin:3px 0}
+.bk-toc{background:#fff;border:1.5px solid #eaeaf4;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.bk-toc-title{font-size:12px;font-weight:800;color:#8a90a6;margin-bottom:8px}
+.bk-toc-ch{font-size:13px;font-weight:700;color:#1a1a2e;margin:6px 0 2px}
+.bk-toc-links{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.bk-toc-link{font-size:12px;font-weight:600;color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;
+  border-radius:999px;padding:3px 10px;cursor:pointer}
+.bk-toc-link:hover{background:#c7d2fe}
+.bk-ch{font-size:15px;font-weight:800;color:#1a1a2e;margin:18px 0 8px;padding-left:8px;
+  border-left:4px solid #4f46e5}
+.bk-card{background:#fff;border:1.5px solid #eaeaf4;border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  scroll-margin-top:90px}
+.bk-card-no{display:inline-block;font-size:11px;font-weight:800;color:#fff;background:#4f46e5;
+  border-radius:6px;padding:2px 7px;margin-right:8px}
+.bk-card-title{font-size:14px;font-weight:800;color:#1a1a2e;display:inline}
+.bk-card-lead{font-size:12.5px;color:#5d6b66;margin:6px 0 10px;line-height:1.8}
+.bk-table{width:100%;border-collapse:collapse;font-size:13px}
+.bk-table th{font-size:11px;font-weight:700;color:#8a90a6;background:#f7f8fc;text-align:left;
+  padding:6px 10px;border-bottom:1px solid #eaeaf4;white-space:nowrap}
+.bk-table td{padding:7px 10px;border-bottom:1px solid #f2f3f8;vertical-align:top;line-height:1.7}
+.bk-table tr:last-child td{border-bottom:0}
+.bk-tag{display:inline-block;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 9px;white-space:nowrap}
+.bk-tag.coupon{background:#dbeafe;color:#1d4ed8}
+.bk-tag.keiyaku{background:#fee2e2;color:#dc2626}
+.bk-tag.shouka{background:#d1fae5;color:#047857}
+.bk-tag.opt{background:#ede9fe;color:#6d28d9}
+.bk-tag.svc{background:#f1f3f5;color:#5b6472}
+.bk-menu{font-weight:600;color:#1a1a2e}
+.bk-amt{font-family:'SF Mono',Consolas,monospace;font-size:12.5px;color:#444}
+.bk-note{margin-top:9px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;
+  padding:7px 11px;font-size:12.5px;color:#92400e;line-height:1.8}
+@media(max-width:600px){
+  .bk-table th:nth-child(3),.bk-table td:nth-child(3){white-space:normal}
+  .bk-card{padding:12px 13px}
+}
 .kz-alert{background:#fff7ed;border:1.5px solid #fdba74;border-radius:12px;padding:12px 14px;margin:10px 0 16px}
 .kz-alert-title{font-size:13px;font-weight:800;color:#c2410c;margin-bottom:4px}
 .kz-alert-body{font-size:12.5px;color:#7c2d12;line-height:1.7}
@@ -8111,6 +8156,148 @@ function cmpCriteriaInner(group, peers, overs, line) {
 }
 
 /** ⑤「会計の入れ方・判定の基準」のページ */
+
+/* ============================================================
+ *  ⑤会計の入れ方（54a。スタッフに配るPDF「回数券の会計のしかた」と同じ中身）
+ *   カード1枚＝1つの場面。色分けは クーポン=青／契約=赤／消化=緑／
+ *   オプション・店販=紫／サービス=灰。
+ * ============================================================ */
+const BK_TAG = { 'クーポン':'coupon', '契約':'keiyaku', '消化':'shouka',
+                 'オプション':'opt', '店販':'opt', 'サービス':'svc' };
+const BK_BASICS = [
+  '<b>回数券を使う日は「消化」メニュー</b>：メニュー名が「消化」で始まるメニューで会計します。残金や都度払いのお金も、この行に金額を入れます。',
+  '<b>回数券を買う日だけ「契約」メニュー</b>：メニュー名が「契約」で始まるメニューです。残金や都度払いには使いません。',
+  '<b>0円のサービス行で、今の状態を1つ入れる</b>：回数券（新規）・（消化）・（終了）・（継続）・（追加）のどれかを入れます。「※消化中」などが付いた長い名前のものを選びます。',
+  '<b>契約した日の施術は「消化」にしない</b>：回数券を買ったその日の施術は、クーポンや通常メニューで入れます。'
+];
+const BK_CHAPTERS = [
+  { no:'1', title:'契約（はじめて回数券を買うとき）', cards:[
+    { id:'1-1', title:'新規のお客様が、全額を一括で払って契約',
+      lead:'初回来店で、回数券の代金を全額その日に受け取るとき。',
+      rows:[['クーポン','今日のクーポンメニュー','クーポン料金'],
+            ['契約','契約【回数券の名前】','受け取った全額'],
+            ['サービス','回数券（新規）※初めて契約','0円']] },
+    { id:'1-2', title:'新規のお客様が、頭金だけ払って契約',
+      lead:'初回来店で、頭金だけ受け取り、残りはあとで払ってもらうとき。',
+      rows:[['クーポン','今日のクーポンメニュー','クーポン料金'],
+            ['契約','契約【回数券の名前】','受け取った頭金'],
+            ['サービス','回数券（新規）※初めて契約','0円']],
+      note:'残りのお金は、消化の日に「消化」メニューで受け取ります（2-2）。' },
+    { id:'1-3', title:'再アポのお客様（回数券を持っていない2回目以降）が契約',
+      lead:'回数券を持っていないお客様が再来店して、契約したとき。',
+      rows:[['クーポン','今日のクーポン（または通常メニュー）','料金'],
+            ['契約','契約【回数券の名前】','受け取った金額'],
+            ['サービス','回数券（新規）※初めて契約','0円']],
+      note:'契約した日の施術は「消化」メニューにしません。' }
+  ]},
+  { no:'2', title:'消化（回数券を使うとき）', cards:[
+    { id:'2-1', title:'代金を払い終わっていて、お金を受け取らない',
+      lead:'回数券の代金をすでに全額もらっているお客様が、施術を受けるとき。',
+      rows:[['消化','消化【回数券の名前】','0円'],
+            ['サービス','回数券（消化）※消化中','0円']] },
+    { id:'2-2', title:'消化の日に、残金を受け取る',
+      lead:'頭金で契約したお客様から、残りのお金を受け取るとき。',
+      rows:[['消化','消化【回数券の名前】','受け取った残金'],
+            ['サービス','回数券（消化）※消化中','0円']],
+      note:'残金は「契約」メニューではなく、「消化」メニューに金額を入れます。' },
+    { id:'2-3', title:'消化の日に、都度払いを受け取る',
+      lead:'1回ごとに払ってもらう約束のお客様から、その日の分を受け取るとき。',
+      rows:[['消化','消化【回数券の名前】','受け取った金額'],
+            ['サービス','回数券（消化）※消化中','0円']],
+      note:'都度払いも「契約」メニューではなく、「消化」メニューに金額を入れます。' },
+    { id:'2-4', title:'消化の日に、オプションや商品も買った',
+      lead:'回数券の施術に、オプションを付けたり商品を買ったりしたとき。',
+      rows:[['消化','消化【回数券の名前】','0円（または残金・都度払い）'],
+            ['オプション','オプションのメニュー','オプション料金'],
+            ['店販','商品','商品の金額'],
+            ['サービス','回数券（消化）※消化中','0円']] }
+  ]},
+  { no:'3', title:'終了（回数券を使い切って、今回は買わないとき）', cards:[
+    { id:'3-1', title:'最後の1回を消化して、次の回数券は買わない',
+      lead:'回数券が今日で終わり、続けて買わなかったとき。',
+      rows:[['消化','消化【回数券の名前】','0円（または残金・都度払い）'],
+            ['サービス','回数券（終了）※消化して継続購入なし','0円']],
+      note:'最後の1回は、「消化中」ではなく「終了」の目印を入れます。' }
+  ]},
+  { no:'4', title:'継続（回数券を使い切って、次の回数券を買うとき）', cards:[
+    { id:'4-1', title:'最後の1回を消化して、その日に次の回数券を契約',
+      lead:'回数券が今日で終わり、続けて新しい回数券を買ったとき。',
+      rows:[['消化','消化【今の回数券の名前】','0円（または残金・都度払い）'],
+            ['契約','契約【新しい回数券の名前】','受け取った金額'],
+            ['サービス','回数券（継続）※消化し終わり再購入','0円']],
+      note:'「消化」メニューも必ず入れます。「契約」メニューだけにしません。' },
+    { id:'4-2', title:'回数券が終わったあと、別の日にあらためて買った',
+      lead:'終了した日には買わず、後日来店して新しい回数券を買ったとき。',
+      rows:[['クーポン','今日のクーポン（または通常メニュー）','料金'],
+            ['契約','契約【新しい回数券の名前】','受け取った金額'],
+            ['サービス','回数券（新規）※初めて契約','0円']],
+      note:'終了した日には「終了」の目印を入れておきます（3-1）。この日は、回数券を持っていないお客様の契約（1-3）と同じ入れ方です。' }
+  ]},
+  { no:'5', title:'追加（回数券が残っているうちに、買い足すとき）', cards:[
+    { id:'5-1', title:'回数券を使いながら、追加で回数券を買った',
+      lead:'まだ回数券が残っているお客様が、追加で回数券を買ったとき。',
+      rows:[['消化','消化【今の回数券の名前】','0円（または残金・都度払い）'],
+            ['契約','契約【追加する回数券の名前】','受け取った金額'],
+            ['サービス','回数券（追加）※消化中で追加購入','0円']],
+      note:'「消化」メニューも必ず入れます。' }
+  ]},
+  { no:'6', title:'その他', cards:[
+    { id:'6-1', title:'会計を間違えたとき', lead:'入力した会計の内容が違っていたとき。', rows:[],
+      note:'サロンボードの「取り消し」で会計を取り消してから、正しい内容で入れ直します。会計を消して作り直さないでください。' },
+    { id:'6-2', title:'回数券の解約・返金', lead:'お客様から解約や返金の申し出があったとき。', rows:[],
+      note:'会計を入れる前に、担当SVに相談してください。' }
+  ]}
+];
+
+/* ⑤の上半分：会計の入れ方（54a）。スタッフに配るPDFと同じ中身 */
+function renderBookingGuideHtml() {
+  let h = '<div class="bk-wrap">';
+  h += '<div class="bk-head">🧾 回数券の会計のしかた'
+     + '<span class="bk-head-sub">スタッフに配るPDFと同じ中身です。1枚＝1つの場面</span></div>';
+  // まず覚える4つのこと
+  h += '<div class="bk-basics"><div class="bk-basics-title">まず覚える4つのこと</div><ol>'
+     + BK_BASICS.map(function(t){ return '<li>' + t + '</li>'; }).join('')
+     + '</ol></div>';
+  // 目次
+  h += '<div class="bk-toc"><div class="bk-toc-title">目次（押すとその場面に飛びます）</div>'
+     + BK_CHAPTERS.map(function(ch){
+         return '<div class="bk-toc-ch">' + ch.no + '. ' + ch.title + '</div>'
+           + '<div class="bk-toc-links">'
+           + ch.cards.map(function(c){
+               return '<span class="bk-toc-link" onclick="bkJump(\'' + c.id + '\')">'
+                 + c.id + ' ' + c.title + '</span>';
+             }).join('')
+           + '</div>';
+       }).join('')
+     + '</div>';
+  // 本文
+  BK_CHAPTERS.forEach(function(ch){
+    h += '<div class="bk-ch">' + ch.no + '. ' + ch.title + '</div>';
+    ch.cards.forEach(function(c){
+      h += '<div class="bk-card" id="bk-' + c.id + '">'
+        + '<div><span class="bk-card-no">' + c.id + '</span>'
+        + '<span class="bk-card-title">' + c.title + '</span></div>'
+        + (c.lead ? '<div class="bk-card-lead">' + c.lead + '</div>' : '');
+      if (c.rows && c.rows.length) {
+        h += '<table class="bk-table"><thead><tr><th>入れるもの</th><th>メニュー・サービス</th><th>金額</th></tr></thead><tbody>'
+          + c.rows.map(function(r){
+              return '<tr><td><span class="bk-tag ' + (BK_TAG[r[0]] || 'svc') + '">' + r[0] + '</span></td>'
+                + '<td class="bk-menu">' + r[1] + '</td><td class="bk-amt">' + r[2] + '</td></tr>';
+            }).join('')
+          + '</tbody></table>';
+      }
+      if (c.note) h += '<div class="bk-note">⚠️ ' + c.note + '</div>';
+      h += '</div>';
+    });
+  });
+  h += '</div>';
+  return h;
+}
+function bkJump(id) {
+  const el = document.getElementById('bk-' + id);
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderManualPage() {
   const el = document.getElementById('manualBody');
   if (!el) return;
@@ -8119,13 +8306,7 @@ function renderManualPage() {
   try { board = buildIssueBoard(month); } catch (e) {}
   const weeks = trkWeeks(month);
 
-  let h = '<div class="page-ph" style="margin-bottom:16px">'
-        + '<span class="page-ph-badge">会計の入れ方は段階7で入ります</span>'
-        + '<p>サロンボードの会計のしかた（ケース別）と、入れた目印がダッシュボードのどの数字になるかの'
-        + '早見表が入ります。中身はCoworkから受け取ります。</p>'
-        + '<div class="ph-note">移行が済むまでは、Coworkが作ったドキュメントを見てください。'
-        + '<a href="https://claude.ai/artifact/6evcU4fzBED1GEkuDGgfUe" target="_blank" rel="noopener">'
-        + '売上明細のサービス項目 早見表</a></div></div>';
+  let h = renderBookingGuideHtml();
 
   h += '<div class="crit-page">';
   h += '<div class="crit-page-head">📐 判定の基準（' + (MONTH_MAP[month] || month) + '時点）'
@@ -9760,6 +9941,8 @@ function pbBuildStores(){
       id: st, name: (typeof dispName === 'function') ? dispName(st) : st,
       brand: brand, open: open, openInput: cfg.openYm ? (cfg.openYm.slice(0,4) + '-' + cfg.openYm.slice(4)) : '',
       hasInput: cfg.has,
+      // ▼ オープン年月が未入力だと経過月が分からないので、計画との比較とフェーズは出さない
+      noOpen: !cfg.openYm,
       story: (cfg.has ? '入力済み' : '未入力') + (prov.length ? '／' + prov.join('・') : ''),
       prov: prov,
       set: cfg.set,
@@ -9802,8 +9985,9 @@ function pbRenderNotice(built){
     + '累計利益も2026年1月からの積み上げです（BM会計の店は3月から）。<br>'
     + '判定は<b>' + mLabel(built.lastYm) + 'までの確定月</b>で行い、今月（' + mLabel(built.nowYm) + '）は'
     + (built.running ? '着地見込として別に出します（判定には入れていません）。' : 'この月までが確定です。')
-    + '<br>そのため<b>2026年1月より前に稼いだ分は累計利益に入っていません。'
-    + '開店が古い店ほど、回収が実際より遠く出ます。</b>'
+    + '<br><b>2025年以前の売上がまだ入っていないため、回収予測は参考です。</b>'
+    + '2026年1月より前に稼いだ分は累計利益に入っていないので、開店が古い店ほど回収が遠く出ます。'
+    + '（過去分の売上明細を取り込む作業を進めています）'
     + '<br>スタッフ数は、自動では<b>2人まで</b>で計算しています'
     + '（ボードの計算が1〜2人体制を前提にしているため）。違うときは月次の表で上書きしてください。'
     + (noInput ? '<br><b>家賃・初期投資が未入力の店が ' + noInput + '店</b>あります。'
@@ -9950,6 +10134,8 @@ function diff(curV, tgV, unit, d=1){
 const diffS=(c,t,unit,d=1)=>{ const isPct=unit==='%', dv=isPct?(c-t)*100:c-t; return `<span class="df ${dv>=-1e-9?'pos':'neg'}">${dv>=0?'+':'−'}${isPct?Math.abs(Math.round(dv))+'pt':fmt(Math.abs(dv),d)+unit}</span>`; };
 const val=(v,unit,d=1)=> v==null||isNaN(v)?'—' : unit==='%'? pct(v) : unit==='人'? fmt(v,d)+'人' : fmt(v,d)+unit;
 
+// オープン年月が無いと出せないもの（計画との比較・フェーズ）の代わりに出す文
+const PB_NO_OPEN = '<span class="note">オープン年月を入れると表示されます</span>';
 const ACTIONS = {
   new:{kdi:'HPBの画像・記載とクーポンの見直し、口コミ返信', doer:'本部（新規集客チーム）', boss:'担当SV', due:14, see:1, how:'翌月の新規数'},
   rate:{kdi:'週1回のロープレをチェックリストで採点し、録画で振り返る', doer:'スタッフ', boss:'オーナー（採点）／担当SV（確認）', due:7, see:1, how:'4週間後の新規契約率'},
@@ -9965,16 +10151,19 @@ const statusOf = {};
 
 function renderList(){
   const rows = ANALYSIS.map(A=>{
-    const [c,l]=stat(A.progress), top=pickFocus(A)[0], late=A.phase<A.bmPhase;
+    const [c,l]=stat(A.progress), top=pickFocus(A)[0], late=A.phase<A.bmPhase, no=A.s.noOpen;
     return `<tr data-id="${A.s.id}" class="${A.s.hasInput?'':'pb-noinput'}"><td><b>${A.s.name}</b><div class="note">${A.s.story}</div></td><td><span class="brandname" style="--brand:var(--${A.s.brand==='Lift'?'lift':'belle'})">${BRAND[A.s.brand].label}</span></td>
-      <td class="n">${A.n}か月目</td><td>${A.phaseName}${late?`<div class="note">計画では「${A.bmPhaseName}」</div>`:''}</td><td class="n">${A.staffNow}人</td>
-      <td class="n">${fmt0(A.cur.sales)}万円</td><td class="n">${fmt0(A.goalS3)}万円</td><td class="n">${diff(A.cur.sales,A.goalS3,'万円',0)}<div>${chip(c,l)}</div></td>
+      <td class="n">${no?'—':A.n+'か月目'}</td><td>${no?PB_NO_OPEN:A.phaseName+(late?`<div class="note">計画では「${A.bmPhaseName}」</div>`:'')}</td><td class="n">${A.staffNow}人</td>
+      <td class="n">${fmt0(A.cur.sales)}万円</td><td class="n">${no?'—':fmt0(A.goalS3)+'万円'}</td><td class="n">${no?'—':diff(A.cur.sales,A.goalS3,'万円',0)+`<div>${chip(c,l)}</div>`}</td>
       <td class="n">${fmt0(A.cum)}／${fmt0(A.inv)}万円<div class="note">残り ${fmt0(Math.max(0,A.inv-A.cum))}万円</div></td><td>${payLabel(A,A.payNow)}<div class="note">努力値なら ${payLabel(A,A.payEffort)}</div></td>
       <td>${top?`${top.name}<div class="note">${top.gain>0?'回収が'+top.gain+'か月早まる':'5年目までの利益 +'+fmt0(top.gainCum)+'万円'}</div>`:'—'}</td></tr>`; }).join('');
   document.getElementById('pbStoreTable').innerHTML = `<tr><th>店舗</th><th>ブランド</th><th class="n">経過</th><th>フェーズ</th><th class="n">体制</th><th class="n">月商の現状<br>（直近3か月）</th><th class="n">月商の目標</th><th class="n">差</th><th class="n">累計利益／回収ライン</th><th>回収予測（このまま）</th><th>最優先の注力</th></tr>`+rows;
   document.querySelectorAll('#pbStoreTable tr[data-id]').forEach(tr=>tr.addEventListener('click',()=>{ current=tr.dataset.id; show('store'); }));
-  const cnt=k=>ANALYSIS.filter(A=>stat(A.progress)[0]===k).length;
-  document.getElementById('pbListSummary').innerHTML = `<div class="kpi"><span class="l">達成ペース</span><span class="v" style="color:var(--good)">${cnt('good')}<small>店</small></span></div><div class="kpi"><span class="l">ややビハインド</span><span class="v" style="color:var(--warn)">${cnt('warn')}<small>店</small></span></div><div class="kpi"><span class="l">ビハインド</span><span class="v" style="color:var(--bad)">${cnt('bad')}<small>店</small></span></div>`;
+  // 進み具合は、オープン年月が入っている店だけで数える
+  const cnt=k=>ANALYSIS.filter(A=>!A.s.noOpen && stat(A.progress)[0]===k).length;
+  const noOpenN=ANALYSIS.filter(A=>A.s.noOpen).length;
+  document.getElementById('pbListSummary').innerHTML = `<div class="kpi"><span class="l">達成ペース</span><span class="v" style="color:var(--good)">${cnt('good')}<small>店</small></span></div><div class="kpi"><span class="l">ややビハインド</span><span class="v" style="color:var(--warn)">${cnt('warn')}<small>店</small></span></div><div class="kpi"><span class="l">ビハインド</span><span class="v" style="color:var(--bad)">${cnt('bad')}<small>店</small></span></div>`
+    + (noOpenN? `<div class="kpi"><span class="l">オープン年月 未入力</span><span class="v" style="color:var(--muted)">${noOpenN}<small>店</small></span><span class="s">計画との比較は出せません</span></div>`:'');
   document.getElementById('pbInvestList').innerHTML = ANALYSIS.map(A=>{ const v=invest(A); return `<div class="gap"><div><div class="name">${A.s.name}</div>${chip(v.c,v.label)}</div><div>${v.text}</div></div>`; }).join('');
 }
 function invest(A){
@@ -9995,8 +10184,11 @@ function renderStore(){
   const [c,l]=stat(A.progress), v=invest(A);
   const payCol = A.payNow&&A.payNow<=A.T?'var(--good)':A.payNow&&A.payNow<=A.T+12?'var(--warn)':'var(--bad)';
   document.getElementById('pbStoreKpis').innerHTML = `
-    <div class="kpi"><span class="l">フェーズ</span><span class="v" style="font-size:19px">${A.phaseName}</span><span class="s">${A.n}か月目・${A.staffNow}人体制${A.phase<A.bmPhase?`<br>計画では「${A.bmPhaseName}」`:''}</span></div>
-    <div class="kpi"><span class="l">月商　現状 → 目標</span><span class="v" style="font-size:21px">${fmt0(A.cur.sales)}<small>→</small>${fmt0(A.goalS3)}<small>万円</small></span><span class="s">${diff(A.cur.sales,A.goalS3,'万円',0)} ${chip(c,l)}</span></div>
+    ${A.s.noOpen
+      ? `<div class="kpi"><span class="l">フェーズ</span><span class="v" style="font-size:15px;color:var(--muted)">—</span><span class="s">${PB_NO_OPEN}<br>${A.staffNow}人体制</span></div>
+         <div class="kpi"><span class="l">月商（直近3か月）</span><span class="v" style="font-size:21px">${fmt0(A.cur.sales)}<small>万円</small></span><span class="s">${PB_NO_OPEN}</span></div>`
+      : `<div class="kpi"><span class="l">フェーズ</span><span class="v" style="font-size:19px">${A.phaseName}</span><span class="s">${A.n}か月目・${A.staffNow}人体制${A.phase<A.bmPhase?`<br>計画では「${A.bmPhaseName}」`:''}</span></div>
+         <div class="kpi"><span class="l">月商　現状 → 目標</span><span class="v" style="font-size:21px">${fmt0(A.cur.sales)}<small>→</small>${fmt0(A.goalS3)}<small>万円</small></span><span class="s">${diff(A.cur.sales,A.goalS3,'万円',0)} ${chip(c,l)}</span></div>`}
     <div class="kpi"><span class="l">回収まで残り</span><span class="v" style="font-size:21px">${fmt0(Math.max(0,A.inv-A.cum))}<small>万円</small></span><span class="s">累計利益 ${fmt0(A.cum)}／回収ライン ${fmt0(A.inv)}万円</span></div>
     <div class="kpi"><span class="l">回収予測（このまま）</span><span class="v" style="font-size:19px;color:${payCol}">${payLabel(A,A.payNow)}</span><span class="s">回収期限 ${A.T}か月目・追加投資：${v.label}</span></div>
     ${pbThisMonthKpi(A)}`;
@@ -10006,7 +10198,8 @@ function renderStore(){
 // 今月の売上ライン（ブレットチャート）
 function lineBullet(A){
   const svg=document.getElementById('pbLineBullet'), W=960, L=24, R=24, y0=56, h=34;
-  const marks=[{k:'effort',lab:'努力値ライン',v:A.effortS,col:'var(--good)'},{k:'need',lab:'回収期限に必要',v:A.need,col:'var(--warn)'},{k:'goal',lab:'計画の目標',v:A.goalS3,col:'var(--fg)'}].filter(m=>m.v!=null&&m.v>0);
+  const marks=[{k:'effort',lab:'努力値ライン',v:A.effortS,col:'var(--good)'},{k:'need',lab:'回収期限に必要',v:A.need,col:'var(--warn)'},
+    {k:'goal',lab:'計画の目標',v:A.s.noOpen?null:A.goalS3,col:'var(--fg)'}].filter(m=>m.v!=null&&m.v>0);
   const max = nice(Math.max(A.cur.sales,...marks.map(m=>m.v))*1.12/5)*5;
   const x=v=>L+v/max*(W-L-R);
   let s=`<rect x="${L}" y="${y0}" width="${W-L-R}" height="${h}" rx="4" fill="var(--soft)"/>`;
@@ -10024,7 +10217,9 @@ function lineBullet(A){
     <tr><td><b>現状</b></td><td class="n">${fmt0(A.cur.sales)}万円</td><td class="n">—</td><td>直近3か月の平均。このままのペースが続くと…</td><td>${payLabel(A,A.payNow)}</td></tr>
     <tr><td><b style="color:var(--good)">努力値ライン</b></td><td class="n">${fmt0(A.effortS)}万円</td><td class="n">${gapTxt(A.effortS)}</td><td>各KPIを現状と目標の中間まで上げた場合。今月スタッフが狙うライン</td><td>${payLabel(A,A.payEffort)}</td></tr>
     <tr><td><b style="color:var(--warn)">回収期限に必要</b></td><td class="n">${A.need?fmt0(A.need)+'万円':'—'}</td><td class="n">${A.need?gapTxt(A.need):'—'}</td><td>${A.needNote}。今の体制で毎月この売上が要る${A.need && A.staffNow===1 && A.need > STD.cap1*(A.cur.sales/Math.max(A.cur.visits,1))? '<div class="note" style="color:var(--bad)">1人の予約枠（125施術）では届かない水準。2人体制が前提です</div>':''}</td><td>${A.T}か月目</td></tr>
-    <tr><td><b>計画の目標</b></td><td class="n">${fmt0(A.goalS3)}万円</td><td class="n">${gapTxt(A.goalS3)}</td><td>ブランドの計画の同じ経過月の月商</td><td>${payLabel(A,A.payGoal)}（KPIをすべて目標にした場合）</td></tr>`;
+    ${A.s.noOpen
+      ? `<tr><td><b>計画の目標</b></td><td class="n">—</td><td class="n">—</td><td colspan="2">${PB_NO_OPEN}</td></tr>`
+      : `<tr><td><b>計画の目標</b></td><td class="n">${fmt0(A.goalS3)}万円</td><td class="n">${gapTxt(A.goalS3)}</td><td>ブランドの計画の同じ経過月の月商</td><td>${payLabel(A,A.payGoal)}（KPIをすべて目標にした場合）</td></tr>`}`;
 }
 
 // 回収までの道のり（実績＋このまま、回収ライン、期限）
@@ -10066,19 +10261,23 @@ function nice(raw){ if(raw<=0) return 1; const p=10**Math.floor(Math.log10(raw))
 
 function kpiTable(A){
   const L=A.last.auto, b=A.b, bm=A.bm;
+  const no=A.s.noOpen;   // 計画（経過月）から出している目標は、オープン年月が無いと出せない
   const rows=[
-    ['店舗売上', A.cur.sales, A.goalS3, '万円', 0],
-    ['施術数', A.months3('施術数'), bm.visits, '件', 0],
+    ['店舗売上', A.cur.sales, no?null:A.goalS3, '万円', 0],
+    ['施術数', A.months3('施術数'), no?null:bm.visits, '件', 0],
     ['新規数', A.cur.new, 20, '人', 1],
-    ['新規契約率', A.cur.rate, planRate(A.n), '%'],
-    ['回数券単価', A.cur.price, avgPrice(b.mix), '万円', 1],
-    ['再来→回数券', A.months3('再来→回数券'), bm.rc, '件', 1],
+    ['新規契約率', A.cur.rate, no?null:planRate(A.n), '%'],
+    ['回数券単価', A.cur.price, avgPrice(pbMix(A.s.brand)), '万円', 1],
+    ['再来→回数券', A.months3('再来→回数券'), no?null:bm.rc, '件', 1],
     ['継続率（継続購入÷終了）', A.cur.cont, b.cont, '%'],
     ['option単価（再来1人あたり）', A.cur.optPer*10000, STD.optTake*b.optPrice*10000, '円', 0]
   ];
   document.getElementById('pbKpiTable').innerHTML = `<tr><th>KPI（ダッシュボードの項目）</th><th class="n">現状</th><th class="n">努力値</th><th class="n">目標</th><th class="n">差（現状−目標）</th></tr>`+
-    rows.map((r,ri)=>{ const [nm,c,t,u,d]=r; const eff = ri===0? A.effortS : c==null? null : (c>=t? c : c+(t-c)/2);
-      return `<tr><td>${nm}</td><td class="n">${val(c,u,d)}</td><td class="n">${val(eff,u,d)}</td><td class="n">${val(t,u,d)}</td><td class="n">${c==null?'<span class="note">まだ発生なし</span>':diffS(c,t,u,d??1)}</td></tr>`;}).join('') +
+    rows.map((r,ri)=>{ const [nm,c,t,u,d]=r;
+      const eff = ri===0? A.effortS : (c==null||t==null)? null : (c>=t? c : c+(t-c)/2);
+      const tgtTxt = t==null? (c==null?'—':PB_NO_OPEN) : val(t,u,d);
+      const dTxt = c==null? '<span class="note">まだ発生なし</span>' : (t==null? '—' : diffS(c,t,u,d??1));
+      return `<tr><td>${nm}</td><td class="n">${val(c,u,d)}</td><td class="n">${val(eff,u,d)}</td><td class="n">${tgtTxt}</td><td class="n">${dTxt}</td></tr>`;}).join('') +
     `<tr><td colspan="5" class="note">差の＋は目標を上回り、−はビハインド。`
     + (A.cur.reapoFromData
         ? `再アポ来店率は ${pct(A.cur.reapo)}（新規で契約しなかった人が90日以内にまた来た割合。お客様名で突き合わせた実績。直近3か月はまだ増える途中なので、それより前の月で見ています）。`
@@ -10129,8 +10328,10 @@ function monthTable(A){
     return `<th class="n ${c.kind==='fc'?'fc':''}">${ymShort(c.ym)}<div class="note">${c.m}か月目${c.kind==='fc'?(isNow?'・今月の着地見込':'・見込み'):''}</div></th>`;}).join('')}</tr>`);
   sec('売上');
   row('店舗売上', c=>cell(c,`<b>${fmt(c.kind==='act'?c.a.店舗売上:c.r.S)}</b>`), AUTO);
-  row('　目標（計画）', c=>cell(c,fmt(c.g?c.g.S:null),'muted'));
-  row('　差（＋上回り／−ビハインド）', c=>dcell(c, c.kind==='act'?c.a.店舗売上:c.r.S, c.g?c.g.S:null));
+  if(!s.noOpen){
+    row('　目標（計画）', c=>cell(c,fmt(c.g?c.g.S:null),'muted'));
+    row('　差（＋上回り／−ビハインド）', c=>dcell(c, c.kind==='act'?c.a.店舗売上:c.r.S, c.g?c.g.S:null));
+  }
   row('　新規売上', c=>cell(c,fmt(c.kind==='act'?c.a.新規売上:c.r.sNew)), AUTO);
   row('　再来売上', c=>cell(c,fmt(c.kind==='act'?c.a.再来売上:c.r.sRe)), AUTO);
   row('　回数券売上', c=>cell(c,fmt(c.kind==='act'?c.a.回数券売上:c.r.sTicket)), AUTO);
@@ -10140,8 +10341,10 @@ function monthTable(A){
   row('新規数', c=>cell(c,fmt0(c.kind==='act'?c.a.新規数:c.r.nw)), AUTO);
   row('新規→回数券', c=>cell(c,fmt0(c.kind==='act'?c.a['新規→回数券']:c.r.nc)), AUTO);
   row('新規契約率', c=>{ const v=c.kind==='act'?(c.a.新規数?c.a['新規→回数券']/c.a.新規数:0):c.r.rate; return cell(c,pct(v)); });
-  row('　目標', c=>cell(c,pct(planRate(c.m)),'muted'));
-  row('　差', c=>dcell(c, c.kind==='act'?(c.a.新規数?c.a['新規→回数券']/c.a.新規数:0):c.r.rate, planRate(c.m), true));
+  if(!s.noOpen){
+    row('　目標', c=>cell(c,pct(planRate(c.m)),'muted'));
+    row('　差', c=>dcell(c, c.kind==='act'?(c.a.新規数?c.a['新規→回数券']/c.a.新規数:0):c.r.rate, planRate(c.m), true));
+  }
   row('回数券契約数', c=>cell(c,fmt0(c.kind==='act'?c.a.回数券契約数:c.r.all)), AUTO);
   row('回数券単価', c=>{ const v=c.kind==='act'?(c.a.回数券契約数?c.a.回数券売上/c.a.回数券契約数:null):c.r.price; return cell(c,fmt(v)); });
   row('再来→回数券', c=>cell(c,fmt0(c.kind==='act'?c.a['再来→回数券']:c.r.rc)), AUTO);
@@ -10162,8 +10365,10 @@ function monthTable(A){
   sec('利益と回収');
   row('<b>月の利益</b>', c=>cell(c,`<b>${fmt(c.r.P)}</b>`, c.r.P<0?'negv':''));
   row('累計利益', c=>cell(c,fmt0(c.r.cum)));
-  row('　目標（計画の累計）', c=>cell(c,fmt0(c.g?c.g.cum:null),'muted'));
-  row('　差', c=>dcell(c, c.r.cum, c.g?c.g.cum:null));
+  if(!s.noOpen){
+    row('　目標（計画の累計）', c=>cell(c,fmt0(c.g?c.g.cum:null),'muted'));
+    row('　差', c=>dcell(c, c.r.cum, c.g?c.g.cum:null));
+  }
   row('回収ライン', c=>cell(c,fmt0(c.r.inv)));
   row('回収まで残り', c=>cell(c,fmt0(Math.max(0,c.r.inv-c.r.cum))));
   document.getElementById('pbMonthTable').innerHTML=rows.join('');
