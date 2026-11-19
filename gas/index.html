@@ -626,6 +626,11 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 /* ▼ 継続率の注記 */
 .keizoku-fixnote{font-size:10px;font-weight:600;color:#b45309;background:#fffbeb;border:1px solid #fcd34d;
   border-radius:6px;padding:1px 6px;margin-left:8px;white-space:nowrap}
+/* 2026年1月より前の月に付ける「参考値」の印（2026-11-19）*/
+.ref-tag{font-size:10px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
+  border-radius:6px;padding:1px 6px;margin-left:8px;white-space:nowrap}
+.ref-note{font-size:12px;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;
+  border-radius:8px;padding:8px 10px;margin:8px 0;line-height:1.6}
 /* 旧 .staff-metrics は後方互換のため残す（未使用） */
 .staff-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 @media(max-width:600px){.staff-metrics{grid-template-columns:repeat(3,1fr)}}
@@ -1900,6 +1905,8 @@ body.mobile .side-menu-overlay{display:block!important}
         <button class="detail-jump-btn" onclick="jumpFromDetail('payback')">💰 投資回収</button>
       </div>
       <div class="detail-note" id="dStoreNote" style="display:none"></div>
+      <!-- 2026年1月より前の月を見ているときのひとこと（2026-11-19）-->
+      <div class="ref-note" id="dRefMonthNote" style="display:none"></div>
 
       <div class="kgi-bar">
         <div class="kgi-bar-top">
@@ -2608,6 +2615,35 @@ const PW = "Lime0201";
 const MONTH_MAP = {};
 for(let y=2025;y<=2026;y++) for(let m=1;m<=12;m++){MONTH_MAP[y+(m<10?'0':'')+m]=m+'月';}
 
+/* ============================================================
+ *  参考値（2026年1月より前の月）  2026-11-19 キム兄さんの回答①
+ *    過去分の売上明細を取り込むと、2025年以前の月も画面に出るようになる。
+ *    当時の会計の入れ方が今と違うので（「継続購入なし」の文言や都度払いの入れ方）、
+ *    契約率・再アポ・継続は「参考値」として出す。
+ *    売上・施術数・新規数は、そのまま使ってよい。
+ *    境目は data.json の reference_until_ym（GASの REFERENCE_UNTIL_YM＝202512）。
+ * ============================================================ */
+const REF_UNTIL_DEFAULT = '202512';
+function refUntilYm(){
+  try{
+    const v = (typeof DATA !== 'undefined' && DATA && DATA.reference_until_ym)
+      ? String(DATA.reference_until_ym) : '';
+    return /^[0-9]{6}$/.test(v) ? v : REF_UNTIL_DEFAULT;
+  }catch(e){ return REF_UNTIL_DEFAULT; }
+}
+/** その月は参考値か（2026年1月より前か） */
+function isRefMonth(ym){
+  const m = String(ym || '').replace(/[^0-9]/g, '');
+  return m.length === 6 && m <= refUntilYm();
+}
+/** 見出しの横に付ける小さな印 */
+function refTag(ym){ return isRefMonth(ym) ? '<span class="ref-tag">参考値</span>' : ''; }
+const REF_NOTE_TEXT = '当時の会計の入れ方が今と違うため、<b>契約率・再アポ・継続は参考値</b>です'
+                    + '（売上・施術数・新規数はそのまま使えます）';
+function refFixnote(ym){
+  return isRefMonth(ym) ? '<span class="keizoku-fixnote">参考値：' + REF_NOTE_TEXT + '</span>' : '';
+}
+
 let curYear   = (()=>{const yrs=[...new Set(DATA.months.map(m=>m.slice(0,4)))].sort();return yrs[yrs.length-1]||'2026';})();
 let curMonth  = (()=>{const m=[...DATA.months].sort();return m[m.length-1]||'202603';})();
 let curPerson = "全店舗";
@@ -3125,6 +3161,9 @@ async function fetchData(){
     DATA.target_name_issues    = json.target_name_issues||[];
     DATA.store_type_switch     = json.store_type_switch||{};
     DATA.store_note            = json.store_note||{};
+    // ▼ 参考値の境目と、焼き込んだ過去分の月（2026-11-19）
+    DATA.reference_until_ym    = json.reference_until_ym||'';
+    DATA.legacy_months         = json.legacy_months||[];
     // ▼ Limeからの仕入れ（依頼35）
     DATA.shozai_purchase       = json.shozai_purchase||{};
     DATA.shozai_name_issues    = json.shozai_name_issues||[];
@@ -4497,13 +4536,13 @@ function renderMainKpiRow(fstores, md, month){
       '<div class="main-kpi-row mk-collapse-body"'+mkBodyAttr('hq')+'>'+row1+'</div>'+
     '</div>'+
     '<div class="mk-section">'+
-      mkCollapseHead('store','店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span>')+
+      mkCollapseHead('store','店舗KPI<span class="mk-section-tag">'+n+'店舗 / 実績・目標・着地</span>'+refFixnote(month))+
       '<div class="mk-collapse-body"'+mkBodyAttr('store')+'>'+
         grp('store-total',  'g-sales',  '① 全体',          '8指標', gTotal)+
-        grp('store-new',    'g-new',    '② 新規',          '7指標', gNew)+
-        grp('store-reappo', 'g-reappo', '③ 再アポ<span class="keizoku-fixnote">11/17に数え方を変更（再来・消化なしの会計）</span>', '7指標', gReappo)+
-        grp('store-keizoku','g-keizoku','④ 継続<span class="keizoku-fixnote">11/5に計算を修正（それ以前の継続率は高く出ていました）／11/17に継続契約数を追加（目印が無くても数える）</span>', '11指標', gKeizoku)+
-        grp('store-nr',     'g-nr',     '⑤ 新規＋再アポ',  '3指標', gNR)+
+        grp('store-new',    'g-new',    '② 新規'+refTag(month),          '7指標', gNew)+
+        grp('store-reappo', 'g-reappo', '③ 再アポ'+refTag(month)+'<span class="keizoku-fixnote">11/17に数え方を変更（再来・消化なしの会計）</span>', '7指標', gReappo)+
+        grp('store-keizoku','g-keizoku','④ 継続'+refTag(month)+'<span class="keizoku-fixnote">11/5に計算を修正（それ以前の継続率は高く出ていました）／11/17に継続契約数を追加（目印が無くても数える）</span>', '11指標', gKeizoku)+
+        grp('store-nr',     'g-nr',     '⑤ 新規＋再アポ'+refTag(month),  '3指標', gNR)+
         grp('store-other',  'g-sales',  '⑥ その他の売上',  '4指標', gOther)+
         grp('store-shozai', 'g-nr',     '📦 Limeからの仕入れ', (shozaiMib>0?'7指標':'6指標'), gShozai)+
       '</div>'+
@@ -5980,6 +6019,19 @@ function showDetail(store,d,tgt){
     const note = (DATA.store_note||{})[store] || '';
     if(note){ noteEl.textContent = 'ℹ️ ' + note; noteEl.style.display=''; }
     else { noteEl.style.display='none'; noteEl.textContent=''; }
+  }
+
+  // ▼ 2026年1月より前の月を見ているときは「参考値」と出す（2026-11-19）
+  const refMonthEl = document.getElementById('dRefMonthNote');
+  if(refMonthEl){
+    if(isRefMonth(curMonth)){
+      refMonthEl.innerHTML = '📌 ' + (MONTH_MAP[curMonth]||curMonth) + 'は過去分の取り込み（2026年1月より前）です。'
+                           + REF_NOTE_TEXT;
+      refMonthEl.style.display = '';
+    } else {
+      refMonthEl.style.display = 'none';
+      refMonthEl.innerHTML = '';
+    }
   }
 
   // 推移・構成分析チャート（メインKPI下と同じ3カードを1店舗ぶんで描画）
@@ -9729,7 +9781,18 @@ let STORES = [];
 //   ・判定は「前月までの確定月」。今月は着地見込として別に見せる
 //   ・ロイヤリティは店ごとの実際の額（直営は0）
 // ============================================================
-const PB_FIRST_YM   = '202601';
+// 累計利益をどの月から積むか。
+//   過去分（2025年以前）を取り込むまでは2026年1月から。
+//   取り込みが終わってデータに古い月が入ったら、自動でそこから積む（2026-11-19）。
+const PB_BASE_FIRST_YM = '202601';
+function pbFirstYm(){
+  try{
+    const D = (typeof DATA !== 'undefined' && DATA.data) ? DATA.data : {};
+    const ms = Object.keys(D).filter(function(m){ return D[m] && Object.keys(D[m]).length; }).sort();
+    const first = ms.length ? ms[0] : PB_BASE_FIRST_YM;
+    return (first < PB_BASE_FIRST_YM) ? first : PB_BASE_FIRST_YM;
+  }catch(e){ return PB_BASE_FIRST_YM; }
+}
 const PB_DEF_RENT   = 22;                         // 家賃の仮の値（万円）
 const PB_DEF_INV    = { Belle: 885, Lift: 775 };  // 初期投資の仮の値（万円）
 const PB_DEF_HIGH   = { Belle: 50,  Lift: 40 };   // 上位回数券の比率（%）
@@ -9851,7 +9914,7 @@ function pbBuildStores(){
   NOW_YM = pbYmArr(nowYm);
   TODAY  = new Date();
 
-  const months = all.filter(function(y){ return y >= PB_FIRST_YM && y <= lastYm; });
+  const months = all.filter(function(y){ return y >= pbFirstYm() && y <= lastYm; });
   const stores = [];
   const skipped = [];
   const list = (DATA.stores || []).filter(function(st){
@@ -9980,14 +10043,23 @@ function pbRenderNotice(built){
   const asOf = document.getElementById('pbAsOf');
   if (asOf) asOf.textContent = mLabel(built.lastYm) + 'まで';
   const noInput = built.stores.filter(function(s){ return !s.hasInput; }).length;
+  // 過去分（2025年以前）が入ったかどうかで、お知らせを切り替える（2026-11-19）
+  const pbFirst = pbFirstYm();
+  const pbHasPast = (pbFirst < PB_BASE_FIRST_YM);
   let h = '<div class="pb-notice">'
-    + '<b>2026年1月より前のデータは入っていません。</b>'
-    + '累計利益も2026年1月からの積み上げです（BM会計の店は3月から）。<br>'
+    + (pbHasPast
+        ? '<b>過去分（' + mLabel(pbFirst) + '〜）も取り込み済みです。</b>'
+          + '累計利益はその月からの積み上げです。'
+          + 'ただし2026年1月より前は当時の会計の入れ方が違うので、'
+          + '契約率・再アポ・継続は<b>参考値</b>です（売上・施術数・新規数はそのまま使えます）。<br>'
+        : '<b>2026年1月より前のデータは入っていません。</b>'
+          + '累計利益も2026年1月からの積み上げです（BM会計の店は3月から）。<br>')
     + '判定は<b>' + mLabel(built.lastYm) + 'までの確定月</b>で行い、今月（' + mLabel(built.nowYm) + '）は'
     + (built.running ? '着地見込として別に出します（判定には入れていません）。' : 'この月までが確定です。')
-    + '<br><b>2025年以前の売上がまだ入っていないため、回収予測は参考です。</b>'
-    + '2026年1月より前に稼いだ分は累計利益に入っていないので、開店が古い店ほど回収が遠く出ます。'
-    + '（過去分の売上明細を取り込む作業を進めています）'
+    + (pbHasPast ? ''
+        : '<br><b>2025年以前の売上がまだ入っていないため、回収予測は参考です。</b>'
+          + '2026年1月より前に稼いだ分は累計利益に入っていないので、開店が古い店ほど回収が遠く出ます。'
+          + '（過去分の売上明細を取り込む作業を進めています）')
     + '<br>スタッフ数は、自動では<b>2人まで</b>で計算しています'
     + '（ボードの計算が1〜2人体制を前提にしているため）。違うときは月次の表で上書きしてください。'
     + (noInput ? '<br><b>家賃・初期投資が未入力の店が ' + noInput + '店</b>あります。'
@@ -10325,7 +10397,10 @@ function monthTable(A){
   const AUTO=' <span class="chip neutral">自動</span>', MAN=' <span class="chip warn">手入力</span>';
   rows.push(`<tr><th class="rowh">年月</th>${cols.map(c=>{
     const isNow = c.ym[0]===NOW_YM[0] && c.ym[1]===NOW_YM[1];
-    return `<th class="n ${c.kind==='fc'?'fc':''}">${ymShort(c.ym)}<div class="note">${c.m}か月目${c.kind==='fc'?(isNow?'・今月の着地見込':'・見込み'):''}</div></th>`;}).join('')}</tr>`);
+    // 2026年1月より前の月は「参考値」と添える（2026-11-19）
+    const ymKey = String(c.ym[0]) + ('0' + c.ym[1]).slice(-2);
+    const refMk = (c.kind==='act' && isRefMonth(ymKey)) ? '・参考値' : '';
+    return `<th class="n ${c.kind==='fc'?'fc':''}">${ymShort(c.ym)}<div class="note">${c.m}か月目${c.kind==='fc'?(isNow?'・今月の着地見込':'・見込み'):''}${refMk}</div></th>`;}).join('')}</tr>`);
   sec('売上');
   row('店舗売上', c=>cell(c,`<b>${fmt(c.kind==='act'?c.a.店舗売上:c.r.S)}</b>`), AUTO);
   if(!s.noOpen){

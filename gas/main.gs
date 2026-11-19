@@ -173,6 +173,151 @@ function buildTargetMonths_(back, today) {
 
 const TARGET_MONTHS = buildTargetMonths_(TARGET_MONTHS_BACK);
 
+// ============================================================
+//  過去分（2025年以前）の取り込み（2026-11-19 依頼：11/18の回答①②）
+//
+//  毎日の更新は今までどおり「今月から過去24か月」だけを読む。
+//  GASは1回6分までなので、ここを36か月に広げると毎日の更新が落ちるおそれがある。
+//  そこで過去分は、手で1回だけ bakeLegacyActual('202507','202512') のように走らせ、
+//  結果をドライブの legacy_actual.json に置いておく。
+//  毎日の更新（exportToGitHub → buildData）は、その結果を読んで足すだけなので重くならない。
+//
+//  2026年1月より前は、当時の会計の入れ方が今と違う（「継続購入なし」の文言や
+//  都度払いの入れ方）。売上・施術数・新規数はそのまま使い、
+//  契約率・再アポ・継続は画面で「参考値」と出す。
+// ============================================================
+
+// 読みにいく月を、実行中だけ差し替える箱（普段は null）。
+//   TARGET_MONTHS そのものは変えない。焼き込みのときだけ入れて、必ず戻す。
+let MONTHS_OVERRIDE = null;
+
+/** いま読みにいく月の一覧（古い順） */
+function targetMonths_() { return MONTHS_OVERRIDE || TARGET_MONTHS; }
+
+const LEGACY_ACTUAL_FILE = 'legacy_actual.json';   // ドライブに置く焼き込み結果
+const REFERENCE_UNTIL_YM = '202512';               // この月までは参考値として出す
+
+/** fromYm〜toYm（YYYYMM）を古い順に並べる。読めなければ空 */
+function monthsBetween_(fromYm, toYm) {
+  const a = String(fromYm || '').replace(/[^0-9]/g, '');
+  const b = String(toYm || fromYm || '').replace(/[^0-9]/g, '');
+  if (a.length !== 6 || b.length !== 6) return [];
+  const from = (a <= b) ? a : b;
+  const to   = (a <= b) ? b : a;
+  const out = [];
+  let y = parseInt(from.slice(0, 4), 10);
+  let m = parseInt(from.slice(4, 6), 10);
+  for (let guard = 0; guard < 240; guard++) {
+    const ym = String(y) + ('0' + m).slice(-2);
+    out.push(ym);
+    if (ym >= to) break;
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
+  }
+  return out;
+}
+
+/** 焼き込んである過去分（月→店→数字）。無ければ {} */
+function readLegacyActual_() {
+  try {
+    const txt = webappReadFile_(LEGACY_ACTUAL_FILE);
+    if (!txt) return {};
+    const obj = JSON.parse(txt);
+    return (obj && typeof obj === 'object') ? obj : {};
+  } catch (e) {
+    Logger.log('⚠️ 過去分（' + LEGACY_ACTUAL_FILE + '）を読めません: ' + e);
+    return {};
+  }
+}
+
+function writeLegacyActual_(obj) {
+  return webappSaveFile_(LEGACY_ACTUAL_FILE, JSON.stringify(obj));
+}
+
+/**
+ * 毎日の更新で読まない古い月を、焼き込んだ結果から足す。
+ *   normalized_actual は書き換えず、足したものを返す。
+ *   すでに中身がある月（スプシから読めた月）は上書きしない。
+ * 戻り値: { data: 月→店→数字, months: 足した月の一覧 }
+ */
+function mergeLegacyActual_(normalized) {
+  const out = {};
+  Object.keys(normalized || {}).forEach(function (m) { out[m] = normalized[m]; });
+  const added = [];
+  const legacy = readLegacyActual_();
+  Object.keys(legacy).forEach(function (m) {
+    const have = out[m] && Object.keys(out[m]).length;
+    if (have) return;
+    if (!legacy[m] || !Object.keys(legacy[m]).length) return;
+    out[m] = legacy[m];
+    added.push(m);
+  });
+  added.sort();
+  return { data: out, months: added };
+}
+
+/**
+ * 過去分を集計して焼き込む（手で1回ずつ走らせる）。
+ *   例）bakeLegacyActual('202507', '202512')
+ *
+ *   ★6分の制限があるので、一度に6か月までにしてください。
+ *     走らせる前に、その月のタブ（YYYYMM_実績 / YYYYMM_実績_BM）が
+ *     スプシに入っていること（backfill.py で取り込み済み）を確かめてください。
+ */
+function bakeLegacyActual(fromYm, toYm) {
+  const months = monthsBetween_(fromYm, toYm);
+  if (!months.length) {
+    Logger.log('❌ 月の指定が読めません（例：bakeLegacyActual("202507","202512")）');
+    return;
+  }
+  if (months.length > 12) {
+    Logger.log('❌ 一度に多すぎます（' + months.length + 'か月）。6か月ずつにしてください');
+    return;
+  }
+  const t0 = Date.now();
+  Logger.log('📦 過去分を集計します: ' + months.join(', '));
+  MONTHS_OVERRIDE = months;
+  let built = null;
+  try {
+    built = buildData(null, false);
+  } finally {
+    MONTHS_OVERRIDE = null;     // 失敗しても必ず戻す（戻さないと毎日の更新が狂う）
+  }
+  const store = readLegacyActual_();
+  let got = 0;
+  months.forEach(function (m) {
+    const rec = built && built.actual_data ? built.actual_data[m] : null;
+    if (rec && Object.keys(rec).length) {
+      store[m] = rec;
+      got++;
+      Logger.log('  ' + m + ' … ' + Object.keys(rec).length + '店');
+    } else {
+      delete store[m];
+      Logger.log('  ' + m + ' … 中身がありません（タブが無いか空）');
+    }
+  });
+  writeLegacyActual_(store);
+  Logger.log('✅ 焼き込みました（' + got + 'か月 / ' + Math.round((Date.now() - t0) / 1000) + '秒）'
+             + ' いま入っている月: ' + Object.keys(store).sort().join(', '));
+}
+
+/** いま何が焼き込まれているか見る */
+function legacyActualStatus() {
+  const store = readLegacyActual_();
+  const ms = Object.keys(store).sort();
+  if (!ms.length) { Logger.log('焼き込みはまだありません'); return; }
+  ms.forEach(function (m) {
+    Logger.log(m + ' … ' + Object.keys(store[m]).length + '店');
+  });
+  Logger.log('合計 ' + ms.length + 'か月（' + ms[0] + '〜' + ms[ms.length - 1] + '）');
+}
+
+/** 焼き込みを消す（やり直したいとき） */
+function clearLegacyActual() {
+  writeLegacyActual_({});
+  Logger.log('焼き込みを空にしました');
+}
+
 const BLOCK      = 12;
 const N_BLOCKS   = 40;
 const DATA_START = 4; // 0始まりで行4（Excel行5）
@@ -778,6 +923,12 @@ function buildData(since, targetsOnly) {
     ? { purchase: {}, name_issues: [], kubun: {} }
     : buildShozai_(since, shozaiShorts);
 
+  // ▼ 毎日の更新で読まない古い月を、焼き込んだ結果から足す（2026-11-19）
+  //   焼き込みのとき（MONTHS_OVERRIDE あり）は足さない。自分の結果を読み戻してしまうため。
+  const legacyMerged = (MONTHS_OVERRIDE || targetsOnly)
+    ? { data: normalized_actual, months: [] }
+    : mergeLegacyActual_(normalized_actual);
+
   return {
     updated_at:            new Date().toISOString(),
     persons:               personOrder,   // 店舗一覧D列の担当者（旧SS_KAMELのタブ名は参照しない）
@@ -793,7 +944,11 @@ function buildData(since, targetsOnly) {
     store_hpb_url:         hu_short,
     store_hpb_data:        readHpbCache(),
     targets:               targets,
-    actual_data:           normalized_actual,
+    actual_data:           legacyMerged.data,
+    // ▼ 過去分（2025年以前）。当時の会計の入れ方が今と違うので、画面では
+    //   契約率・再アポ・継続に「参考値」と添える（売上・施術数・新規数はそのまま使う）
+    reference_until_ym:    REFERENCE_UNTIL_YM,
+    legacy_months:         legacyMerged.months,
     // 直営/加盟などが未入力の新店。ダッシュボードの一番上に出す
     // 店舗一覧スプシ（店舗一覧タブ）へのリンク。お知らせのボタンから開く
     master_url:            master_url,
@@ -1050,7 +1205,7 @@ function buildBrandBreakdown_(since) {
   const sbRepSales = {};
   try {
     const ssSalon = getSS('SS_SALON');
-    TARGET_MONTHS.forEach(function (month) {
+    targetMonths_().forEach(function (month) {
       if (since && month < since) return;
       const sheet = ssSalon ? ssSalon.getSheetByName(month + '_実績') : null;
       if (!sheet) return;
@@ -1095,7 +1250,7 @@ function buildBrandBreakdown_(since) {
   // ── ⑤ 組み立て ──
   Object.keys(pagesByShort).forEach(function (short) {
     const pages = pagesByShort[short];
-    TARGET_MONTHS.forEach(function (month) {
+    targetMonths_().forEach(function (month) {
       if (since && month < since) return;
       let any = false;
       const perBrand = {};
@@ -1221,7 +1376,7 @@ function getActualDataBM(ss, royalty_pattern, since, typeSwitch) {
     return parseFloat(v.toString().replace(/[¥円, ]/g, '')) || 0;
   }
 
-  TARGET_MONTHS.forEach(function(month) {
+  targetMonths_().forEach(function(month) {
     if (since && month < since) return;
     const sheet = ss.getSheetByName(month + '_実績_BM');
     if (!sheet) return;
@@ -1687,7 +1842,7 @@ function getActualData(ss, fullNamesSet, listSheet, royalty_pattern, since, type
   //   別の人どうしを割っていて意味がはっきりしなかったので作り直した。
   const reappoRecover = {};
 
-  TARGET_MONTHS.forEach(function(month) {
+  targetMonths_().forEach(function(month) {
     if (since && month < since) return;
     const sheet = ss.getSheetByName(month + '_実績');
     if (!sheet) return;
@@ -2441,7 +2596,7 @@ function getDirectTargets(since) {
   const targets = {};
   const r = DIRECT_ROWS;
 
-  TARGET_MONTHS.forEach(function(month) {
+  targetMonths_().forEach(function(month) {
     if (since && month < since) return;
     const sheet = ssDirect.getSheetByName(month);
     if (!sheet) return;
