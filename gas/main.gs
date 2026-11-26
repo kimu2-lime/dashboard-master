@@ -318,6 +318,206 @@ function clearLegacyActual() {
   Logger.log('焼き込みを空にしました');
 }
 
+// ============================================================
+//  回数券の価格表（2026-11-27 依頼57の1章）
+//
+//  「店舗の課題（今月の達成プラン）」の提案に使う回数券の名前と価格。
+//  正はキム兄さんのスプシ1か所だけ。ドライブのチラシ（PDF・画像）は読まない。
+//
+//    スプシ … 「回数券価格表（ダッシュボード用）」／シート「回数券価格表」
+//    列     … ブランド／区分／コース／回数／価格（税込・円）／1回あたり（円）／
+//             達成プランに使う／メモ
+//
+//  ・列の位置で決め打ちしない。「ブランド」と書いてある見出しの行を探して、
+//    見出しの名前で列を決める（列が増えても並びが変わっても動く）
+//  ・「達成プランに使う」が TRUE の行だけを data.json に入れる
+//    （キム兄さんが TRUE/FALSE を変えれば、次の更新から提案も変わる）
+//  ・空の行（ブランドの区切り）、最後の「使い方：…」の行、価格が数字でない行は飛ばす
+//  ・読めなかったときは、前回ドライブに控えた表を使い、読めなかったことを画面に出す
+// ============================================================
+const SS_KAISUKEN_PRICE_FALLBACK_ID = '12S_LysojyEwsjzuJdcK_T1yD2lkmoEz0TXj3izZMdOk';
+const KAISUKEN_PRICE_TAB  = '回数券価格表';
+const KAISUKEN_PRICE_FILE = 'kaisuken_price.json';   // 読めなかったとき用の控え
+// 区分がこれなら、回数券の名前に区分を付けない（レディースが既定の商品）
+const KAISUKEN_PLAIN_KUBUN = 'レディース';
+
+/** 価格表のスプシを開く。プロパティ SS_KAISUKEN_PRICE があればそちらを使う */
+function getKaisukenPriceSS_() {
+  const id = PropertiesService.getScriptProperties().getProperty('SS_KAISUKEN_PRICE');
+  return SpreadsheetApp.openById(id || SS_KAISUKEN_PRICE_FALLBACK_ID);
+}
+
+/** 「134,400」「¥134,400」「134400」→ 134400。数字にならなければ null */
+function kaisukenNum_(v) {
+  if (v === '' || v == null) return null;
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  const t = String(v).replace(/[,，\s¥円]/g, '');
+  if (!/^-?[0-9]+(\.[0-9]+)?$/.test(t)) return null;
+  const n = parseFloat(t);
+  return isFinite(n) ? n : null;
+}
+
+/** 「達成プランに使う」の判定。チェックボックス（true）でも文字（TRUE/○）でもOK */
+function kaisukenIsTrue_(v) {
+  if (v === true) return true;
+  if (v === false || v == null || v === '') return false;
+  const t = String(v).trim().toUpperCase();
+  return t === 'TRUE' || t === '1' || t === 'YES' || t === '○' || t === 'はい';
+}
+
+/**
+ * 回数券の名前を作る（依頼57 1-7）。
+ *   「コース＋回数＋回券」。区分がレディース以外なら（区分）を付ける。
+ *   メモに「物販付き」とあれば（物販付き）を付ける。
+ *   コース名にもう回数が入っているもの（LABOの「2回コース」など）はそのまま。
+ */
+function kaisukenName_(course, times, kubun, memo) {
+  const c = String(course || '').trim();
+  let name = /[0-9０-９]\s*回/.test(c) ? c : (c + String(times) + '回券');
+  const k = String(kubun || '').trim();
+  if (k && k !== KAISUKEN_PLAIN_KUBUN) name += '（' + k + '）';
+  if (String(memo || '').indexOf('物販付き') >= 0) name += '（物販付き）';
+  return name;
+}
+
+/**
+ * 価格表を読む。読めたら { ok:true, by_brand:{...}, rows_total, rows_used }。
+ * 読めなければ { ok:false, error:'...' }。
+ */
+function readKaisukenPrices_() {
+  let rows;
+  try {
+    const sh = getKaisukenPriceSS_().getSheetByName(KAISUKEN_PRICE_TAB);
+    if (!sh) return { ok: false, error: 'シート「' + KAISUKEN_PRICE_TAB + '」がありません' };
+    rows = sh.getDataRange().getValues();
+  } catch (e) {
+    return { ok: false, error: 'スプシを開けません: ' + e };
+  }
+  if (!rows || rows.length < 2) return { ok: false, error: '中身がありません' };
+
+  // ── 見出しの行を探す（「ブランド」と「コース」が同じ行にあるところ）──
+  let hrow = -1;
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const line = rows[i].map(function (v) { return String(v == null ? '' : v); });
+    const hasB = line.some(function (t) { return t.indexOf('ブランド') >= 0; });
+    const hasC = line.some(function (t) { return t.indexOf('コース') >= 0; });
+    if (hasB && hasC) { hrow = i; break; }
+  }
+  if (hrow < 0) return { ok: false, error: '見出しの行（ブランド／コース）が見つかりません' };
+
+  // ── 見出しの名前で列を決める（位置は決め打ちしない）──
+  const col = { brand: -1, kubun: -1, course: -1, times: -1, price: -1, per: -1, use: -1, memo: -1 };
+  rows[hrow].forEach(function (v, idx) {
+    const t = String(v == null ? '' : v).trim();
+    if (!t) return;
+    if (col.brand  < 0 && t.indexOf('ブランド') >= 0) col.brand  = idx;
+    else if (col.kubun  < 0 && t.indexOf('区分')   >= 0) col.kubun  = idx;
+    else if (col.course < 0 && t.indexOf('コース') >= 0) col.course = idx;
+    else if (col.times  < 0 && t.indexOf('回数')   >= 0) col.times  = idx;
+    else if (col.use    < 0 && t.indexOf('達成プラン') >= 0) col.use = idx;
+    else if (col.per    < 0 && t.indexOf('1回あたり') >= 0) col.per = idx;
+    else if (col.per    < 0 && t.indexOf('１回あたり') >= 0) col.per = idx;
+    else if (col.price  < 0 && t.indexOf('価格')   >= 0) col.price  = idx;
+    else if (col.memo   < 0 && t.indexOf('メモ')   >= 0) col.memo   = idx;
+  });
+  if (col.brand < 0 || col.course < 0 || col.price < 0 || col.times < 0) {
+    return { ok: false, error: '列（ブランド／コース／回数／価格）が見つかりません' };
+  }
+
+  const by_brand = {};
+  let total = 0, used = 0;
+  const seen = {};
+  for (let i = hrow + 1; i < rows.length; i++) {
+    const r = rows[i];
+    const brand = String(r[col.brand] == null ? '' : r[col.brand]).trim();
+    if (!brand) continue;                                  // ブランドの区切りの空行
+    if (brand.indexOf('使い方') >= 0) continue;            // 最後の説明の行
+    const price = kaisukenNum_(r[col.price]);
+    if (price == null || price <= 0) continue;             // 価格が数字でない行
+    total++;
+    if (col.use >= 0 && !kaisukenIsTrue_(r[col.use])) continue;   // TRUEの行だけ使う
+    const times  = kaisukenNum_(r[col.times]) || 0;
+    const course = String(r[col.course] == null ? '' : r[col.course]).trim();
+    const kubun  = col.kubun >= 0 ? String(r[col.kubun] == null ? '' : r[col.kubun]).trim() : '';
+    const memo   = col.memo  >= 0 ? String(r[col.memo]  == null ? '' : r[col.memo]).trim()  : '';
+    const name   = kaisukenName_(course, times, kubun, memo);
+    const key    = brand + '|' + name + '|' + price;
+    if (seen[key]) continue;                               // 同じものが2行あっても1つにする
+    seen[key] = true;
+    if (!by_brand[brand]) by_brand[brand] = [];
+    by_brand[brand].push({
+      name:   name,
+      price:  Math.round(price),
+      times:  Math.round(times),
+      course: course,
+      kubun:  kubun,
+      buppan: memo.indexOf('物販付き') >= 0
+    });
+    used++;
+  }
+  // 安い順にそろえておく（画面での並べ替えを減らす）
+  Object.keys(by_brand).forEach(function (b) {
+    by_brand[b].sort(function (x, y) { return x.price - y.price; });
+  });
+  if (!used) return { ok: false, error: '「達成プランに使う」がTRUEの行がありません' };
+  return { ok: true, by_brand: by_brand, rows_total: total, rows_used: used };
+}
+
+/**
+ * 画面に渡す形にして返す。読めなかったときは前回の控えを使う。
+ *   { by_brand, read_at:'YYYY-MM-DD', rows_total, rows_used, brands:[], fallback:bool, error:'' }
+ */
+function buildKaisukenPrices_() {
+  const today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+  const got = readKaisukenPrices_();
+  if (got.ok) {
+    const out = {
+      by_brand:   got.by_brand,
+      brands:     Object.keys(got.by_brand).sort(),
+      read_at:    today,
+      rows_total: got.rows_total,
+      rows_used:  got.rows_used,
+      fallback:   false,
+      error:      ''
+    };
+    webappSaveFile_(KAISUKEN_PRICE_FILE, JSON.stringify(out));
+    Logger.log('💳 回数券価格表: ' + out.rows_used + '行／' + out.rows_total + '行（'
+               + out.brands.join('・') + '）');
+    return out;
+  }
+  Logger.log('⚠️ 回数券価格表を読めません: ' + got.error);
+  // 前回の控えを使う（いつの表かを画面に出す）
+  try {
+    const txt = webappReadFile_(KAISUKEN_PRICE_FILE);
+    if (txt) {
+      const old = JSON.parse(txt);
+      if (old && old.by_brand && Object.keys(old.by_brand).length) {
+        old.fallback = true;
+        old.error = got.error;
+        Logger.log('　→ ' + old.read_at + 'の控えを使います');
+        return old;
+      }
+    }
+  } catch (e) {
+    Logger.log('⚠️ 控えも読めません: ' + e);
+  }
+  return { by_brand: {}, brands: [], read_at: '', rows_total: 0, rows_used: 0,
+           fallback: true, error: got.error };
+}
+
+/** 手で中身を確かめるもの（GASエディタから実行する） */
+function kaisukenPriceStatus() {
+  const p = buildKaisukenPrices_();
+  if (p.fallback) Logger.log('⚠️ 今は読めていません（' + p.error + '）／控え: ' + (p.read_at || 'なし'));
+  Object.keys(p.by_brand).sort().forEach(function (b) {
+    Logger.log('── ' + b + '（' + p.by_brand[b].length + '件）');
+    p.by_brand[b].forEach(function (t) {
+      Logger.log('   ' + t.name + '  ' + t.price.toLocaleString() + '円');
+    });
+  });
+  Logger.log('合計 ' + p.rows_used + '件 / 価格のある行 ' + p.rows_total + '行（読んだ日 ' + p.read_at + '）');
+}
+
 const BLOCK      = 12;
 const N_BLOCKS   = 40;
 const DATA_START = 4; // 0始まりで行4（Excel行5）
@@ -968,6 +1168,10 @@ function buildData(since, targetsOnly) {
     // 今月まだ仕入れていない加盟店／仕入れが少ない加盟店
     shozai_alerts:         targetsOnly ? { month: '', no_purchase: [], low: [], median_per_treatment: 0 }
                                        : buildShozaiAlerts_(shozai.purchase, normalized_actual, st_short, store_closed_month),
+    // ▼ 回数券の価格表（依頼57）。達成プランの提案に使う。TRUEの行だけ入っている
+    kaisuken_prices:       targetsOnly ? { by_brand: {}, brands: [], read_at: '', rows_total: 0,
+                                           rows_used: 0, fallback: false, error: '' }
+                                       : buildKaisukenPrices_(),
     // ▼ 週の区切り（日曜〜土曜。月末の端数は最後の週）。weekly_new の並びと同じ
     weeks:                 buildWeeksMap_(normalized_actual)
   };

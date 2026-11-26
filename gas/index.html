@@ -539,6 +539,87 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 /* ▼ 会計ルール整備中の店の断り */
 .detail-ref-note{font-size:12px;font-weight:700;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;
   border-left:4px solid #6366f1;border-radius:10px;padding:9px 14px;margin:0 0 12px}
+/* ▼ ②店舗の課題：今月の達成プラン（依頼57） */
+.issue-subtabs{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.issue-subtabs button{border:1.5px solid #e0e0ec;background:#fff;padding:9px 16px;border-radius:10px;
+  font-size:13px;font-weight:700;color:#666;cursor:pointer;font-family:inherit;transition:.15s}
+.issue-subtabs button[aria-selected="true"]{background:linear-gradient(135deg,#667eea,#764ba2);
+  border-color:transparent;color:#fff}
+.issue-subtabs button:hover[aria-selected="false"]{border-color:#667eea;color:#667eea}
+.plan-tabs{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+.plan-tabs button{border:1.5px solid #e0e0ec;background:#fff;padding:9px 18px;border-radius:10px;
+  font-size:14px;font-weight:700;color:#444;cursor:pointer;font-family:inherit;text-align:left;transition:.15s}
+.plan-tabs button small{display:block;font-size:11px;font-weight:600;opacity:.8;margin-top:2px}
+.plan-tabs button[aria-selected="true"]{background:#1a1a2e;border-color:#1a1a2e;color:#fff}
+.plan-tabs button:hover[aria-selected="false"]{border-color:#667eea;color:#667eea}
+.plan-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px;font-size:12px;color:#8a8aa0}
+.plan-chip{border:1.5px solid #e0e0ec;background:#fff;border-radius:999px;padding:5px 14px;font-size:12px;
+  font-weight:700;color:#666;cursor:pointer;font-family:inherit}
+.plan-chip[aria-pressed="true"]{background:#1a1a2e;border-color:#1a1a2e;color:#fff}
+.plan-baserow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px;align-items:start}
+.plan-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.plan-col{min-width:0}
+.plan-colh{font-size:12px;color:#8a8aa0;margin:0 0 10px;line-height:1.7}
+@media(max-width:900px){.plan-cols{grid-template-columns:1fr}}
+/* 基準カードは画面が狭くても横並びのまま（依頼57 1-2の4） */
+.plan-base{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:14px;padding:14px 16px;
+  margin-bottom:12px;min-width:0}
+.plan-base-t{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.plan-base h3{margin:0;font-size:15px;font-weight:800}
+.plan-base .pb-tag{font-size:11px;background:rgba(255,255,255,.2);padding:2px 9px;border-radius:999px;white-space:nowrap}
+.plan-base .pb-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 8px}
+.plan-base .pb-kpis.k4{grid-template-columns:repeat(4,1fr)}
+.plan-base .pb-k{background:rgba(255,255,255,.14);border-radius:9px;padding:7px 8px;min-width:0}
+.plan-base .pb-k b{display:block;font-size:18px;font-weight:800;line-height:1.3}
+.plan-base .pb-k span{font-size:10.5px;opacity:.9}
+.plan-base .pb-formula{font-size:11.5px;opacity:.95;line-height:1.75;border-top:1px solid rgba(255,255,255,.28);
+  padding-top:8px;word-break:break-word}
+@media(max-width:560px){.plan-base .pb-kpis{grid-template-columns:1fr 1fr}.plan-base .pb-k b{font-size:16px}}
+.plan-store{background:#fff;border:1.5px solid #eaeaf4;border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.plan-sh{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.plan-sh h4{margin:0;font-size:15px;font-weight:800;color:#1a1a2e;cursor:pointer}
+.plan-sh h4:hover{color:#667eea;text-decoration:underline}
+.plan-meta{font-size:11.5px;color:#8a8aa0;margin-top:3px;line-height:1.6}
+.plan-meta b{color:#1a1a2e}
+.plan-prov{font-size:10.5px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:999px;
+  padding:1px 7px;margin-left:5px}
+.plan-pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap;flex-shrink:0}
+.plan-pill.ng{background:#fde4e1;color:#b3261e}
+.plan-pill.warn{background:#fff1d6;color:#a06400}
+.plan-pill.ok{background:#e3f3e8;color:#1e7a3c}
+.plan-bar{position:relative;height:12px;background:#f0f0f8;border-radius:6px;margin:12px 0 4px;overflow:hidden}
+.plan-bar i{position:absolute;left:0;top:0;bottom:0;background:#667eea;border-radius:6px}
+.plan-bar u{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,#b9c3ee 0 4px,#dfe4f7 4px 8px)}
+.plan-barlab{display:flex;justify-content:space-between;gap:6px;font-size:10.5px;color:#8a8aa0;flex-wrap:wrap}
+.plan-need{display:flex;gap:10px;align-items:stretch;margin:12px 0;flex-wrap:wrap}
+.plan-big{flex:1 1 180px;background:#fde4e1;border-radius:11px;padding:10px 12px;min-width:0}
+.plan-big span{font-size:11.5px;color:#b3261e;font-weight:700}
+.plan-big b{display:block;font-size:24px;font-weight:800;color:#b3261e;line-height:1.25}
+.plan-big.ok{background:#e3f3e8}
+.plan-big.ok span,.plan-big.ok b{color:#1e7a3c}
+.plan-side{flex:1 1 180px;font-size:11.5px;line-height:1.85;color:#8a8aa0;min-width:0}
+.plan-side b{color:#1a1a2e}
+.plan-cmp{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 10px}
+.plan-cmp th,.plan-cmp td{padding:5px 6px;border-bottom:1px solid #ececf4;text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.plan-cmp th:first-child,.plan-cmp td:first-child{text-align:left;color:#8a8aa0;font-weight:600;white-space:normal}
+.plan-cmp thead th{font-size:10.5px;color:#8a8aa0;font-weight:700}
+.plan-short{color:#b3261e;font-weight:800}
+.plan-good{color:#1e7a3c;font-weight:800}
+.plan-issue{display:flex;flex-direction:column;gap:2px;border-radius:9px;padding:8px 12px;margin:0 0 10px;font-size:12.5px;font-weight:800}
+.plan-issue span{font-size:11.5px;font-weight:600}
+.plan-issue.ng{background:#fde4e1;color:#b3261e}
+.plan-issue.warn{background:#fff1d6;color:#a06400}
+.plan-issue.ok{background:#e3f3e8;color:#1e7a3c}
+.plan-plan{background:#f7f7fc;border-radius:11px;padding:10px 13px}
+.plan-plan h5{margin:0 0 6px;font-size:12.5px;font-weight:800;color:#1a1a2e}
+.plan-plan ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.85;color:#44445a}
+.plan-plan li.best{font-weight:800;color:#1a1a2e}
+.plan-plan small{color:#8a8aa0;font-weight:600}
+.plan-plan .plan-note{font-size:11.5px;color:#55556b;margin-top:7px;line-height:1.7}
+.plan-nopr{font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:9px 12px}
+.plan-pricenote{font-size:11.5px;color:#55556b;background:#f7f7fc;border-radius:10px;padding:9px 13px;margin:0 0 12px;line-height:1.7}
+.plan-pricenote.ng{background:#fffbeb;border:1px solid #fcd34d;color:#92400e}
 /* ▼ ②店舗の課題ページ */
 .issue-legend{background:#fff;border:1px solid #ececf4;border-radius:12px;padding:14px 18px;margin-bottom:14px;
   font-size:12px;color:#55556b;line-height:1.9}
@@ -2365,15 +2446,20 @@ body.mobile .side-menu-overlay{display:block!important}
       <div class="issue-cards" id="issueCards"></div>
     </div>
 
-    <!-- ② 店舗の課題 -->
+    <!-- ② 店舗の課題（今月の達成プラン／3か月の原因分析） -->
     <div id="issuesView" style="display:none">
       <div class="page-head">
         <div>
-          <div class="page-title">🔍 店舗の課題</div>
-          <div class="page-meta" id="issuesMeta">ラインに届いていない店を見つけて、原因ごとに振り分けます</div>
+          <div class="page-title">🔍 店舗の課題　今月の達成プラン</div>
+          <div class="page-meta" id="issuesMeta">今月の目標を必ず達成するために、残りの日数で「あと何件・いくらの契約が必要か」を店ごとに出します</div>
         </div>
       </div>
-      <div id="issuesBody"></div>
+      <nav class="issue-subtabs" id="issueSubTabs" role="tablist" aria-label="店舗の課題の表示">
+        <button role="tab" data-isub="plan"  aria-selected="true"  onclick="switchIssueSub('plan')">今月の達成プラン</button>
+        <button role="tab" data-isub="cause" aria-selected="false" onclick="switchIssueSub('cause')">3か月の原因分析</button>
+      </nav>
+      <div id="planBody"></div>
+      <div id="issuesBody" style="display:none"></div>
     </div>
 
     <!-- ③ 週次の進捗・対策メモ -->
@@ -2909,6 +2995,7 @@ const LS_SP_KEY        = 'limeFit_storePerson';
 const LS_ST_KEY        = 'limeFit_storeType';
 const LS_TS_KEY        = 'limeFit_updatedAt';
 const LS_ACTUAL_KEY    = 'limeFit_actualData';
+const LS_PRICE_KEY     = 'limeFit_kaisukenPrices'; // 回数券の価格表（依頼57）
 const LS_CACHE_KEY     = 'limeFit_cachedMonths'; // キャッシュ済み月一覧
 const LS_BOOTSTRAP_KEY = 'limeFit_bootstrapped'; // 全期間データ取得済みフラグ
 const LS_SS_KEY        = 'limeFit_storeShort';     // フル名→略称マップ
@@ -3164,6 +3251,11 @@ async function fetchData(){
     // ▼ 参考値の境目と、焼き込んだ過去分の月（2026-11-19）
     DATA.reference_until_ym    = json.reference_until_ym||'';
     DATA.legacy_months         = json.legacy_months||[];
+    // ▼ 回数券の価格表（依頼57）。達成プランの提案に使う
+    DATA.kaisuken_prices       = json.kaisuken_prices||null;
+    if (json.kaisuken_prices) {
+      try { localStorage.setItem(LS_PRICE_KEY, JSON.stringify(json.kaisuken_prices)); } catch(e){}
+    }
     // ▼ Limeからの仕入れ（依頼35）
     DATA.shozai_purchase       = json.shozai_purchase||{};
     DATA.shozai_name_issues    = json.shozai_name_issues||[];
@@ -3221,7 +3313,10 @@ async function fetchData(){
     // ?store=... が付いていればその店を開く（店舗別リンクの下ごしらえ）
     try { applyStoreFromQuery(); } catch(e){ console.warn('store= を読めません', e); }
     // 画面から入れた分（対策メモ・収支設定など）を読む。失敗しても画面は出す
-    udLoadAll().catch(function(e){ console.warn('入力データを読めません', e.message); });
+    udLoadAll().then(function(){
+      // オープン年月（半年未満／以上の判定）は入力データから読むので、読めたら描き直す
+      try { if (issuesViewOpen()) renderIssuesView(); } catch(e){}
+    }).catch(function(e){ console.warn('入力データを読めません', e.message); });
     setTimeout(closeSettings, 1200);
   }catch(e){
     document.getElementById('fetchStatus').textContent = 'エラー: '+e.message;
@@ -3255,6 +3350,8 @@ function loadSavedTargets(){
   if(ri){ try{ DATA.reservation_insights=JSON.parse(ri); }catch(e){} }
   const cm=localStorage.getItem('limefit_store_closed_month');
   if(cm){ try{ DATA.store_closed_month=JSON.parse(cm); }catch(e){} }
+  const kp=localStorage.getItem(LS_PRICE_KEY);
+  if(kp){ try{ DATA.kaisuken_prices=JSON.parse(kp); }catch(e){} }
   if(actual){
     try{
       const ad=JSON.parse(actual);
@@ -6785,7 +6882,7 @@ function switchMainTab(tab, opts) {
   document.getElementById('detailView').style.display  = 'none';
   if (tab === 'ranking')  renderRanking();
   if (tab === 'analysis') renderAnalysis();
-  if (tab === 'issues') { try { renderIssuesPage(); } catch(e){ console.warn('店舗の課題を出せません', e); } }
+  if (tab === 'issues') { try { renderIssuesView(); } catch(e){ console.warn('店舗の課題を出せません', e); } }
   if (tab === 'tracker') {
     try { renderUdStatus('trackerUdStatus'); } catch(e){}
     try { renderTrackerPage(); } catch(e){ console.warn('週次の進捗を出せません', e); }
@@ -7810,6 +7907,517 @@ function buildIssueBoard(month) {
 
   return { month: month, months: months, all: all, bench: bench,
            over_bl: overBL.length, over_lift: overLift.length, over_direct: overD.length };
+}
+
+/* ============================================================
+ *  ② 店舗の課題：今月の達成プラン（依頼57の1章）
+ *  ------------------------------------------------------------
+ *  考え方（キム兄さん）：
+ *    契約率がどうこうより、「なにがなんでも今月の目標を達成する」ために、
+ *    残りの日数で必要な契約の件数と単価を、店ごとに絶対値で出す。
+ *    「単価13万円の契約を7件取れば、あとは新規クーポン×新規数で達成できる」が基準。
+ *
+ *  ★基準の数字は下の定数1か所だけで変える（他の場所には書かない）。
+ *    回数券の名前と価格は data.json の kaisuken_prices（スプシ「回数券価格表
+ *    （ダッシュボード用）」の「達成プランに使う」がTRUEの行）だけを使う。
+ * ============================================================ */
+const PLAN_TARGET   = { under: 1000000, over: 1500000 };   // オープン半年未満／以上の目標
+const PLAN_NEW_SPLIT = 20;        // 新規の着地見込みがこの人数以下なら左の列（新規20名の基準）
+const PLAN_BASES = [
+  { key:'n20', newStd:20, rate:35, count:7, countLabel:'7件',    unit:130000 },
+  { key:'n25', newStd:25, rate:30, count:8, countLabel:'7〜8件', unit:130000 }
+];
+// 半年以上のタブで足すもの（両方のカード共通）
+const PLAN_OVER = { keizokuRate:50, keizokuCount:6, keizokuUnit:69000, opBuppan:86000 };
+const PLAN_OPEN_MONTHS  = 6;      // 今月を含めて6か月目までが「半年未満」
+const PLAN_ALMOST_RATIO = 0.85;   // 「あと少し」のしきい値（契約なしの着地 ÷ 目標）
+const PLAN_MAX_PER_KIND = 8;      // 達成プラン：1種類あたり最大の件数
+const PLAN_KINDS_MAX    = 2;      // 達成プラン：組み合わせる回数券の種類の上限
+const PLAN_KEIZOKU_MAX  = 3;      // 「継続を入れると」の案に入れる最大件数
+
+const PLAN_ISSUE = {
+  both:  { cls:'ng',   head:'契約数も単価も足りない', sub:'件数を増やしつつ、上のコースから提案する' },
+  count: { cls:'warn', head:'契約数が足りない',       sub:'単価はOK。契約の件数を増やすのが先' },
+  price: { cls:'warn', head:'契約単価が低い',         sub:'件数はOK。12回券・プレミアムなど上のコースを提案' },
+  ok:    { cls:'ok',   head:'契約数・単価とも基準どおり', sub:'このペースを保つ' }
+};
+
+let curIssueSub   = 'plan';    // 'plan'（今月の達成プラン）／'cause'（3か月の原因分析）
+let curPlanTab    = 'under';   // 'under'（半年未満）／'over'（半年以上）
+let planOnlyShort = false;     // 「未達の見込みだけ」
+
+/* ===== 数字の書き方 ===== */
+function planYen(v) { return Math.round(v || 0).toLocaleString('ja-JP') + '円'; }
+/** 万円。きりのいい数字は小数を出さない（91万円／41.4万円） */
+function planMan(v) {
+  const m = (v || 0) / 10000;
+  const r = Math.abs(m - Math.round(m)) < 0.05 ? Math.round(m) : Math.round(m * 10) / 10;
+  return r.toLocaleString('ja-JP') + '万円';
+}
+/** 千円単位に丸める（新規クーポン単価の表示用） */
+function planRound1000(v) { return Math.round((v || 0) / 1000) * 1000; }
+
+/* ===== 経過日数・残り日数 =====
+ *   データの最終日（last_date の全店の最大）までの暦の日数。
+ *   残り＝月の日数 − 経過日数。
+ */
+function planElapsed(month) {
+  const rows = (DATA.data && DATA.data[month]) || {};
+  let last = '';
+  Object.keys(rows).forEach(function (s) {
+    const d = rows[s] && rows[s].last_date;
+    if (d && String(d) > last) last = String(d);
+  });
+  const y = parseInt(String(month).slice(0, 4), 10);
+  const m = parseInt(String(month).slice(4, 6), 10);
+  const days = new Date(y, m, 0).getDate();
+  let used = 0;
+  if (last) {
+    const p = String(last).split('-');
+    if (p.length >= 3) {
+      const ym = p[0] + ('0' + p[1]).slice(-2);
+      if (ym === String(month)) used = parseInt(p[2], 10);
+      else if (ym > String(month)) used = days;    // もう月が終わっている
+    }
+  }
+  if (!used) {
+    // last_date が無い月（古い月など）は暦で見る
+    const t = new Date();
+    const curYm = t.getFullYear() + ('0' + (t.getMonth() + 1)).slice(-2);
+    used = (String(month) < curYm) ? days : Math.min(days, t.getDate());
+  }
+  used = Math.max(1, Math.min(days, used));
+  return { days: days, used: used, rest: Math.max(0, days - used), last: last };
+}
+
+/* ===== オープン年月（半年未満／以上の判定）=====
+ *   1. 「ダッシュボード入力データ」の店舗収支設定のオープン年月
+ *   2. 無ければ、ダッシュボードで最初に売上が出た月（カードに「オープン月は仮」と出す）
+ */
+function planOpenYm(store) {
+  const r = (typeof udGet === 'function') ? udGet('finance', store) : null;
+  const ym = (r && typeof pbNormYm === 'function') ? pbNormYm(r['オープン年月']) : '';
+  if (ym) return { ym: ym, prov: false };
+  let first = '';
+  (DATA.months || []).slice().sort().forEach(function (m) {
+    if (first) return;
+    const d = (DATA.data[m] || {})[store];
+    if (d && (d.total_sales || 0) > 0) first = m;
+  });
+  return { ym: first, prov: true };
+}
+/** オープン月を1か月目として、その月が何か月目か。分からなければ null */
+function planMonthsSinceOpen(openYm, month) {
+  if (!openYm || String(openYm).length !== 6) return null;
+  const y1 = parseInt(String(openYm).slice(0, 4), 10), m1 = parseInt(String(openYm).slice(4, 6), 10);
+  const y2 = parseInt(String(month).slice(0, 4), 10),  m2 = parseInt(String(month).slice(4, 6), 10);
+  const n = (y2 - y1) * 12 + (m2 - m1) + 1;
+  return n > 0 ? n : null;
+}
+
+/* ===== 回数券の価格表 ===== */
+function planPriceTable() {
+  return (DATA && DATA.kaisuken_prices) || { by_brand: {}, brands: [], read_at: '', fallback: false, error: '' };
+}
+function planTicketsOf(brand) {
+  const t = planPriceTable().by_brand || {};
+  return (brand && t[brand]) ? t[brand] : null;
+}
+
+/* ===== 1店ぶんの数字をそろえる ===== */
+function planRowOf(store, month, el) {
+  const d = ((DATA.data && DATA.data[month]) || {})[store];
+  if (!d) return null;
+  const sales = d.total_sales || 0;
+  const newNow = d.new_count || 0;
+  if (sales <= 0 && newNow <= 0) return null;    // 何も起きていない店は出さない
+
+  const open = planOpenYm(store);
+  const mo   = planMonthsSinceOpen(open.ym, month);
+  const isOver = (mo != null && mo > PLAN_OPEN_MONTHS);
+  const target = isOver ? PLAN_TARGET.over : PLAN_TARGET.under;
+
+  // 契約以外の売上＝店舗売上 − 回数券契約時売上（クーポン・消化時・オプション・物販など）
+  const contractSales = d.keiyaku_contract_sales || 0;
+  const other   = Math.max(0, sales - contractSales);
+  const perDay  = other / el.used;
+  const land    = sales + perDay * el.rest;           // 契約なしの着地
+  const need    = Math.max(0, target - land);         // 必要な契約売上
+  const newLand = Math.round(newNow / el.used * el.days);
+
+  const cnt     = (d.new_contract_count || 0) + (d.reappo_contract_count || 0);
+  const amt     = (d.new_contract_sales || 0) + (d.reappo_contract_sales || 0);
+  const unit    = cnt > 0 ? amt / cnt : 0;
+  const cntLand = cnt / el.used * el.days;
+  const kz      = d.keizoku_contract_count || 0;
+  const kzLand  = kz / el.used * el.days;
+  const op      = (d.option_sales || 0) + (d.buppan_sales || 0);
+  const opLand  = op / el.used * el.days;
+  const base    = newLand <= PLAN_NEW_SPLIT ? PLAN_BASES[0] : PLAN_BASES[1];
+
+  const ratio   = target > 0 ? land / target : 0;
+  const state   = need <= 0 ? 'ok' : (ratio >= PLAN_ALMOST_RATIO ? 'warn' : 'ng');
+  const shortN  = cntLand < base.count;
+  const shortU  = unit < base.unit;
+  const issue   = (shortN && shortU) ? 'both' : shortN ? 'count' : shortU ? 'price' : 'ok';
+
+  return {
+    store: store, brand: (typeof detectBrand === 'function') ? detectBrand(store) : '',
+    person: (DATA.store_person && DATA.store_person[store]) || '',
+    open_ym: open.ym, open_prov: open.prov, months_open: mo, is_over: isOver,
+    target: target, sales: sales, other: other, land: land, need: need, ratio: ratio, state: state,
+    new_now: newNow, new_land: newLand,
+    coupon_unit: newNow > 0 ? (d.new_coupon_sales || 0) / newNow : 0,
+    new_coupon_sales: d.new_coupon_sales || 0,
+    count: cnt, amount: amt, unit: unit, count_land: cntLand,
+    keizoku: kz, keizoku_land: kzLand, op_buppan: op, op_buppan_land: opLand,
+    base: base, short_count: shortN, short_unit: shortU, issue: issue
+  };
+}
+
+/** その月の店を全部そろえる（絞り込みは呼ぶ側で） */
+function planRowsAll(month) {
+  const el = planElapsed(month);
+  const out = [];
+  (DATA.stores || []).forEach(function (store) {
+    const closed = DATA.store_closed_month && DATA.store_closed_month[store];
+    if (closed && String(month) > String(closed)) return;
+    const r = planRowOf(store, month, el);
+    if (r) out.push(r);
+  });
+  return { el: el, rows: out };
+}
+
+/* ===== 達成プラン：回数券の組み合わせ =====
+ *   案1 … 件数がいちばん少ない組み合わせ（同じ件数なら合計が小さい方）
+ *   案2 … 案1より1件多く、2種類の回数券を組み合わせたもの（合計が小さい方）
+ *   案3 … いちばん安い回数券だけ（8件までに届かないときは、届く中でいちばん安いもの）
+ *   ・1種類あたり最大8件、種類は2つまで
+ *   ・ふつうの券と物販付きが同じ件数・ほぼ同じ合計で並ぶときは、ふつうの券を先に出す
+ */
+function planCombos(need, tickets) {
+  if (!(need > 0) || !tickets || !tickets.length) return null;
+  const mk = function (parts) {
+    let n = 0, sum = 0, bp = 0;
+    parts.forEach(function (p) { n += p.count; sum += p.t.price * p.count; if (p.t.buppan) bp += p.count; });
+    return { parts: parts, n: n, sum: sum, buppan: bp };
+  };
+  // 同じ件数なら合計が小さい方、それも同じならふつうの券（物販付きでない）を先に
+  const cmp = function (a, b) { return (a.n - b.n) || (a.sum - b.sum) || (a.buppan - b.buppan); };
+  const ones = [], twos = [];
+  for (let i = 0; i < tickets.length; i++) {
+    const a = Math.ceil(need / tickets[i].price);
+    if (a >= 1 && a <= PLAN_MAX_PER_KIND) ones.push(mk([{ t: tickets[i], count: a }]));
+  }
+  if (PLAN_KINDS_MAX >= 2) {
+    for (let i = 0; i < tickets.length; i++) {
+      for (let j = i + 1; j < tickets.length; j++) {
+        for (let a = 1; a <= PLAN_MAX_PER_KIND; a++) {
+          const rest = need - tickets[i].price * a;
+          let b = rest > 0 ? Math.ceil(rest / tickets[j].price) : 1;
+          if (b < 1) b = 1;
+          if (b > PLAN_MAX_PER_KIND) continue;
+          twos.push(mk([{ t: tickets[i], count: a }, { t: tickets[j], count: b }]));
+        }
+      }
+    }
+  }
+  const all = ones.concat(twos);
+  if (!all.length) return null;
+  const best = all.slice().sort(cmp)[0];
+  const mix  = twos.filter(function (o) { return o.n === best.n + 1; }).sort(cmp)[0] || null;
+  // いちばん安い回数券だけ（届くものの中で1枚の価格がいちばん安いもの）
+  const low  = ones.slice().sort(function (a, b) {
+    return (a.parts[0].t.price - b.parts[0].t.price) || (a.n - b.n) || (a.buppan - b.buppan);
+  })[0] || null;
+  return { best: best, mix: mix, low: low, max: all.slice().sort(function(a,b){ return b.sum - a.sum; })[0] };
+}
+
+function planComboHtml(o, label, isBest) {
+  if (!o) return '';
+  const body = o.parts.map(function (p) {
+    return escHtml(p.t.name) + '（' + planYen(p.t.price) + '）×' + p.count + '件';
+  }).join('＋');
+  return '<li' + (isBest ? ' class="best"' : '') + '>' + body + ' ＝ ' + planYen(o.sum)
+       + ' <small>（' + label + '・' + o.n + '件・平均' + planYen(Math.round(o.sum / o.n)) + '）</small></li>';
+}
+
+/* ===== 基準カード ===== */
+function planBaseCard(base, isOver, couponUnit) {
+  const target  = isOver ? PLAN_TARGET.over : PLAN_TARGET.under;
+  const cSales  = base.unit * base.count;
+  const cpUnit  = planRound1000(couponUnit);
+  const cpSales = cpUnit * base.newStd;
+  const kzSales = isOver ? PLAN_OVER.keizokuUnit * PLAN_OVER.keizokuCount : 0;
+  const opSales = isOver ? PLAN_OVER.opBuppan : 0;
+  const total   = cSales + cpSales + kzSales + opSales;
+  let h = '<div class="plan-base"><div class="plan-base-t">'
+        + '<h3>新規' + base.newStd + '名の店の基準</h3>'
+        + '<span class="pb-tag">目標' + planMan(target) + '</span></div>'
+        + '<div class="pb-kpis">'
+        + '<div class="pb-k"><span>契約率</span><b>' + base.rate + '%</b></div>'
+        + '<div class="pb-k"><span>契約数</span><b>' + base.countLabel + '</b></div>'
+        + '<div class="pb-k"><span>契約単価</span><b>' + planMan(base.unit) + '</b></div>'
+        + '</div>';
+  if (isOver) {
+    h += '<div class="pb-kpis k4">'
+       + '<div class="pb-k"><span>継続契約率</span><b>' + PLAN_OVER.keizokuRate + '%</b></div>'
+       + '<div class="pb-k"><span>継続契約数</span><b>' + PLAN_OVER.keizokuCount + '件</b></div>'
+       + '<div class="pb-k"><span>継続単価</span><b>' + planMan(PLAN_OVER.keizokuUnit) + '</b></div>'
+       + '<div class="pb-k"><span>OP・物販</span><b>' + planMan(PLAN_OVER.opBuppan) + '</b></div>'
+       + '</div>';
+  }
+  h += '<div class="pb-formula">'
+     + '契約 ' + planMan(base.unit) + '×' + base.count + '件＝' + planMan(cSales)
+     + ' ＋ 新規クーポン ' + planYen(cpUnit) + '×' + base.newStd + '名＝' + planMan(cpSales)
+     + (isOver ? ' ＋ 継続 ' + planMan(kzSales) + ' ＋ オプション・物販 ' + planMan(opSales) : '')
+     + '<br>→ 約' + planMan(total) + '（目標' + planMan(target)
+     + (total >= target ? 'を達成' : 'に届きません') + '）'
+     + (cpUnit > 0 ? '' : '<br>※ この絞り込みでは新規クーポン単価が出せないため、クーポンぶんは0円で計算しています')
+     + '</div></div>';
+  return h;
+}
+
+/* ===== 店舗カード ===== */
+function planStoreCard(r, el, couponAvg) {
+  const pill = { ok: '到達ペース', warn: 'あと少し', ng: '要対策' }[r.state];
+  const nowPct  = Math.max(0, Math.min(100, r.sales / r.target * 100));
+  const landPct = Math.max(0, Math.min(100, r.land  / r.target * 100));
+  const ok = r.need <= 0;
+
+  let h = '<div class="plan-store"><div class="plan-sh"><div>'
+        + '<h4 onclick="goToStoreDetail(' + JSON.stringify(r.store).replace(/"/g, '&quot;') + ')">'
+        + escHtml(dispName(r.store)) + '</h4>'
+        + '<div class="plan-meta">' + escHtml(r.brand || '—') + '｜担当 ' + escHtml(r.person || '—')
+        + '｜新規着地 <b>' + r.new_land + '名</b>（今' + r.new_now + '名）'
+        + '｜基準：新規' + r.base.newStd + '名'
+        + (r.open_ym ? '｜オープン ' + r.open_ym.slice(0, 4) + '-' + r.open_ym.slice(4)
+                     + '（' + (r.months_open || '—') + 'か月目）' : '｜オープン月が分かりません')
+        + (r.open_prov && r.open_ym ? '<span class="plan-prov">オープン月は仮</span>' : '')
+        + '</div></div>'
+        + '<span class="plan-pill ' + r.state + '">' + pill + '</span></div>';
+
+  h += '<div class="plan-bar"><i style="width:' + nowPct.toFixed(1) + '%"></i>'
+     + '<u style="left:' + nowPct.toFixed(1) + '%;width:' + Math.max(0, landPct - nowPct).toFixed(1) + '%"></u></div>'
+     + '<div class="plan-barlab"><span>今 ' + planMan(r.sales) + '</span>'
+     + '<span>契約なしの着地 ' + planMan(r.land) + '</span>'
+     + '<span>目標 ' + planMan(r.target) + '</span></div>';
+
+  h += '<div class="plan-need"><div class="plan-big' + (ok ? ' ok' : '') + '">'
+     + '<span>' + (ok ? '契約がなくても目標に届く見込み' : '残り' + el.rest + '日で必要な契約売上') + '</span>'
+     + '<b>' + (ok ? '達成ペース' : 'あと ' + planMan(r.need)) + '</b></div>'
+     + '<div class="plan-side">残りの日数：<b>' + el.rest + '日</b>'
+     + '<br>残りの新規：<b>' + Math.max(0, r.new_land - r.new_now) + '名</b>'
+     // その店のクーポン単価が出せないとき（会計に内訳が無い店）は、画面全体の平均を使う
+     + '×クーポン' + planYen(planRound1000(r.coupon_unit > 0 ? r.coupon_unit : (couponAvg || 0)))
+     + (r.coupon_unit > 0 ? '' : '<span style="font-size:10.5px">（全体の平均）</span>')
+     + '<br>契約以外の売上見込み：<b>' + planMan(r.other / el.used * el.days) + '</b></div></div>';
+
+  // ── 新規＋再アポの表 ──
+  const dN = Math.ceil(r.base.count - r.count_land);
+  const dU = Math.round(r.base.unit - r.unit);
+  h += '<table class="plan-cmp"><thead><tr><th>新規＋再アポ</th><th>今月の実績</th><th>月末の見込み</th>'
+     + '<th>基準（新規' + r.base.newStd + '名）</th><th>差</th></tr></thead><tbody>'
+     + '<tr><td>契約数</td><td>' + r.count + '件</td><td>' + (Math.round(r.count_land * 10) / 10) + '件</td>'
+     + '<td>' + r.base.countLabel + '</td>'
+     + '<td class="' + (r.short_count ? 'plan-short' : 'plan-good') + '">'
+     + (r.short_count ? 'あと' + Math.max(1, dN) + '件' : '達成') + '</td></tr>'
+     + '<tr><td>契約単価</td><td>' + planYen(r.unit) + '</td><td>—</td>'
+     + '<td>' + planYen(r.base.unit) + '</td>'
+     + '<td class="' + (r.short_unit ? 'plan-short' : 'plan-good') + '">'
+     + (r.short_unit ? '−' + planYen(dU) : '達成') + '</td></tr>';
+  if (r.is_over) {
+    const kzShort = r.keizoku_land < PLAN_OVER.keizokuCount;
+    const opShort = r.op_buppan_land < PLAN_OVER.opBuppan;
+    h += '<tr><td>継続の契約数</td><td>' + r.keizoku + '件</td>'
+       + '<td>' + (Math.round(r.keizoku_land * 10) / 10) + '件</td>'
+       + '<td>' + PLAN_OVER.keizokuCount + '件</td>'
+       + '<td class="' + (kzShort ? 'plan-short' : 'plan-good') + '">'
+       + (kzShort ? 'あと' + Math.max(1, Math.ceil(PLAN_OVER.keizokuCount - r.keizoku_land)) + '件' : '達成') + '</td></tr>'
+       + '<tr><td>オプション・物販' + (r.op_buppan > 0 ? '' :
+           '<span style="font-size:10.5px;color:#92400e">（会計に内訳が入っていません）</span>') + '</td>'
+       + '<td>' + planMan(r.op_buppan) + '</td>'
+       + '<td>' + planMan(r.op_buppan_land) + '</td>'
+       + '<td>' + planMan(PLAN_OVER.opBuppan) + '</td>'
+       + '<td class="' + (r.op_buppan <= 0 ? '' : opShort ? 'plan-short' : 'plan-good') + '">'
+       + (r.op_buppan <= 0 ? '—' : opShort ? '−' + planMan(PLAN_OVER.opBuppan - r.op_buppan_land) : '達成')
+       + '</td></tr>';
+  }
+  h += '</tbody></table>';
+
+  const iss = PLAN_ISSUE[r.issue];
+  h += '<div class="plan-issue ' + iss.cls + '"><b>今の課題：' + iss.head + '</b><span>' + iss.sub + '</span></div>';
+
+  // ── 達成プラン（必要な契約売上 > 0 のときだけ）──
+  if (!ok) {
+    const tickets = planTicketsOf(r.brand);
+    if (!tickets) {
+      // 価格表に無いブランド（直営・LINOなど）。回数券を当てずに、基準の単価で件数だけ出す
+      h += '<div class="plan-nopr">回数券の価格表が未登録です（ブランド：'
+         + escHtml(r.brand || '不明') + '）。スプシ「回数券価格表（ダッシュボード用）」に'
+         + escHtml(r.brand || 'このブランド') + 'の行を足すと、ここに達成プランが出ます'
+         + '<br>目安：必要 ' + planMan(r.need) + ' ÷ 基準の契約単価 ' + planMan(r.base.unit)
+         + ' ＝ <b>約' + Math.ceil(r.need / r.base.unit) + '件</b></div>';
+    } else {
+      const c = planCombos(r.need, tickets);
+      if (!c) {
+        h += '<div class="plan-nopr">回数券の組み合わせでは届きません（必要 ' + planMan(r.need)
+           + '／1種類8件・2種類までで作れる上限を超えています）</div>';
+      } else {
+        h += '<div class="plan-plan"><h5>残り' + el.rest + '日で、こう売れば' + planMan(r.target) + 'に届きます</h5><ol>'
+           + planComboHtml(c.best, 'いちばん少ない件数', true)
+           + planComboHtml(c.mix,  '組み合わせ', false)
+           + planComboHtml(c.low,  'いちばん安い回数券だけ', false)
+           + '</ol>';
+        if (r.is_over) {
+          const k = Math.min(PLAN_KEIZOKU_MAX, Math.ceil(r.need / PLAN_OVER.keizokuUnit));
+          const kSales = k * PLAN_OVER.keizokuUnit;
+          h += '<div class="plan-note">継続を合わせる例：継続 ' + planMan(PLAN_OVER.keizokuUnit) + '×' + k
+             + '件＝' + planMan(kSales) + ' を入れると、新規の契約は残り '
+             + planMan(Math.max(0, r.need - kSales)) + 'でOK</div>';
+        }
+        h += '</div>';
+      }
+    }
+  }
+  return h + '</div>';
+}
+
+/* ===== ページ全体 ===== */
+function planTabCounts(all) {
+  let u = 0, o = 0;
+  all.forEach(function (r) { if (r.is_over) o++; else u++; });
+  return { under: u, over: o };
+}
+
+function renderPlanPage() {
+  const el = document.getElementById('planBody');
+  if (!el) return;
+  const month = curMonth;
+  const got   = planRowsAll(month);
+  const ela   = got.el;
+
+  // 担当者・直営加盟・ブランド・KPIの絞り込みは他のページと同じものを使う
+  const filtered = got.rows.filter(function (r) {
+    if (curPerson !== '全店舗' && r.person !== curPerson) return false;
+    if (curStoreType !== '全店舗' && DATA.store_type && DATA.store_type[r.store] !== curStoreType) return false;
+    if (!matchBrand(r.store)) return false;
+    if (!matchKpiFilters(r.store)) return false;
+    if (focusStore && r.store !== focusStore) return false;
+    return true;
+  });
+  const counts = planTabCounts(filtered);
+  const isOver = (curPlanTab === 'over');
+  let rows = filtered.filter(function (r) { return r.is_over === isOver; });
+  if (planOnlyShort) rows = rows.filter(function (r) { return r.need > 0; });
+
+  const mLabel = (typeof MONTH_MAP !== 'undefined' && MONTH_MAP[month]) || month;
+  let h = '';
+
+  // ── タブ（半年未満／半年以上）──
+  h += '<div class="plan-tabs" role="tablist">'
+     + '<button role="tab" aria-selected="' + (!isOver) + '" onclick="switchPlanTab(\'under\')">'
+     + 'オープン半年未満<small>目標 ' + planMan(PLAN_TARGET.under) + '・' + counts.under + '店</small></button>'
+     + '<button role="tab" aria-selected="' + (isOver) + '" onclick="switchPlanTab(\'over\')">'
+     + 'オープン半年以上<small>目標 ' + planMan(PLAN_TARGET.over) + '・' + counts.over + '店</small></button>'
+     + '</div>';
+
+  // ── 絞り込み（ブランド・担当SVは画面上のバーを使う）──
+  h += '<div class="plan-filters">'
+     + '<span>ブランドと担当SVは画面の上のバーで切り替えます</span>'
+     + '<button class="plan-chip" aria-pressed="' + planOnlyShort + '" onclick="togglePlanShort()">未達の見込みだけ</button>'
+     + '</div>';
+
+  // ── 価格表の状態（読み込めなかったときは必ず出す）──
+  const pt = planPriceTable();
+  if (pt.fallback) {
+    h += '<div class="plan-pricenote ng">価格表を読み込めませんでした'
+       + (pt.read_at ? '（' + pt.read_at + 'の表を使用中）' : '（控えもありません）')
+       + (pt.error ? '／' + escHtml(pt.error) : '') + '</div>';
+  } else if (pt.read_at) {
+    h += '<div class="plan-pricenote">達成プランの回数券は、スプシ「回数券価格表（ダッシュボード用）」の'
+       + '「達成プランに使う」がTRUEの行だけを使っています'
+       + '（' + pt.read_at + '読み込み・' + (pt.rows_used || 0) + '件／'
+       + (pt.brands || []).map(escHtml).join('・') + '）</div>';
+  } else {
+    h += '<div class="plan-pricenote ng">回数券の価格表がまだ入っていません。'
+       + 'データの更新（毎日15時台）のあとに出ます</div>';
+  }
+
+  h += '<div class="plan-baserow">'
+     + planBaseCard(PLAN_BASES[0], isOver, planCouponAvg(rows.length ? rows : filtered))
+     + planBaseCard(PLAN_BASES[1], isOver, planCouponAvg(rows.length ? rows : filtered))
+     + '</div>';
+
+  if (!rows.length) {
+    el.innerHTML = h + '<div class="page-ph"><p>この絞り込みでは対象の店がありません。</p></div>';
+    planSetMeta(mLabel, ela, 0, 0);
+    return;
+  }
+
+  const left  = rows.filter(function (r) { return r.new_land <= PLAN_NEW_SPLIT; })
+                    .sort(function (a, b) { return a.new_land - b.new_land; });
+  const right = rows.filter(function (r) { return r.new_land >  PLAN_NEW_SPLIT; })
+                    .sort(function (a, b) { return a.new_land - b.new_land; });
+  const cpAvg = planCouponAvg(rows.length ? rows : filtered);
+
+  h += '<p class="plan-colh">店舗（新規の着地が少ない順）。新規の着地が' + PLAN_NEW_SPLIT
+     + '名以下の店は左、' + (PLAN_NEW_SPLIT + 1) + '名以上の店は右に出ます'
+     + '（経過 ' + ela.used + '日／残り ' + ela.rest + '日・データの最終日 ' + (ela.last || '—') + '）</p>';
+  h += '<div class="plan-cols">'
+     + '<div class="plan-col">' + (left.length
+         ? left.map(function (r) { return planStoreCard(r, ela, cpAvg); }).join('')
+         : '<div class="page-ph"><p>新規' + PLAN_NEW_SPLIT + '名以下の店はありません。</p></div>') + '</div>'
+     + '<div class="plan-col">' + (right.length
+         ? right.map(function (r) { return planStoreCard(r, ela, cpAvg); }).join('')
+         : '<div class="page-ph"><p>新規' + (PLAN_NEW_SPLIT + 1) + '名以上の店はありません。</p></div>') + '</div>'
+     + '</div>';
+
+  el.innerHTML = h;
+  planSetMeta(mLabel, ela, rows.length, rows.filter(function (r) { return r.need > 0; }).length);
+}
+
+/** その画面の対象店の平均の新規クーポン単価（新規クーポン売上 ÷ 新規数） */
+function planCouponAvg(rows) {
+  let s = 0, n = 0;
+  (rows || []).forEach(function (r) { s += r.new_coupon_sales || 0; n += r.new_now || 0; });
+  return n > 0 ? s / n : 0;
+}
+
+function planSetMeta(mLabel, ela, nStores, nShort) {
+  const meta = document.getElementById('issuesMeta');
+  if (!meta) return;
+  meta.innerHTML = mLabel + '／経過 ' + ela.used + '日・残り <strong>' + ela.rest + '日</strong>'
+    + '　対象 ' + nStores + '店　<strong>契約が必要な店 ' + nShort + '店</strong>'
+    + (focusStore ? '　<strong>' + escHtml(dispName(focusStore)) + '</strong>'
+        + ' <span style="cursor:pointer;text-decoration:underline" onclick="clearFocusStore()">（全店に戻す）</span>' : '');
+}
+
+function switchPlanTab(k) { curPlanTab = k; renderPlanPage(); }
+function togglePlanShort() { planOnlyShort = !planOnlyShort; renderPlanPage(); }
+
+/** ②のサブタブ（今月の達成プラン／3か月の原因分析）を切り替える */
+function switchIssueSub(k) {
+  curIssueSub = (k === 'cause') ? 'cause' : 'plan';
+  renderIssuesView();
+}
+
+function renderIssuesView() {
+  const isPlan = (curIssueSub !== 'cause');
+  const tabs = document.getElementById('issueSubTabs');
+  if (tabs) {
+    tabs.querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-selected', String(b.dataset.isub === (isPlan ? 'plan' : 'cause')));
+    });
+  }
+  const pb = document.getElementById('planBody');
+  const ib = document.getElementById('issuesBody');
+  if (pb) pb.style.display = isPlan ? '' : 'none';
+  if (ib) ib.style.display = isPlan ? 'none' : '';
+  const title = document.querySelector('#issuesView .page-title');
+  if (title) title.textContent = isPlan ? '🔍 店舗の課題　今月の達成プラン' : '🔍 店舗の課題　3か月の原因分析';
+  if (isPlan) renderPlanPage();
+  else renderIssuesPage();
 }
 
 /* ===== ②店舗の課題ページの描画 ===== */
