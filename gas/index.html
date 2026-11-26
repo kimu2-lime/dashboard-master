@@ -613,6 +613,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-ser
 .plan-issue.ok{background:#e3f3e8;color:#1e7a3c}
 .plan-plan{background:#f7f7fc;border-radius:11px;padding:10px 13px}
 .plan-plan h5{margin:0 0 6px;font-size:12.5px;font-weight:800;color:#1a1a2e}
+.plan-plan h5 small{font-size:11px;font-weight:600;color:#8a8aa0;margin-left:6px}
 .plan-plan ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.85;color:#44445a}
 .plan-plan li.best{font-weight:800;color:#1a1a2e}
 .plan-plan small{color:#8a8aa0;font-weight:600}
@@ -8038,6 +8039,19 @@ function planIsDirect(store) {
   return (typeof detectBrand === 'function') && detectBrand(store) === BRAND_DIRECT;
 }
 
+/* ===== 1つの店に複数ブランドが入っている店 =====
+ *   達成プランに使う回数券を、店のブランド1つではなく、並べたブランドから出す。
+ *   ★店を足すときは、ここに1行足すだけ（店の略称 → 使うブランドの並び）。
+ *
+ *   （2026-11-27 依頼60：梅田・浦和は1つの店に LIME・Belle・Lift が入っている加盟店。
+ *     BMで管理していてブランド別に売上を分けられないので、
+ *     店の数字（売上・新規・契約）は店全体のまま、提案する回数券だけ Belle＋Lift から出す）
+ */
+const PLAN_BRAND_MIX = {
+  '梅田': ['Belle', 'Lift'],
+  '浦和': ['Belle', 'Lift']
+};
+
 /* ===== 回数券の価格表 ===== */
 function planPriceTable() {
   return (DATA && DATA.kaisuken_prices) || { by_brand: {}, brands: [], read_at: '', fallback: false, error: '' };
@@ -8045,6 +8059,35 @@ function planPriceTable() {
 function planTicketsOf(brand) {
   const t = planPriceTable().by_brand || {};
   return (brand && t[brand]) ? t[brand] : null;
+}
+
+/**
+ * その店の達成プランに使う回数券。
+ *   { list: 候補, brands: 使ったブランド, mixed: 複数ブランドか } ／ 無ければ null
+ *   複数ブランドの店は、どちらの券か分かるように名前の頭にブランド名を付ける。
+ */
+function planTicketsForStore(store, brand) {
+  const mix = PLAN_BRAND_MIX[store];
+  if (!mix || !mix.length) {
+    const one = planTicketsOf(brand);
+    return one ? { list: one, brands: [brand], mixed: false } : null;
+  }
+  const list = [], got = [];
+  mix.forEach(function (b) {
+    const t = planTicketsOf(b);
+    if (!t || !t.length) return;
+    got.push(b);
+    t.forEach(function (x) {
+      const c = {};
+      Object.keys(x).forEach(function (k) { c[k] = x[k]; });
+      c.name  = b + ' ' + x.name;     // 例「Belle スタンダード12回券」
+      c.brand = b;
+      list.push(c);
+    });
+  });
+  if (!list.length) return null;
+  list.sort(function (a, b2) { return a.price - b2.price; });
+  return { list: list, brands: got, mixed: true };
 }
 
 /* ===== 1店ぶんの数字をそろえる ===== */
@@ -8274,21 +8317,27 @@ function planStoreCard(r, el, couponAvg) {
 
   // ── 達成プラン（必要な契約売上 > 0 のときだけ）──
   if (!ok) {
-    const tickets = planTicketsOf(r.brand);
+    const tk = planTicketsForStore(r.store, r.brand);
+    const tickets = tk ? tk.list : null;
     if (!tickets) {
       // 価格表に無いブランド（直営・LINOなど）。回数券を当てずに、基準の単価で件数だけ出す
+      const want = (PLAN_BRAND_MIX[r.store] || [r.brand]).filter(function(x){ return x; });
+      const wantLabel = want.length ? want.map(escHtml).join('＋') : '不明';
       h += '<div class="plan-nopr">回数券の価格表が未登録です（ブランド：'
-         + escHtml(r.brand || '不明') + '）。スプシ「回数券価格表（ダッシュボード用）」に'
-         + escHtml(r.brand || 'このブランド') + 'の行を足すと、ここに達成プランが出ます'
+         + wantLabel + '）。スプシ「回数券価格表（ダッシュボード用）」に'
+         + wantLabel + 'の行を足すと、ここに達成プランが出ます'
          + '<br>目安：必要 ' + planMan(r.need) + ' ÷ 基準の契約単価 ' + planMan(r.base.unit)
          + ' ＝ <b>約' + Math.ceil(r.need / r.base.unit) + '件</b></div>';
     } else {
       const c = planCombos(r.need, tickets);
+      const from = tk.mixed
+        ? '<small>（' + tk.brands.map(escHtml).join('＋') + 'の回数券から）</small>' : '';
       if (!c) {
         h += '<div class="plan-nopr">回数券の組み合わせでは届きません（必要 ' + planMan(r.need)
            + '／1種類8件・2種類までで作れる上限を超えています）</div>';
       } else {
-        h += '<div class="plan-plan"><h5>残り' + el.rest + '日で、こう売れば' + planMan(r.target) + 'に届きます</h5><ol>'
+        h += '<div class="plan-plan"><h5>残り' + el.rest + '日で、こう売れば' + planMan(r.target)
+           + 'に届きます' + from + '</h5><ol>'
            + planComboHtml(c.best, 'いちばん少ない件数', true)
            + planComboHtml(c.mix,  '組み合わせ', false)
            + planComboHtml(c.low,  'いちばん安い回数券だけ', false)
@@ -8486,7 +8535,16 @@ function planCriteriaInner() {
      + '契約なしの着地＝今の売上 ＋ 契約以外の売上の1日あたり × 残り日数。'
      + '必要な契約売上＝目標 − 契約なしの着地（0未満なら0）。<br>'
      + '<b>直営店はこのページには出しません</b>（回数券の価格表に直営の行が無いため）。'
-     + '価格表に直営の行を足すと出るようになります。</div>';
+     + '価格表に直営の行を足すと出るようになります。<br>'
+     + (function () {
+         const ks = Object.keys(PLAN_BRAND_MIX);
+         if (!ks.length) return '';
+         return '1つの店に複数ブランドが入っている店は、並べたブランドの回数券を合わせて提案します：'
+              + ks.map(function (k) {
+                  return escHtml(dispName(k)) + '＝' + PLAN_BRAND_MIX[k].map(escHtml).join('＋');
+                }).join('、') + '。';
+       })()
+     + '</div>';
   return h;
 }
 
