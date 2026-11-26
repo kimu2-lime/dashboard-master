@@ -3550,11 +3550,19 @@ function buildTypeBar(){
 }
 
 /* ブランドバー構築（BRAND_REGISTRY + その他。店舗数0のブランドは非表示） */
+/* 今月の達成プランを見ているか（直営を隠す画面かどうか・依頼58） */
+function planTabActive(){
+  return (typeof issuesViewOpen === 'function') && issuesViewOpen()
+      && (typeof curIssueSub === 'undefined' || curIssueSub !== 'cause');
+}
+
 function buildBrandBar(){
   refreshBrandRegistry();
   const bar   = document.getElementById('brandBar');
   const inner = document.getElementById('brandBarInner');
   if(!bar||!inner) return;
+  // 達成プランの画面では直営を出さない（そのページには直営店を出さないため）
+  const hideDirect = planTabActive();
 
   // ブランド別の店舗数を集計（撤退店は除外し、選択中の担当者・店舗タイプに連動）
   const counts = {};
@@ -3564,6 +3572,7 @@ function buildBrandBar(){
     if(closed && String(curMonth) > String(closed)) return;
     if(curPerson!=='全店舗' && DATA.store_person && DATA.store_person[s]!==curPerson) return;
     if(curStoreType!=='全店舗' && DATA.store_type && DATA.store_type[s]!==curStoreType) return;
+    if(hideDirect && typeof planIsDirect === 'function' && planIsDirect(s)) return;
     const k = detectBrand(s);
     counts[k] = (counts[k]||0)+1;
     total++;
@@ -3571,6 +3580,7 @@ function buildBrandBar(){
 
   const items = [{ key:BRAND_ALL, label:'全ブランド', emoji:'🏪', color:'#667eea', count:total }];
   BRAND_REGISTRY.forEach(function(b){
+    if(hideDirect && b.key === BRAND_DIRECT) return;        // 達成プランでは直営を出さない
     if(!counts[b.key] && !isBrandSelected(b.key)) return;   // 該当0件は出さない（選択中は残す）
     items.push({ key:b.key, label:b.label, emoji:b.emoji, color:b.color, count:counts[b.key]||0 });
   });
@@ -7913,7 +7923,9 @@ function buildIssueBoard(month) {
  *  考え方（キム兄さん）：
  *    契約率がどうこうより、「なにがなんでも今月の目標を達成する」ために、
  *    残りの日数で必要な契約の件数と単価を、店ごとに絶対値で出す。
- *    「単価13万円の契約を7件取れば、あとは新規クーポン×新規数で達成できる」が基準。
+ *    「単価13万円の契約を8件取れば、あとは新規クーポン×新規数で達成できる」が基準。
+ *    （2026-11-27 依頼58：新規クーポン単価の実測が約4,400円で、7件では100万円に
+ *      届かなかったため、新規20名の契約数を7件→8件にした）
  *
  *  ★基準の数字は下の定数1か所だけで変える（他の場所には書かない）。
  *    回数券の名前と価格は data.json の kaisuken_prices（スプシ「回数券価格表
@@ -7922,7 +7934,7 @@ function buildIssueBoard(month) {
 const PLAN_TARGET   = { under: 1000000, over: 1500000 };   // オープン半年未満／以上の目標
 const PLAN_NEW_SPLIT = 20;        // 新規の着地見込みがこの人数以下なら左の列（新規20名の基準）
 const PLAN_BASES = [
-  { key:'n20', newStd:20, rate:35, count:7, countLabel:'7件',    unit:130000 },
+  { key:'n20', newStd:20, rate:35, count:8, countLabel:'8件',    unit:130000 },
   { key:'n25', newStd:25, rate:30, count:8, countLabel:'7〜8件', unit:130000 }
 ];
 // 半年以上のタブで足すもの（両方のカード共通）
@@ -8013,6 +8025,17 @@ function planMonthsSinceOpen(openYm, month) {
   return n > 0 ? n : null;
 }
 
+/* ===== 達成プランから外す店 =====
+ *   直営は回数券の価格表が別（表に行が無い）なので、今月の達成プランには出さない。
+ *   店舗カードにも出さず、タブの店数にも、クーポン単価の平均にも入れない。
+ *   サブタブ「3か月の原因分析」と、ほかのページの直営店の扱いは変えない。
+ *   （2026-11-27 依頼58）
+ */
+function planIsDirect(store) {
+  if (DATA.store_type && DATA.store_type[store] === '直営') return true;
+  return (typeof detectBrand === 'function') && detectBrand(store) === BRAND_DIRECT;
+}
+
 /* ===== 回数券の価格表 ===== */
 function planPriceTable() {
   return (DATA && DATA.kaisuken_prices) || { by_brand: {}, brands: [], read_at: '', fallback: false, error: '' };
@@ -8080,6 +8103,7 @@ function planRowsAll(month) {
   (DATA.stores || []).forEach(function (store) {
     const closed = DATA.store_closed_month && DATA.store_closed_month[store];
     if (closed && String(month) > String(closed)) return;
+    if (planIsDirect(store)) return;          // 直営は達成プランには出さない（依頼58）
     const r = planRowOf(store, month, el);
     if (r) out.push(r);
   });
@@ -8322,7 +8346,7 @@ function renderPlanPage() {
 
   // ── 絞り込み（ブランド・担当SVは画面上のバーを使う）──
   h += '<div class="plan-filters">'
-     + '<span>ブランドと担当SVは画面の上のバーで切り替えます</span>'
+     + '<span>ブランドと担当SVは画面の上のバーで切り替えます（直営店はこのページには出ません）</span>'
      + '<button class="plan-chip" aria-pressed="' + planOnlyShort + '" onclick="togglePlanShort()">未達の見込みだけ</button>'
      + '</div>';
 
@@ -8402,6 +8426,11 @@ function switchIssueSub(k) {
 
 function renderIssuesView() {
   const isPlan = (curIssueSub !== 'cause');
+  // 直営を選んだまま達成プランに来ると1店も出なくなるので、選択から外す（依頼58）
+  if (isPlan && typeof curBrands !== 'undefined') {
+    const i = curBrands.indexOf(BRAND_DIRECT);
+    if (i >= 0) curBrands.splice(i, 1);
+  }
   const tabs = document.getElementById('issueSubTabs');
   if (tabs) {
     tabs.querySelectorAll('button').forEach(function (b) {
@@ -8414,8 +8443,49 @@ function renderIssuesView() {
   if (ib) ib.style.display = isPlan ? 'none' : '';
   const title = document.querySelector('#issuesView .page-title');
   if (title) title.textContent = isPlan ? '🔍 店舗の課題　今月の達成プラン' : '🔍 店舗の課題　3か月の原因分析';
+  // ブランドバーから「直営」を出し入れする（達成プランのときだけ隠す）
+  try { if (typeof buildBrandBar === 'function') buildBrandBar(); } catch (e) {}
   if (isPlan) renderPlanPage();
   else renderIssuesPage();
+}
+
+/** ⑤判定の基準のページに出す「今月の達成プラン」の基準（定数から作る） */
+function planCriteriaInner() {
+  const cp = planRound1000(planCouponAvg(planRowsAll(curMonth).rows));
+  let h = '<table class="crit-table crit-formula"><tbody>'
+        + '<tr><td>目標</td><td>オープン半年未満 <b>' + planMan(PLAN_TARGET.under) + '</b>'
+          + ' ／ 半年以上 <b>' + planMan(PLAN_TARGET.over) + '</b></td>'
+          + '<td>今月を含めて' + PLAN_OPEN_MONTHS + 'か月目までが「半年未満」</td></tr>';
+  PLAN_BASES.forEach(function (b) {
+    h += '<tr><td>新規' + b.newStd + '名の基準</td>'
+       + '<td>契約率 <b>' + b.rate + '%</b>／契約数 <b>' + b.countLabel + '</b>'
+       + '／契約単価 <b>' + planMan(b.unit) + '</b></td>'
+       + '<td>新規の着地見込みが'
+       + (b.newStd <= PLAN_NEW_SPLIT ? PLAN_NEW_SPLIT + '名以下' : (PLAN_NEW_SPLIT + 1) + '名以上')
+       + 'の店に当てる</td></tr>';
+  });
+  h += '<tr><td>半年以上に足すもの</td>'
+     + '<td>継続契約率 <b>' + PLAN_OVER.keizokuRate + '%</b>／継続契約数 <b>' + PLAN_OVER.keizokuCount + '件</b>'
+     + '／継続単価 <b>' + planMan(PLAN_OVER.keizokuUnit) + '</b>'
+     + '／オプション・物販 <b>' + planMan(PLAN_OVER.opBuppan) + '</b></td>'
+     + '<td>回数券の消化が終わって継続のお客様が出てくるため</td></tr>'
+     + '<tr><td>新規クーポン単価</td><td><b>' + planYen(cp) + '</b></td>'
+     + '<td>今の画面の対象店の実績（新規クーポン売上 ÷ 新規数）を千円単位に丸めたもの</td></tr>'
+     + '<tr><td>進み具合の印</td>'
+     + '<td>契約なしの着地 ≧ 目標＝到達ペース／' + Math.round(PLAN_ALMOST_RATIO * 100) + '%以上＝あと少し／'
+     + 'それ未満＝要対策</td><td>—</td></tr>'
+     + '<tr><td>達成プランの組み方</td>'
+     + '<td>回数券は' + PLAN_KINDS_MAX + '種類まで、1種類あたり' + PLAN_MAX_PER_KIND + '件まで</td>'
+     + '<td>スプシ「回数券価格表（ダッシュボード用）」の「達成プランに使う」がTRUEの行だけ</td></tr>'
+     + '</tbody></table>';
+  h += '<div class="crit-sec crit-note">'
+     + '経過日数は、データの最終日（全店の last_date の最大）までの暦の日数。残り＝月の日数 − 経過日数。<br>'
+     + '契約以外の売上＝店舗売上 − 回数券契約時売上。'
+     + '契約なしの着地＝今の売上 ＋ 契約以外の売上の1日あたり × 残り日数。'
+     + '必要な契約売上＝目標 − 契約なしの着地（0未満なら0）。<br>'
+     + '<b>直営店はこのページには出しません</b>（回数券の価格表に直営の行が無いため）。'
+     + '価格表に直営の行を足すと出るようになります。</div>';
+  return h;
 }
 
 /* ===== ②店舗の課題ページの描画 ===== */
@@ -8971,6 +9041,10 @@ function renderManualPage() {
      + '<span class="crit-page-sub">各タブのⓘ欄と同じ数字です。同じ計算から出しています</span></div>';
   h += '<div class="crit-page-sec"><div class="crit-page-title">🔍 店舗の課題（②）</div>'
      + (board ? issueCriteriaInner(board) : '<div class="crit-sec">計算できませんでした</div>') + '</div>';
+  h += '<div class="crit-page-sec"><div class="crit-page-title">🎯 今月の達成プラン（②）</div>'
+     + (function(){ try { return planCriteriaInner(); }
+                    catch(e){ return '<div class="crit-sec">計算できませんでした</div>'; } })()
+     + '</div>';
   h += '<div class="crit-page-sec"><div class="crit-page-title">📅 週次の進捗（③）</div>'
      + trkCriteriaInner(month, weeks) + '</div>';
   h += '<div class="crit-page-sec"><div class="crit-page-title">🧾 会計の分け方（依頼52a）</div>'
