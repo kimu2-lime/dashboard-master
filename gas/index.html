@@ -8052,6 +8052,31 @@ const PLAN_BRAND_MIX = {
   '浦和': ['Belle', 'Lift']
 };
 
+/* ===== 達成プランの中心にする回数（依頼62）=====
+ *   実際に売れそうな単価の券で組み立てる。18回・24回・3回の券は案に出さない。
+ *   ★ブランドごとに変えたいときは、ここに1行足すだけ（書いていないブランドは default）。
+ *   Liftは6回・12回の券が無いので、近い8回・16回を使う。
+ *
+ *   例外：この回数だけでは届かない（2種類×各8件まで組んでも足りない）ときだけ、
+ *   ほかのTRUEの回数も使い、「6回・12回では届かないため」と画面に出す。
+ */
+const PLAN_MAIN_COUNTS = { default: [6, 12], Lift: [8, 16] };
+
+/** そのブランドの「中心にする回数」（小さい方・大きい方の順） */
+function planMainCountsOf(brand) {
+  const m = PLAN_MAIN_COUNTS[brand] || PLAN_MAIN_COUNTS.default;
+  return m.slice().sort(function (a, b) { return a - b; });
+}
+
+/** その券が「6回券の側（small）」か「12回券の側（large）」か。どちらでもなければ '' */
+function planTicketTier(t) {
+  const m = planMainCountsOf(t && t.brand);
+  if (!t || m.length < 2) return '';
+  if (t.times === m[0]) return 'small';
+  if (t.times === m[1]) return 'large';
+  return '';
+}
+
 /* ===== 回数券の価格表 ===== */
 function planPriceTable() {
   return (DATA && DATA.kaisuken_prices) || { by_brand: {}, brands: [], read_at: '', fallback: false, error: '' };
@@ -8067,23 +8092,26 @@ function planTicketsOf(brand) {
  *   複数ブランドの店は、どちらの券か分かるように名前の頭にブランド名を付ける。
  */
 function planTicketsForStore(store, brand) {
+  const copy = function (x, b, withName) {
+    const c = {};
+    Object.keys(x).forEach(function (k) { c[k] = x[k]; });
+    c.brand = b;                       // どの回数を中心にするかの判定に使う
+    if (withName) c.name = b + ' ' + x.name;   // 例「Belle スタンダード12回券」
+    return c;
+  };
   const mix = PLAN_BRAND_MIX[store];
   if (!mix || !mix.length) {
     const one = planTicketsOf(brand);
-    return one ? { list: one, brands: [brand], mixed: false } : null;
+    if (!one) return null;
+    return { list: one.map(function (x) { return copy(x, brand, false); }),
+             brands: [brand], mixed: false };
   }
   const list = [], got = [];
   mix.forEach(function (b) {
     const t = planTicketsOf(b);
     if (!t || !t.length) return;
     got.push(b);
-    t.forEach(function (x) {
-      const c = {};
-      Object.keys(x).forEach(function (k) { c[k] = x[k]; });
-      c.name  = b + ' ' + x.name;     // 例「Belle スタンダード12回券」
-      c.brand = b;
-      list.push(c);
-    });
+    t.forEach(function (x) { list.push(copy(x, b, true)); });
   });
   if (!list.length) return null;
   list.sort(function (a, b2) { return a.price - b2.price; });
@@ -8155,26 +8183,27 @@ function planRowsAll(month) {
   return { el: el, rows: out };
 }
 
-/* ===== 達成プラン：回数券の組み合わせ =====
- *   案1 … 件数がいちばん少ない組み合わせ（同じ件数なら合計が小さい方）
- *   案2 … 案1より1件多く、2種類の回数券を組み合わせたもの（合計が小さい方）
- *   案3 … いちばん安い回数券だけ（8件までに届かないときは、届く中でいちばん安いもの）
- *   ・1種類あたり最大8件、種類は2つまで
- *   ・ふつうの券と物販付きが同じ件数・ほぼ同じ合計で並ぶときは、ふつうの券を先に出す
+/* ===== 達成プラン：回数券の組み合わせ（依頼62で組み直し）=====
+ *   案1 … 12回券中心（Liftは16回）。大きい方の回数だけで、いちばん少ない件数
+ *   案2 … 12回と6回の組み合わせ（Liftは16回と8回）。1種類ずつで、合計がいちばん小さいもの
+ *   案3 … 6回券中心（Liftは8回）。小さい方の回数だけで、いちばん少ない件数
+ *   ・1つの案に入る券は1種類か2種類まで、1種類あたり最大8件まで
+ *   ・ふつうの券と物販付きが同じ件数・同じ合計で並ぶときは、ふつうの券を先に出す
+ *   ・同じ組み合わせが2つの案に重なったら、重ねずに次に良いものを出す
+ *   ・6回・12回だけでは届かないときだけ、ほかのTRUEの回数も使う（fallback=true）
  */
-function planCombos(need, tickets) {
-  if (!(need > 0) || !tickets || !tickets.length) return null;
-  const mk = function (parts) {
-    let n = 0, sum = 0, bp = 0;
-    parts.forEach(function (p) { n += p.count; sum += p.t.price * p.count; if (p.t.buppan) bp += p.count; });
-    return { parts: parts, n: n, sum: sum, buppan: bp };
-  };
-  // 同じ件数なら合計が小さい方、それも同じならふつうの券（物販付きでない）を先に
-  const cmp = function (a, b) { return (a.n - b.n) || (a.sum - b.sum) || (a.buppan - b.buppan); };
-  const ones = [], twos = [];
+function planMk_(parts) {
+  let n = 0, sum = 0, bp = 0;
+  parts.forEach(function (p) { n += p.count; sum += p.t.price * p.count; if (p.t.buppan) bp += p.count; });
+  return { parts: parts, n: n, sum: sum, buppan: bp };
+}
+/** 候補から、合計が need 以上になる組み合わせを作る（1〜2種類・1種類8件まで） */
+function planBuild_(need, tickets) {
+  const out = [];
+  if (!tickets || !tickets.length) return out;
   for (let i = 0; i < tickets.length; i++) {
     const a = Math.ceil(need / tickets[i].price);
-    if (a >= 1 && a <= PLAN_MAX_PER_KIND) ones.push(mk([{ t: tickets[i], count: a }]));
+    if (a >= 1 && a <= PLAN_MAX_PER_KIND) out.push(planMk_([{ t: tickets[i], count: a }]));
   }
   if (PLAN_KINDS_MAX >= 2) {
     for (let i = 0; i < tickets.length; i++) {
@@ -8184,20 +8213,88 @@ function planCombos(need, tickets) {
           let b = rest > 0 ? Math.ceil(rest / tickets[j].price) : 1;
           if (b < 1) b = 1;
           if (b > PLAN_MAX_PER_KIND) continue;
-          twos.push(mk([{ t: tickets[i], count: a }, { t: tickets[j], count: b }]));
+          out.push(planMk_([{ t: tickets[i], count: a }, { t: tickets[j], count: b }]));
         }
       }
     }
   }
-  const all = ones.concat(twos);
+  return out;
+}
+/** 大きい回数1種類＋小さい回数1種類の組み合わせだけを作る */
+function planBuildPair_(need, larges, smalls) {
+  const out = [];
+  (larges || []).forEach(function (L) {
+    (smalls || []).forEach(function (S) {
+      for (let a = 1; a <= PLAN_MAX_PER_KIND; a++) {
+        const rest = need - L.price * a;
+        let b = rest > 0 ? Math.ceil(rest / S.price) : 1;
+        if (b < 1) b = 1;
+        if (b > PLAN_MAX_PER_KIND) continue;
+        out.push(planMk_([{ t: L, count: a }, { t: S, count: b }]));
+      }
+    });
+  });
+  return out;
+}
+function planUniq_(arr) {
+  const seen = {}, out = [];
+  arr.forEach(function (v) { if (!seen[v]) { seen[v] = 1; out.push(v); } });
+  return out;
+}
+
+function planCombos(need, tickets) {
+  if (!(need > 0) || !tickets || !tickets.length) return null;
+  const byCount = function (a, b) { return (a.n - b.n) || (a.sum - b.sum) || (a.buppan - b.buppan); };
+  const bySum   = function (a, b) { return (a.sum - b.sum) || (a.n - b.n) || (a.buppan - b.buppan); };
+  const used = {};
+  const sig = function (o) {
+    return o.parts.map(function (p) { return p.t.name + '*' + p.count; }).sort().join('|');
+  };
+  const pick = function (list, cmp) {
+    const ranked = (list || []).slice().sort(cmp);
+    for (let i = 0; i < ranked.length; i++) {
+      const k = sig(ranked[i]);
+      if (!used[k]) { used[k] = 1; return ranked[i]; }
+    }
+    return null;
+  };
+
+  const large = tickets.filter(function (t) { return planTicketTier(t) === 'large'; });
+  const small = tickets.filter(function (t) { return planTicketTier(t) === 'small'; });
+  const lc = planUniq_(large.map(function (t) { return t.times; }).sort(function (a, b) { return a - b; }));
+  const sc = planUniq_(small.map(function (t) { return t.times; }).sort(function (a, b) { return a - b; }));
+
+  // 中心の回数（6回・12回）だけで届くか
+  if (planBuild_(need, large.concat(small)).length) {
+    const a1 = pick(planBuild_(need, large), byCount);
+    const a2 = pick(planBuildPair_(need, large, small), bySum);
+    const a3 = pick(planBuild_(need, small), byCount);
+    return {
+      fallback: false,
+      items: [
+        { o: a1, label: lc.join('・') + '回券中心' },
+        { o: a2, label: lc.join('・') + '回と' + sc.join('・') + '回の組み合わせ' },
+        { o: a3, label: sc.join('・') + '回券中心' }
+      ].filter(function (x) { return !!x.o; })
+    };
+  }
+
+  // 届かないので、ほかのTRUEの回数も使う（依頼57の作り方に戻す）
+  const all = planBuild_(need, tickets);
   if (!all.length) return null;
-  const best = all.slice().sort(cmp)[0];
-  const mix  = twos.filter(function (o) { return o.n === best.n + 1; }).sort(cmp)[0] || null;
-  // いちばん安い回数券だけ（届くものの中で1枚の価格がいちばん安いもの）
-  const low  = ones.slice().sort(function (a, b) {
+  const b1 = pick(all, byCount);
+  const b2 = pick(all.filter(function (o) { return o.parts.length === 2 && b1 && o.n === b1.n + 1; }), bySum);
+  const b3 = pick(all.filter(function (o) { return o.parts.length === 1; }), function (a, b) {
     return (a.parts[0].t.price - b.parts[0].t.price) || (a.n - b.n) || (a.buppan - b.buppan);
-  })[0] || null;
-  return { best: best, mix: mix, low: low, max: all.slice().sort(function(a,b){ return b.sum - a.sum; })[0] };
+  });
+  return {
+    fallback: true,
+    items: [
+      { o: b1, label: 'いちばん少ない件数' },
+      { o: b2, label: '組み合わせ' },
+      { o: b3, label: 'いちばん安い回数券だけ' }
+    ].filter(function (x) { return !!x.o; })
+  };
 }
 
 function planComboHtml(o, label, isBest) {
@@ -8330,17 +8427,15 @@ function planStoreCard(r, el, couponAvg) {
          + ' ＝ <b>約' + Math.ceil(r.need / r.base.unit) + '件</b></div>';
     } else {
       const c = planCombos(r.need, tickets);
-      const from = tk.mixed
-        ? '<small>（' + tk.brands.map(escHtml).join('＋') + 'の回数券から）</small>' : '';
+      const from = (tk.mixed ? '（' + tk.brands.map(escHtml).join('＋') + 'の回数券から）' : '')
+                 + ((c && c.fallback) ? '（6回・12回では届かないため、ほかの回数も使っています）' : '');
       if (!c) {
         h += '<div class="plan-nopr">回数券の組み合わせでは届きません（必要 ' + planMan(r.need)
            + '／1種類8件・2種類までで作れる上限を超えています）</div>';
       } else {
         h += '<div class="plan-plan"><h5>残り' + el.rest + '日で、こう売れば' + planMan(r.target)
-           + 'に届きます' + from + '</h5><ol>'
-           + planComboHtml(c.best, 'いちばん少ない件数', true)
-           + planComboHtml(c.mix,  '組み合わせ', false)
-           + planComboHtml(c.low,  'いちばん安い回数券だけ', false)
+           + 'に届きます' + (from ? '<small>' + from + '</small>' : '') + '</h5><ol>'
+           + c.items.map(function (x, i) { return planComboHtml(x.o, x.label, i === 0); }).join('')
            + '</ol>';
         if (r.is_over) {
           const k = Math.min(PLAN_KEIZOKU_MAX, Math.ceil(r.need / PLAN_OVER.keizokuUnit));
@@ -8526,8 +8621,16 @@ function planCriteriaInner() {
      + '<td>契約なしの着地 ≧ 目標＝到達ペース／' + Math.round(PLAN_ALMOST_RATIO * 100) + '%以上＝あと少し／'
      + 'それ未満＝要対策</td><td>—</td></tr>'
      + '<tr><td>達成プランの組み方</td>'
-     + '<td>回数券は' + PLAN_KINDS_MAX + '種類まで、1種類あたり' + PLAN_MAX_PER_KIND + '件まで</td>'
+     + '<td>回数券は' + PLAN_KINDS_MAX + '種類まで、1種類あたり' + PLAN_MAX_PER_KIND + '件まで。'
+     + '案1＝12回券中心／案2＝12回と6回の組み合わせ／案3＝6回券中心</td>'
      + '<td>スプシ「回数券価格表（ダッシュボード用）」の「達成プランに使う」がTRUEの行だけ</td></tr>'
+     + '<tr><td>案に使う回数</td>'
+     + '<td>' + Object.keys(PLAN_MAIN_COUNTS).map(function (k) {
+           return (k === 'default' ? 'ほかのブランド' : escHtml(k)) + '＝'
+                + PLAN_MAIN_COUNTS[k].join('回・') + '回';
+         }).join('／') + '</td>'
+     + '<td>実際に売れそうな単価にするため。18回・24回・3回の券は案に出しません'
+     + '（この回数だけでは届かないときだけ使い、画面にそう書きます）</td></tr>'
      + '</tbody></table>';
   h += '<div class="crit-sec crit-note">'
      + '経過日数は、データの最終日（全店の last_date の最大）までの暦の日数。残り＝月の日数 − 経過日数。<br>'
